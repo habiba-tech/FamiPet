@@ -1,0 +1,239 @@
+/* =========================================================
+   PETID.CSS — ported from the <style> block in frontend/
+   pages/pet-id.html, scoped under `.petid-page`.
+   pet-id.html loaded mypet.css + this inline block; the React
+   PetIdPage root carries both `mypet-page petid-page`, so the
+   scoped mypet.css rules (header/buttons/panels) apply too.
+   Imported AFTER mypet.css — `.petid-page .btn-pink` must beat
+   `.mypet-page .btn-pink` (same specificity, later wins).
+   ========================================================= */
+
+.petid-page .petid-layout {
+    display: grid;
+    gap: 1.5rem;
+    margin-top: 1.25rem;
+}
+
+@media (min-width: 900px) {
+    .petid-page .petid-layout {
+        grid-template-columns: 340px 1fr;
+        align-items: start;
+    }
+}
+
+.petid-page .petid-panel {
+    background: #fff;
+    border: 1px solid #f1eff5;
+    border-radius: 20px;
+    padding: 1.4rem;
+    box-shadow: 0 4px 14px rgba(244, 63, 94, 0.06);
+}
+
+.petid-page .petid-panel h3 {
+    font-size: 0.95rem;
+    color: #1e293b;
+    margin-bottom: 1rem;
+}
+
+.petid-page .petid-select-wrap label {
+    display: block;
+    font-size: 0.8rem;
+    color: #64748b;
+    margin-bottom: 0.4rem;
+}
+
+.petid-page .petid-select-wrap select {
+    width: 100%;
+    padding: 0.7rem 0.9rem;
+    border: 1px solid #ffe0e7;
+    border-radius: 12px;
+    font-size: 0.9rem;
+    color: #1e293b;
+    background: #fff;
+    outline: none;
+}
+
+.petid-page .petid-preview {
+    margin-top: 1.1rem;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 0.9rem;
+    border-radius: 16px;
+    background: #fff6f7;
+}
+
+.petid-page .petid-preview img {
+    width: 78px;
+    height: 78px;
+    border-radius: 14px;
+    object-fit: cover;
+}
+
+.petid-page .petid-preview h4 {
+    font-size: 1rem;
+    color: #1e293b;
+}
+
+.petid-page .petid-preview p {
+    font-size: 0.8rem;
+    color: #8a96a8;
+    margin-top: 0.2rem;
+    text-transform: capitalize;
+}
+
+.petid-page .btn-pink {
+    width: 100%;
+    margin-top: 1.1rem;
+    padding: 0.8rem;
+    border: none;
+    border-radius: 50px;
+    background: #ff5c8a;
+    color: #fff;
+    font-weight: 700;
+    font-size: 0.9rem;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    transition: background 0.2s;
+}
+
+.petid-page .btn-pink:hover {
+    background: #f43f5e;
+}
+
+.petid-page .btn-pink:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.petid-page .id-card {
+    background: linear-gradient(135deg, #fff1f4 0%, #ffffff 45%, #ffe9ef 100%);
+    border: 1px solid #ffe0e7;
+    border-radius: 24px;
+    overflow: hidden;
+    box-shadow: 0 12px 30px rgba(244, 63, 94, 0.14);
+    max-width: 460px;
+}
+
+.petid-page .id-card-head {
+    padding: 1.2rem 1.4rem;
+    background: #ff5c8a;
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.petid-page .id-card-head h3 {
+    font-size: 1rem;
+    letter-spacing: 0.5px;
+    margin: 0;
+    color: #fff;
+}
+
+.petid-page .id-card-head .brand-logo {
+    width: 34px;
+    height: 34px;
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.1rem;
+}
+
+.petid-page .id-card-body {
+    padding: 1.4rem;
+    display: flex;
+    gap: 1.2rem;
+    align-items: center;
+}
+
+.petid-page .id-card-photo {
+    width: 104px;
+    height: 104px;
+    border-radius: 18px;
+    object-fit: cover;
+    border: 3px solid #fff;
+    box-shadow: 0 6px 16px rgba(244, 63, 94, 0.18);
+}
+
+.petid-page .id-card-info {
+    flex: 1;
+}
+
+.petid-page .id-card-info h2 {
+    font-size: 1.25rem;
+    color: #1e293b;
+}
+
+.petid-page .id-card-info p {
+    font-size: 0.82rem;
+    color: #64748b;
+    margin-top: 0.3rem;
+    text-transform: capitalize;
+}
+
+.petid-page .id-card-info .id-row {
+    margin-top: 0.7rem;
+    font-size: 0.78rem;
+    color: #64748b;
+    display: grid;
+    grid-template-columns: auto auto;
+    gap: 0.25rem 1rem;
+    justify-content: start;
+}
+
+.petid-page .id-card-info .id-row strong {
+    color: #1e293b;
+}
+
+.petid-page .id-card-qr {
+    text-align: center;
+    padding: 1.4rem 1.4rem 1.6rem;
+    border-top: 1px dashed #ffd6e0;
+}
+
+.petid-page .id-card-qr img {
+    width: 148px;
+    height: 148px;
+    border-radius: 14px;
+    background: #fff;
+    padding: 0.4rem;
+    border: 1px solid #ffe0e7;
+}
+
+.petid-page .id-card-qr small {
+    display: block;
+    margin-top: 0.6rem;
+    color: #8a96a8;
+    font-size: 0.72rem;
+}
+
+.petid-page .petid-loading,
+.petid-page .petid-empty {
+    text-align: center;
+    padding: 50px 20px;
+    background: #fff;
+    border-radius: 20px;
+    color: #8a96a8;
+}
+
+.petid-page .petid-loading i,
+.petid-page .petid-empty i {
+    font-size: 40px;
+    color: #ff4d6d;
+    margin-bottom: 12px;
+}
+
+/* ponytail: dark mode unsupported for the Pet ID card by design — the ID
+   card is a printed/downloadable artifact and stays on its white/rose
+   surface like Vanilla. */
+body.dark-theme .petid-page .id-card,
+body.dark-theme .petid-page .petid-panel,
+body.dark-theme .petid-page .petid-preview {
+    background: #ffffff !important;
+}

@@ -7,6 +7,8 @@
 @import './admin.css';
 @import './login.css';
 @import './signup.css';
+@import './mypet.css';
+@import './petid.css';
 
 /* =========================================================
    GLOBAL DESIGN TOKENS — mirrors docs/design.md §1.1
