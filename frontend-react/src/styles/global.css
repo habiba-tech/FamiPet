@@ -4,6 +4,8 @@
 @import './footer.css';
 @import './sidebar.css';
 @import './admin.css';
+@import './login.css';
+@import './signup.css';
 
 /* =========================================================
    GLOBAL DESIGN TOKENS — mirrors docs/design.md §1.1

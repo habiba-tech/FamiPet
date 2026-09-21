@@ -3,9 +3,14 @@ import { AdminLayout } from '../layouts/AdminLayout'
 import { AppLayout } from '../layouts/AppLayout'
 import { AuthLayout } from '../layouts/AuthLayout'
 import { LandingLayout } from '../layouts/LandingLayout'
+import { ForgotPasswordPage } from '../pages/auth/ForgotPasswordPage'
+import { LoginPage } from '../pages/auth/LoginPage'
+import { ResetPasswordPage } from '../pages/auth/ResetPasswordPage'
+import { SignupPage } from '../pages/auth/SignupPage'
+import { VerifyEmailPage } from '../pages/auth/VerifyEmailPage'
 import { PageStub } from '../pages/_stub/PageStub'
 import { NotFound } from '../pages/NotFound'
-import { RequireAdmin, RequireAuth } from './guards'
+import { RedirectIfAuthed, RequireAdmin, RequireAuth } from './guards'
 
 // Route table follows migration.md §4 (Page Organization) — a 1:1 mirror of
 // the Vanilla page inventory. Stub pages are swapped for real page components
@@ -20,13 +25,17 @@ export const routes: RouteObject[] = [
 
   // ── Auth (includes email deep links) ───────────────────────
   {
-    element: <AuthLayout />,
+    element: (
+      <RedirectIfAuthed>
+        <AuthLayout />
+      </RedirectIfAuthed>
+    ),
     children: [
-      { path: '/login', element: <PageStub title="Login" /> },
-      { path: '/signup', element: <PageStub title="Sign Up" /> },
-      { path: '/forgot-password', element: <PageStub title="Forgot Password" /> },
-      { path: '/reset-password/:token', element: <PageStub title="Reset Password" /> },
-      { path: '/verify-email/:token', element: <PageStub title="Verify Email" /> },
+      { path: '/login', element: <LoginPage /> },
+      { path: '/signup', element: <SignupPage /> },
+      { path: '/forgot-password', element: <ForgotPasswordPage /> },
+      { path: '/reset-password/:token', element: <ResetPasswordPage /> },
+      { path: '/verify-email/:token', element: <VerifyEmailPage /> },
     ],
   },
 

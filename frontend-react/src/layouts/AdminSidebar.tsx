@@ -1,4 +1,5 @@
 import { Link, useLocation, useNavigate } from 'react-router-dom'
+import { useAuth } from '../hooks/useAuth'
 
 // Parity with frontend/admin/js/admin.js: sidebar brand, nav (FA icons), and
 // the foot links (Back to App + Logout). Pages render their own topbar + cards
@@ -16,10 +17,10 @@ const NAV_ITEMS = [
 export function AdminSidebar() {
   const navigate = useNavigate()
   const { pathname } = useLocation()
+  const { logout } = useAuth()
 
-  const logout = () => {
-    localStorage.clear()
-    sessionStorage.clear()
+  const logout2 = () => {
+    logout()
     navigate('/login')
   }
 
@@ -46,7 +47,7 @@ export function AdminSidebar() {
           Back to App
         </Link>
 
-        <a href="#" id="adminLogout" onClick={(e) => { e.preventDefault(); logout() }}>
+        <a href="#" id="adminLogout" onClick={(e) => { e.preventDefault(); logout2() }}>
           <i className="fa-solid fa-right-from-bracket" />
           Logout
         </a>

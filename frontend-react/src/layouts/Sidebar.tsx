@@ -1,11 +1,14 @@
-import { useLayoutEffect } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
+import { useAuth } from '../hooks/useAuth'
+import { useLayoutEffect } from 'react'
 
 // Parity with frontend/js/sidebar.js + sidebar.css: builds the universal app
 // sidebar (brand, nav, pet decoration, profile), highlights the active page by
 // path, toggles the mobile off-canvas state via `body.sidebar-open`, and
-// navigates on profile/Logout clicks. Auth data (apiUser/annProfile) lands in
-// Phase 7/23; until then the default profile renders as in Vanilla.
+// navigates on profile/Logout clicks. Auth data comes from the AuthContext
+// (Phase 7); the Admin Panel item renders only for admins and logout goes
+// through the shared auth logout (which keeps the theme, unlike
+// localStorage.clear).
 
 interface NavItem {
   page: string
@@ -30,7 +33,8 @@ const NAV_ITEMS: NavItem[] = [
   { page: 'breeds', label: 'Pet Breeds', icon: 'paw-print', to: '/app/breeds' },
   { page: 'pet-id', label: 'Pet ID', icon: 'qrcode', to: '/app/pet-id', end: true },
   { page: 'settings', label: 'Settings', icon: 'settings', to: '/app/settings', end: true },
-  // ponytail: Admin Panel shows unconditionally until auth gates it (Phase 7/23).
+  // ponytail: admin route group is mounted only when `isAdmin`, so the panel
+  // is gated by the backend role (RequireAdmin) rather than by hiding the link.
   { page: 'admin', label: 'Admin Panel', icon: 'shield', to: '/app/admin' },
 ]
 
@@ -47,31 +51,23 @@ function getInitials(name: string) {
     .join('')
 }
 
-function getSavedProfile() {
-  try {
-    const saved = localStorage.getItem('annProfile')
-    if (saved) {
-      return { ...DEFAULT_PROFILE, ...JSON.parse(saved) }
-    }
-  } catch {
-    // fall through to defaults, as in sidebar.js
-  }
-  return { ...DEFAULT_PROFILE }
-}
-
 export function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
   const navigate = useNavigate()
   const { pathname } = useLocation()
-  const profile = getSavedProfile()
+  const { user, logout } = useAuth()
+
+  const profileName = user?.name || DEFAULT_PROFILE.name
+  const profileRole = user?.role === 'admin' ? 'Admin' : DEFAULT_PROFILE.role
+  const profileImage = user?.avatar || ''
+  const navItems = user?.role === 'admin' ? NAV_ITEMS : NAV_ITEMS.filter((i) => i.page !== 'admin')
 
   // Lucide replaces `<i data-lucide>` with inline SVGs (same as sidebar.js).
   useLayoutEffect(() => {
     window.lucide?.createIcons()
   })
 
-  const logout = () => {
-    localStorage.clear()
-    sessionStorage.clear()
+  const logout2 = () => {
+    logout()
     navigate('/login')
   }
 
@@ -92,7 +88,7 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
       </div>
 
       <nav className="sidebar-nav">
-        {NAV_ITEMS.map((item) => (
+        {navItems.map((item) => (
           <Link
             key={item.page}
             to={item.to}
@@ -105,7 +101,7 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
           </Link>
         ))}
 
-        <a href="#" className="ann-nav-item" id="sidebarLogout" onClick={(e) => { e.preventDefault(); logout() }}>
+        <a href="#" className="ann-nav-item" id="sidebarLogout" onClick={(e) => { e.preventDefault(); logout2() }}>
           <i data-lucide="log-out" />
           <span>Logout</span>
         </a>
@@ -117,12 +113,16 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
 
       <button type="button" className="sidebar-profile" id="sidebarProfile" onClick={() => navigate('/app/settings')}>
         <div className="profile-avatar" id="sidebarAvatar">
-          <span className="profile-initials">{getInitials(profile.name)}</span>
+          {profileImage ? (
+            <img src={profileImage} alt={profileName} />
+          ) : (
+            <span className="profile-initials">{getInitials(profileName)}</span>
+          )}
         </div>
 
         <div className="profile-info">
-          <strong>{profile.name}</strong>
-          <span>{profile.role}</span>
+          <strong>{profileName}</strong>
+          <span>{profileRole}</span>
         </div>
 
         <i data-lucide="chevron-down" className="profile-arrow" />

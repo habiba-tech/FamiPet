@@ -1,0 +1,578 @@
+/* ==========================================
+        GLOBAL VARIABLES & RESETS
+========================================== */
+:root {
+    --primary: #FF5C8A;
+    --primary-light: #FFEAF2;
+    --secondary: #4AA8FF;
+    --secondary-light: #EAF6FF;
+    --text-dark: #3F2519;
+    --text-light:#6B7280;
+    --transition: all 0.3s ease;
+}
+
+/* Scoped to auth pages (Vanilla loaded login.css only on auth pages; the React
+   build ships one global stylesheet, so `:has` restores that page-scoped body). */
+html:has(.login-page),
+body:has(.login-page) {
+    margin: 0;
+    padding: 0;
+    height: 100%;
+    font-family: 'Poppins', sans-serif;
+    background: #F6FBFF;
+}
+
+/* ==========================================
+            LOGIN PAGE WRAPPER
+========================================== */
+.login-page {
+    min-height: 100vh;
+    background: linear-gradient(135deg, #FFF9F6, #F6FBFF);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 40px 25px;
+    position: relative;
+    /* overflow-x: hidden; Stops background shapes from making a side-scrollbar */
+    box-sizing: border-box;
+}
+
+/* Background Blur Circles */
+.login-page:not(.signup-page)::before {
+    content: "";
+    position: absolute;
+    width: 450px;
+    height: 450px;
+    background: #EAF6FF;
+    border-radius: 50%;
+    top: -180px;
+    left: -120px;
+    filter: blur(70px);
+    z-index: 0;
+}
+
+.login-page:not(.signup-page)::after {
+    content: "";
+    position: absolute;
+    width: 350px;
+    height: 350px;
+    background: #FFEAF2;
+    border-radius: 50%;
+    bottom: -120px;
+    right: -80px;
+    filter: blur(70px);
+    z-index: 0;
+}
+
+/* ==========================================
+        MAIN CONTAINER (GRID SPLIT)
+========================================== */
+.login-container {
+    width: 100%;
+    max-width: 1250px;
+    height: auto;
+    display: grid;
+    grid-template-columns: 1.1fr 0.9fr;
+    align-items: center;
+    background: rgba(255, 255, 255, 0.55);
+    backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.35);
+    border-radius: 35px;
+    overflow: hidden;
+    box-shadow: 0 25px 60px rgba(0, 0, 0, 0.04);
+    position: relative;
+    z-index: 10;
+}
+
+/* ==========================================
+        LEFT PANEL (WELCOME SIDE)
+========================================== */
+.login-left {
+    padding: 60px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 18px;
+}
+
+.brand{
+    display:flex;
+    align-items:center;
+    gap:14px;
+}
+
+.brand-logo{
+
+    width:60px;
+    height:60px;
+
+    display:flex;
+    justify-content:center;
+    align-items:center;
+
+    flex-shrink:0;
+}
+
+.brand-logo img{
+
+    width:100%;
+    height:100%;
+
+    object-fit:contain;
+    
+}
+
+.brand img{
+
+    width:60px !important;
+    height:60px !important;
+
+    object-fit:contain;
+
+    flex-shrink:0;
+}
+
+.brand h1{
+
+    font-size:2rem;
+    font-weight:800;
+    color:var(--text-dark);
+    margin:0;
+}
+
+.small-paw {
+    width: 40px !important;
+    height: 40px !important;
+    margin: 0 !important;
+    font-size: 1rem !important;
+}
+
+
+.tagline {
+    display: inline-block;
+    padding: 8px 18px;
+    border-radius: 40px;
+    background: var(--secondary-light);
+    color: #2D8EFF;
+    font-weight: 600;
+    font-size: 0.9rem;
+    align-self: flex-start;
+    margin-top: 10px;
+}
+
+.hero-text h2 {
+    font-size: 3.2rem;
+    font-weight: 800;
+    line-height: 1.2;
+    margin: 15px 0;
+    color: var(--text-dark);
+}
+
+.hero-text p {
+    color: var(--text-light);
+    line-height: 1.7;
+    max-width: 480px;
+    font-size: 1.05rem;
+    margin: 0 0 20px 0;
+}
+
+.hero-image {
+    display: flex;
+    justify-content: flex-start;
+    align-items: flex-end;
+}
+
+.login-page:not(.signup-page) .hero-image img {
+    animation:floatImage 5s ease-in-out infinite;
+}
+
+@keyframes floatImage{
+
+    0%,100%{
+        transform:translateY(0);
+    }
+
+    50%{
+        transform:translateY(-12px);
+    }
+
+}
+/* ==========================================
+        RIGHT PANEL (LOGIN CARD)
+========================================== */
+.login-right {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 40px;
+}
+
+.login-card {
+    width: 100%;
+    max-width: 440px;
+    background: #fff;
+    border-radius: 30px;
+    padding: 40px 35px;
+    box-shadow: 0 20px 45px rgba(0, 0, 0, 0.03);
+}
+
+/* Entry animation + hover lift apply only on non-signup auth pages
+   (Vanilla loaded login.css there; signup.css has neither). */
+.login-page:not(.signup-page) .login-card {
+    animation: cardFade 0.8s ease;
+    transition:0.35s ease;
+
+}
+
+.login-page:not(.signup-page) .login-card:hover{
+
+    transform:translateY(-5px);
+
+}
+
+@keyframes cardFade{
+    from{
+        opacity:0;
+        transform:translateY(30px);
+    }
+    to{
+        opacity:1;
+        transform:translateY(0);
+    }
+}
+
+.card-header {
+    text-align: center;
+    margin-bottom: 30px;
+}
+
+.paw-icon{
+
+    width:70px;
+    height:70px;
+
+    margin:0 auto 18px;
+
+    border-radius:50%;
+
+    display:flex;
+    justify-content:center;
+    align-items:center;
+
+    background:#FFEAF2;
+
+    color:var(--primary);
+
+    font-size:1.6rem;
+
+    flex-shrink:0;
+}
+
+
+
+.paw-icon img{
+
+    width:120px;
+    height:50px;
+}
+
+.card-header h2 {
+    font-size: 2.2rem;
+    color: var(--text-dark);
+    margin: 0 0 8px 0;
+    font-weight: 700;
+}
+
+.card-header p {
+    color: var(--text-light);
+    font-size: 0.95rem;
+    margin: 0;
+}
+
+/* Form Inputs */
+.input-box {
+    position: relative;
+    margin-bottom: 18px;
+}
+
+.input-box input {
+    width: 100%;
+    height: 54px;
+    border: 2px solid transparent;
+    border-radius: 16px;
+    background: #F8FAFC;
+    padding: 0 20px 0 55px;
+    font-size: 0.95rem;
+    color: var(--text-dark);
+   transition: all .3s ease;
+    box-sizing: border-box;
+}
+
+.input-box input:focus{
+
+    background:#fff;
+
+    border:2px solid #4AA8FF;
+
+    box-shadow:0 10px 25px rgba(74,168,255,.20);
+
+    transform:translateY(-2px);
+
+}
+
+.input-box:hover input{
+
+    background:#FFFFFF;
+
+    border:2px solid #4AA8FF;
+
+    box-shadow:0 10px 25px rgba(74,168,255,.15);
+
+    transform:translateY(-2px);
+
+}
+
+.input-box > i {
+    position: absolute;
+    left: 22px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--secondary);
+    font-size: 1rem;
+}
+
+.toggle-password{
+
+    position:absolute;
+
+    right:18px;
+
+    top:50%;
+
+    transform:translateY(-50%);
+
+    width:32px;
+    height:32px;
+
+    display:flex;
+    align-items:center;
+    justify-content:center;
+
+    cursor:pointer;
+
+    z-index:999;
+
+    pointer-events:auto;
+
+    color:#9CA3AF;
+
+}
+/* Utilities */
+.form-options {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 30px;
+    font-size: 0.9rem;
+}
+
+.form-options label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--text-light);
+    cursor: pointer;
+}
+
+.form-options input[type="checkbox"] {
+    accent-color: var(--secondary);
+    width: 16px;
+    height: 16px;
+}
+
+.form-options a {
+    color: var(--secondary);
+    text-decoration: none;
+    font-weight: 500;
+}
+
+.form-options a,
+.signup-text a{
+
+    transition:.3s ease;
+
+}
+
+.form-options a:hover,
+.signup-text a:hover{
+
+    color:#2E8BFF;
+
+}
+
+/* Login Button */
+.submit-btn {
+    width: 100%;
+    height: 54px;
+    border: none;
+    border-radius: 16px;
+    background: linear-gradient(135deg, #4AA8FF, #6BC2FF);
+    color: #fff;
+    font-size: 1rem;
+    font-weight: 600;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 12px;
+    cursor: pointer;
+    transition: var(--transition);
+    box-shadow: 0 12px 24px rgba(74, 168, 255, 0.25);
+        position:relative;
+
+    overflow:hidden;
+    transition: all .35s ease;
+}
+
+.submit-btn:hover {
+    transform: translateY(-2px);
+    box-shadow:
+0 20px 45px rgba(0,0,0,.05),
+0 5px 15px rgba(74,168,255,.08);
+}
+
+.submit-btn::before{
+
+    content:"";
+
+    position:absolute;
+
+    top:0;
+    left:-120%;
+
+    width:45%;
+    height:100%;
+
+    background:rgba(255,255,255,.25);
+
+    transform:skewX(-20deg);
+
+}
+
+.submit-btn:hover::before{
+
+    left:180%;
+
+    transition:1s;
+
+}
+
+.divider {
+    display: flex;
+    align-items: center;
+    margin: 24px 0;
+}
+
+.divider::before, .divider::after {
+    content: "";
+    flex: 1;
+    height: 1px;
+    background: #E5E7EB;
+}
+
+.divider span {
+    margin: 0 15px;
+    color: #9CA3AF;
+    font-size: 0.9rem;
+}
+
+.signup-text {
+    text-align: center;
+    color: var(--text-light);
+    font-size: 0.95rem;
+}
+
+.signup-text a {
+    color: var(--primary);
+    text-decoration: none;
+    font-weight: 600;
+    margin-left: 4px;
+}
+
+/* ==========================================
+            RESPONSIVE DESIGN (MOBILE)
+========================================== */
+@media (max-width: 968px) {
+    .login-container {
+        grid-template-columns: 1fr;
+        max-width: 500px;
+    }
+    .login-left {
+        display: none; /* Hides left side on small screens smoothly */
+    }
+}
+
+/* ==========================================
+        REACT SHELL ADDITIONS (Phase 7)
+   Button success state mirrors the green
+   inline styles login.js/forgot-password.js/
+   reset-password.js apply on success.
+========================================== */
+.submit-btn.success {
+    background: linear-gradient(135deg, #38C976, #2DBD69);
+    transform: scale(1.02);
+}
+
+/* Splash shown while the stored session is validated on load. */
+.auth-splash {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #F8FAFC;
+    color: #4AA8FF;
+    font-size: 2.2rem;
+}
+
+/* ==========================================
+        EMAIL VERIFICATION STATUS
+   Inline <style> block from verify-email.html,
+   ported verbatim (verify-card / verify-status).
+========================================== */
+.verify-card {
+    max-width: 460px;
+}
+
+.verify-status {
+    text-align: center;
+    padding: 24px 0;
+}
+
+.verify-status .status-icon {
+    font-size: 56px;
+    margin-bottom: 16px;
+}
+
+.verify-status .status-icon.success {
+    color: #38C976;
+}
+
+.verify-status .status-icon.error {
+    color: #EF4444;
+}
+
+.verify-status .status-icon.loading {
+    color: #FF5C8A;
+}
+
+.verify-status h2 {
+    margin-bottom: 8px;
+    color: #2d2d2d;
+}
+
+.verify-status p {
+    color: #6b7280;
+    font-size: 14px;
+    line-height: 1.7;
+    margin-bottom: 12px;
+}
+

@@ -1,0 +1,533 @@
+/* ==========================================================
+                    SIGNUP PAGE LAYOUT
+   Ported verbatim from frontend/css/signup.css. Vanilla loaded
+   this sheet only on signup.html, so every selector that also
+   exists in login.css is scoped to `.login-page.signup-page`
+   (the Signup page renders <main class="login-page signup-page">).
+   Additive signup-only rules (strength, roles, .error, toast)
+   stay global as in the original.
+========================================================== */
+
+.login-page.signup-page {
+    min-height: 100vh;
+    padding: 40px 20px;
+    display: flex;
+    align-items: flex-start; /* Aligns the container to the top */
+    justify-content: center;
+}
+
+.login-page.signup-page .login-container {
+    width: 100%;
+    max-width: 1400px;
+    display: grid;
+    grid-template-columns: 1.15fr .85fr;
+    align-items: flex-start; /* Forces columns to align to the top */
+    gap: 40px;
+}
+
+/* ==========================================================
+                    LEFT SIDE
+========================================================== */
+
+.login-page.signup-page .login-left {
+    padding: 20px 60px;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+}
+
+.login-page.signup-page .brand {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 35px;
+}
+
+.login-page.signup-page .brand-logo {
+    width: 65px;
+    height: 65px;
+}
+
+.login-page.signup-page .brand-logo img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+}
+
+.login-page.signup-page .brand h1 {
+    font-size: 3rem;
+    font-weight: 800;
+    color: var(--text-dark);
+}
+
+.login-page.signup-page .tagline {
+    display: inline-flex;
+    align-items: center;
+    background: #EAF6FF;
+    color: #2F8FFF;
+    padding: 10px 22px;
+    border-radius: 50px;
+    font-size: .95rem;
+    font-weight: 600;
+    width: max-content;
+    margin-bottom: 22px;
+}
+
+.login-page.signup-page .hero-text h2 {
+    font-size: 3.2rem;
+    line-height: 1.08;
+    font-weight: 800;
+    color: var(--text-dark);
+    margin-bottom: 22px;
+    max-width: 650px;
+}
+
+.login-page.signup-page .hero-text p {
+    max-width: 560px;
+    font-size: 1.18rem;
+    line-height: 1.8;
+    color: var(--text-light);
+    margin-bottom: 18px;
+}
+
+.login-page.signup-page .hero-image {
+    margin-top: 20px;
+}
+
+.login-page.signup-page .hero-image img {
+    width: 100%;
+    max-width: 350px;
+    display: block;
+}
+
+/* ==========================================================
+                    RIGHT SIDE
+========================================================== */
+
+.login-page.signup-page .login-right {
+    display: flex;
+    justify-content: center;
+    align-items: flex-start; /* Snaps the white card to the top */
+}
+
+.login-page.signup-page .login-card {
+    width: 100%;
+    max-width: 500px;
+    padding: 28px 30px;
+    background: #fff;
+    border-radius: 34px;
+    box-shadow: 0 18px 55px rgba(0, 0, 0, .05);
+}
+
+/* ==========================================================
+                    HEADER
+========================================================== */
+
+.login-page.signup-page .card-header {
+    text-align: center;
+    margin-bottom: 28px;
+}
+
+.login-page.signup-page .paw-icon {
+    width: 72px;
+    height: 72px;
+    margin: auto;
+    margin-bottom: 18px;
+}
+
+.login-page.signup-page .card-header h2 {
+    font-size: 2.35rem;
+    margin-bottom: 8px;
+}
+
+.login-page.signup-page .card-header p {
+    font-size: 1rem;
+    color: var(--text-light);
+}
+
+/* ==========================================================
+                    INPUTS & EYE ICON FIX
+========================================================== */
+/* ==========================================================
+                    INPUTS & EYE ICON FIX
+========================================================== */
+/* ==========================================================
+                    INPUTS
+========================================================== */
+
+.login-page.signup-page .input-box {
+    position: relative;
+    margin-bottom: 12px;
+}
+
+.login-page.signup-page .input-box input {
+    width: 100%;
+    height: 58px;
+    border-radius: 18px;
+    padding-left: 58px;
+    padding-right: 55px;
+    font-size: 1rem;
+    background: #F7F9FC;
+    border: 2px solid transparent;
+    transition: all 0.3s ease;
+}
+
+/* Input Hover */
+.login-page.signup-page .input-box:hover input{
+    background: #FFFFFF;
+    border: 2px solid #4AA8FF;
+    box-shadow: 0 10px 25px rgba(74, 168, 255, 0.12);
+}
+
+/* Input Focus */
+.login-page.signup-page .input-box input:focus {
+    outline: none;
+    background: #FFF;
+    border-color: #4AA8FF;
+    box-shadow: 0 10px 25px rgba(74, 168, 255, 0.10);
+}
+
+/* Left Icon */
+.login-page.signup-page .input-box i:first-child {
+    position: absolute;
+    left: 22px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #4AA8FF;
+    font-size: 1rem;
+    transition: all 0.3s ease;
+}
+
+/* Left Icon Hover */
+.login-page.signup-page .input-box:hover i:first-child{
+    color: #4AA8FF;
+}
+
+/* Left Icon Focus */
+.login-page.signup-page .input-box:focus-within i:first-child {
+    color: #4AA8FF;
+    transform: translateY(-50%) scale(1.08);
+}
+
+/* Eye Icons */
+.login-page.signup-page .toggle-password,
+.login-page.signup-page .toggle-confirm-password {
+    position: absolute;
+    top: 50%;
+    right: 20px;
+    transform: translateY(-50%);
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    z-index: 10;
+    color: #9CA3AF;
+    transition: all 0.3s ease;
+}
+
+/* Eye Icon */
+.login-page.signup-page .toggle-password i,
+.login-page.signup-page .toggle-confirm-password i {
+    font-size: 18px;
+    display: block;
+    line-height: 1;
+}
+
+/* Eye Focus */
+.login-page.signup-page .input-box:focus-within .toggle-password,
+.login-page.signup-page .input-box:focus-within .toggle-confirm-password {
+    color: #4AA8FF;
+}
+
+/* ==========================================================
+                PASSWORD STRENGTH
+========================================================== */
+
+.strength-wrapper {
+    margin-top: 8px;
+    margin-bottom: 24px;
+}
+
+.strength-bar {
+    height: 7px;
+    border-radius: 20px;
+    background: #E8EDF5;
+}
+
+#strengthText {
+    display: inline-block;
+    margin-top: 8px;
+    font-size: .9rem;
+    font-weight: 500;
+}
+
+/* ==========================================================
+                SECTION TITLE
+========================================================== */
+
+.role-title {
+    font-size: 1.05rem;
+    font-weight: 700;
+    margin-bottom: 16px;
+    color: var(--text-dark);
+}
+
+/* ==========================================================
+                    ROLE CARDS
+========================================================== */
+
+.role-selection {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 14px;
+    margin-bottom: 22px;
+}
+
+.role-card {
+    position: relative;
+    border: 2px solid #E8EDF5;
+    border-radius: 22px;
+    background: #fff;
+    padding: 20px 6px;
+    text-align: center;
+    cursor: pointer;
+    transition: all .35s ease;
+    overflow: hidden;
+}
+
+.role-card input {
+    display: none;
+}
+
+.role-card i {
+    font-size: 1.8rem;
+    color: #4AA8FF;
+    margin-bottom: 12px;
+    transition: .3s;
+}
+
+.role-card h4 {
+    font-size: 1.05rem;
+    margin-bottom: 8px;
+    color: var(--text-dark);
+    font-weight: 700;
+    white-space: normal;
+    word-break: break-word;
+    overflow-wrap: break-word;
+}
+
+.role-card small {
+    display: block;
+    font-size: .84rem;
+    line-height: 1.5;
+    color: var(--text-light);
+}
+
+/* Hover States */
+.role-card:hover {
+    transform: translateY(-6px);
+    border-color: #4AA8FF;
+    box-shadow: 0 15px 30px rgba(74, 168, 255, .18);
+}
+
+/* Checked States */
+.role-card:has(input:checked) {
+    background: linear-gradient(135deg, #4AA8FF, #6CC3FF);
+    border-color: #4AA8FF;
+    box-shadow: 0 18px 35px rgba(74, 168, 255, .28);
+}
+
+.role-card:has(input:checked) h4,
+.role-card:has(input:checked) small,
+.role-card:has(input:checked) i {
+    color: #fff;
+}
+
+/* ==========================================================
+                    TERMS
+========================================================== */
+
+.login-page.signup-page .form-options {
+    margin: 22px 0;
+    display: flex;
+    align-items: flex-start;
+}
+
+.login-page.signup-page .form-options label {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    cursor: pointer;
+    color: var(--text-light);
+    line-height: 1.6;
+    font-size: .95rem;
+}
+
+.login-page.signup-page .form-options input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    accent-color: #4AA8FF;
+    margin-top: 2px;
+}
+
+/* ==========================================================
+                    BUTTON
+========================================================== */
+
+.login-page.signup-page .submit-btn {
+    width: 100%;
+    height: 58px;
+    border: none;
+    border-radius: 18px;
+    background: linear-gradient(135deg, #4AA8FF, #69C2FF);
+    color: #fff;
+    font-size: 1rem;
+    font-weight: 700;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+    transition: .35s;
+    box-shadow: 0 16px 35px rgba(74, 168, 255, .25);
+}
+
+.login-page.signup-page .submit-btn:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 22px 40px rgba(74, 168, 255, .35);
+}
+
+/* ==========================================================
+                    DIVIDER
+========================================================== */
+
+.login-page.signup-page .divider {
+    display: flex;
+    align-items: center;
+    margin: 26px 0;
+}
+
+.login-page.signup-page .divider::before,
+.login-page.signup-page .divider::after {
+    content: "";
+    flex: 1;
+    height: 1px;
+    background: #E8EDF5;
+}
+
+.login-page.signup-page .divider span {
+    margin: 0 15px;
+    color: #9CA3AF;
+    font-size: .9rem;
+}
+
+/* ==========================================================
+                    LOGIN LINK
+========================================================== */
+
+.login-page.signup-page .signup-text {
+    text-align: center;
+    color: var(--text-light);
+    font-size: .96rem;
+}
+
+.login-page.signup-page .signup-text a {
+    color: var(--primary);
+    text-decoration: none;
+    font-weight: 700;
+    margin-left: 4px;
+    transition: .3s;
+}
+
+.login-page.signup-page .signup-text a:hover {
+    color: #4AA8FF;
+}
+
+/* ==========================================================
+                    ERRORS
+========================================================== */
+
+.error {
+    display: block;
+    min-height: 18px;
+    margin-top: 6px;
+    font-size: .82rem;
+    color: #EF4444;
+}
+
+/* ==========================================================
+                    RESPONSIVE
+========================================================== */
+
+@media (max-width: 1200px) {
+    .login-page.signup-page .login-container {
+        grid-template-columns: 1fr;
+        max-width: 700px;
+    }
+    .login-page.signup-page .login-left {
+        display: none;
+    }
+    .login-page.signup-page .login-card {
+        max-width: 560px;
+    }
+}
+
+@media (max-width: 768px) {
+    .login-page.signup-page {
+        padding: 20px;
+    }
+    .login-page.signup-page .login-card {
+        padding: 30px 24px;
+        border-radius: 28px;
+    }
+    .role-selection {
+        grid-template-columns: 1fr;
+    }
+    .login-page.signup-page .card-header h2 {
+        font-size: 2rem;
+    }
+}
+
+/* ==========================================================
+                    SUCCESS TOAST
+========================================================== */
+
+.success-toast{
+    position: fixed;
+    top: 30px;
+    right: -400px;
+    width: 330px;
+    background: #ffffff;
+    border-left: 6px solid #22C55E;
+    border-radius: 16px;
+    padding: 16px 20px;
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    box-shadow: 0 20px 45px rgba(0,0,0,.12);
+    transition: right .5s ease;
+    z-index: 9999;
+}
+
+.success-toast.show{
+    right: 30px;
+}
+
+.success-toast i{
+    font-size: 2rem;
+    color: #22C55E;
+}
+
+.success-toast h4{
+    margin: 0;
+    font-size: 1rem;
+    color: var(--text-dark);
+}
+
+.success-toast p{
+    margin: 3px 0 0;
+    font-size: .9rem;
+    color: var(--text-light);
+}
