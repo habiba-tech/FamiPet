@@ -183,7 +183,7 @@ tree verified.
 | 5     | Global styles/theme            | [x]    | `be87712`   |
 | 6     | Shared layout components       | [x]    | `1a2cf5e`   |
 | 7     | Authentication                 | [x]    | `9b44727`    |
-| 8     | Dashboard                      | [ ]    | —            |
+| 8     | Dashboard                      | [x]    | `d2f6952`    |
 | 9     | Pet management                 | [ ]    | —            |
 | 10    | Health                         | [ ]    | —            |
 | 11    | Vaccinations                   | [ ]    | —            |
@@ -490,6 +490,18 @@ numbered list matches the required scope; execution order note in §12.
   dark mode toggles all dashboard surfaces.
 - **Completion criteria:** pixel-equivalent dashboard with live data; dark parity.
 - **Rollback/safety:** isolated page.
+- **Status (2026-09-21):** `[x]` implemented in `d2f6952` (docs in `docs(migration)`).
+  Accepted deltas: (1) loading shows neutral placeholders instead of the Vanilla static
+  sample content with fake pets/numbers (AGENTS §5 — no fake data); empty/error states
+  render per section. (2) Light/Dark buttons set the theme directly
+  (theme.js toggled from either button). (3) In-page hamburger dropped — AppLayout owns
+  mobile nav. (4) CTAs use React Router (mypet/adoption/appointments/reminders + empty
+  state links); activity "View All" stays an inert `<a href="#">`. Dashboard CSS is
+  scoped to `body:has(.dashboard-page)` and `.dashboard-page .theme-btn` so landing/
+  auth styles are untouched. lint + `tsc -b && vite build` pass. Live-API + dark-mode +
+  responsive checks were NOT run here: this environment has no running MongoDB/backend
+  (`backend/.env` absent, no mongod) — verify against a running backend before the
+  Phase 25 visual regression.
 
 ### Phase 9 — Pet management (My Pets + Pet ID)
 - **Objective:** mypet grid + add/edit/delete pet, statuses, search, and Pet ID page
