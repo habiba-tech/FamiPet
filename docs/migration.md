@@ -184,7 +184,7 @@ tree verified.
 | 6     | Shared layout components       | [x]    | `1a2cf5e`   |
 | 7     | Authentication                 | [x]    | `9b44727`    |
 | 8     | Dashboard                      | [x]    | `d2f6952`    |
-| 9     | Pet management                 | [ ]    | —            |
+| 9     | Pet management                 | [x]    | `38c6aa9`  |
 | 10    | Health                         | [ ]    | —            |
 | 11    | Vaccinations                   | [ ]    | —            |
 | 12    | Appointments                   | [ ]    | —            |
@@ -521,6 +521,39 @@ numbered list matches the required scope; execution order note in §12.
   cannot mutate User A's pet); public pet-id page loads without a session.
 - **Completion criteria:** pet lifecycle + Pet ID parity.
 - **Rollback/safety:** isolated pages; destructive actions use ConfirmDialog parity.
+- **Status (2026-09-21):** `[x]` implemented in `38c6aa9` (docs in `docs(migration)`).
+  Accepted deltas (AGENTS §5/§9 — no fabricated or never-persisted data):
+  (1) Loading/error/empty states replace the Vanilla static sample pets
+  (Bruno/Luna, stats 2/2/2/1); every value renders from `/pets/my`.
+  (2) Stats are real: Total Pets, Vaccinated, Dogs, Cats — Vanilla's "Healthy
+  Pets" (hardcoded `Good`) and "Upcoming Appointments" (`p.appointment`, never
+  persisted → always 0) have no backend source and were dropped.
+  (3) Add/Edit form drops the Health Status + Upcoming Appointment + custom
+  species fields: backend stores neither health nor appointment, and the
+  `Pet.species` enum only allows dog/cat/bird/rabbit/fish/other (a custom
+  species name fails validation). "Other" species is sent as `other`; custom
+  breeds still work. Save/API errors render inline instead of `alert()`.
+  (4) Header bell shows real `/notifications` + unread count (Vanilla rendered
+  three fake items and a static `3`); the header sun button toggles the theme
+  (unwired in Vanilla).
+  (5) Pet ID preview renders the `<img>` its own JS queried but never rendered
+  (`petPreview.querySelector("img")` returned null and threw on select — the
+  CSS `.petid-preview img` always targeted it). No public (unauthenticated)
+  Pet ID page exists in `pages/` — the authenticated `/app/pet-id` page (QR +
+  ID card + PNG download via canvas/foreignObject, `window.print()` fallback)
+  is the only surface, so "public pet-id resolution without auth" has no
+  Vanilla counterpart to port and is tracked as an open question for Phase 22.
+  (6) CSS ported verbatim: `styles/mypet.css` scoped under `.mypet-page`
+  (Vanilla loads one stylesheet a page; React loads all), `styles/petid.css`
+  scoped under `.petid-page`, responsive + dark rules scoped likewise. Dark
+  mode keeps the white modal/ID-card surfaces readable (Vanilla's global
+  heading `!important` would blank them).
+  Screens: mypet grid, add/edit + details + delete-confirm modals, dual search
+  sync, filter tabs, three-dot menu, Pet ID page (select/preview/QR/download).
+  lint (`oxlint`) + `tsc -b && vite build` pass. Live-API + ownership-isolation
+  E2E (`pets/:id` PUT/DELETE owner-only) were NOT run: this environment has no
+  running MongoDB/backend — scheduled with the full-app start by the user;
+  re-verify before Phase 25.
 
 ### Phase 10 — Health
 - **Objective:** health records + pet selector.
