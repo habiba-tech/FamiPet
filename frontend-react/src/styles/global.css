@@ -1,0 +1,187 @@
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap');
+@import 'tailwindcss';
+
+/* =========================================================
+   GLOBAL DESIGN TOKENS — mirrors docs/design.md §1.1
+   (values copied verbatim from frontend/css/style.css)
+   ========================================================= */
+@theme {
+  --color-primary: #ff5c8a;
+  --color-primary-dark: #f5427b;
+  --color-primary-light: #ffeaf2;
+  --color-secondary: #4aa8ff;
+  --color-secondary-light: #eaf6ff;
+  --color-success: #38c976;
+  --color-success-light: #eafbf2;
+  --color-purple: #9b6dff;
+  --color-purple-light: #f2ecff;
+  --color-orange: #ffb84d;
+  --color-orange-light: #fff3dd;
+  --color-ink: #3d2314;
+  --color-ink-light: #777;
+  --color-canvas: #fff9f6;
+  --color-line: #ffe7ee;
+
+  --radius-card: 22px;
+  --shadow-card: 0 15px 35px rgba(0, 0, 0, 0.08);
+  --navbar-height: 90px;
+  --font-sans:
+    'Poppins', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+}
+
+/* =========================================================
+   VANILLA-NMED TOKENS — exact names from docs/design.md §1.1
+   (frontend/css/style.css `:root`). References the @theme
+   tokens above so ported component CSS using `var(--primary)`
+   etc keeps working with a single source of values.
+   ========================================================= */
+:root {
+  --primary: var(--color-primary);
+  --primary-dark: var(--color-primary-dark);
+  --primary-light: var(--color-primary-light);
+  --secondary: var(--color-secondary);
+  --secondary-light: var(--color-secondary-light);
+  --success: var(--color-success);
+  --success-light: var(--color-success-light);
+  --purple: var(--color-purple);
+  --purple-light: var(--color-purple-light);
+  --orange: var(--color-orange);
+  --orange-light: var(--color-orange-light);
+  --text-dark: var(--color-ink);
+  --text-light: var(--color-ink-light);
+  --white: #fff;
+  --background: var(--color-canvas);
+  --border: var(--color-line);
+  --radius: var(--radius-card);
+  --section-padding: 100px;
+  --shadow: var(--shadow-card);
+  --transition: 0.35s ease;
+}
+
+/* =========================================================
+   BASE RESETS — mirrors frontend/css/style.css
+   ========================================================= */
+@layer base {
+  html {
+    scroll-behavior: smooth;
+    scroll-padding-top: var(--navbar-height, 90px);
+  }
+
+  body {
+    font-family: var(--font-sans);
+    background-color: var(--color-canvas);
+    color: var(--color-ink);
+    overflow-x: hidden;
+  }
+
+  img {
+    width: 100%;
+    display: block;
+  }
+
+  a {
+    text-decoration: none;
+    color: inherit;
+  }
+
+  ul {
+    list-style: none;
+  }
+
+  button {
+    border: none;
+    outline: none;
+    cursor: pointer;
+    font-family: inherit;
+  }
+
+  ::selection {
+    background: var(--primary);
+    color: var(--white);
+  }
+
+  ::-webkit-scrollbar {
+    width: 10px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: var(--background);
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: var(--primary);
+    border-radius: 20px;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: var(--primary-dark);
+  }
+}
+
+/* =========================================================
+   GLOBAL COMPONENT PRIMITIVES — mirrors frontend/css/style.css
+   ========================================================= */
+@layer components {
+  .container {
+    width: min(90%, 1350px);
+    margin-inline: auto;
+  }
+
+  .btn-primary {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    padding: 16px 34px;
+    background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+    color: var(--white);
+    border-radius: 50px;
+    font-size: 1rem;
+    font-weight: 600;
+    box-shadow: 0 10px 25px rgba(255, 92, 138, 0.25);
+    transition: var(--transition);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .btn-primary::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.35), transparent);
+    transition: 0.7s;
+  }
+
+  .btn-primary:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 16px 35px rgba(255, 92, 138, 0.35);
+  }
+
+  .btn-primary:hover::before {
+    left: 100%;
+  }
+
+  .btn-secondary {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    padding: 16px 34px;
+    background: var(--white);
+    color: var(--text-dark);
+    border: 2px solid var(--primary-light);
+    border-radius: 50px;
+    font-size: 1rem;
+    font-weight: 600;
+    transition: var(--transition);
+  }
+
+  .btn-secondary:hover {
+    background: var(--primary-light);
+    border-color: var(--primary);
+    transform: translateY(-4px);
+  }
+}
