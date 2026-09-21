@@ -10,6 +10,7 @@ import { SignupPage } from '../pages/auth/SignupPage'
 import { VerifyEmailPage } from '../pages/auth/VerifyEmailPage'
 import { PageStub } from '../pages/_stub/PageStub'
 import { NotFound } from '../pages/NotFound'
+import { DashboardPage } from '../pages/app/dashboard/DashboardPage'
 import { RedirectIfAuthed, RequireAdmin, RequireAuth } from './guards'
 
 // Route table follows migration.md §4 (Page Organization) — a 1:1 mirror of
@@ -49,7 +50,7 @@ export const routes: RouteObject[] = [
     ),
     children: [
       { index: true, element: <Navigate to="/app/dashboard" replace /> },
-      { path: 'dashboard', element: <PageStub title="Dashboard" /> },
+      { path: 'dashboard', element: <DashboardPage /> },
       { path: 'mypet', element: <PageStub title="My Pets" /> },
       { path: 'adoption', element: <PageStub title="Adoption" /> },
       { path: 'health', element: <PageStub title="Health" /> },
