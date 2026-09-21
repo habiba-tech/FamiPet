@@ -182,7 +182,7 @@ tree verified.
 | 4     | Routing migration              | [x]    | `c5f23f3`    |
 | 5     | Global styles/theme            | [x]    | `be87712`   |
 | 6     | Shared layout components       | [x]    | `1a2cf5e`   |
-| 7     | Authentication                 | [ ]    | —            |
+| 7     | Authentication                 | [x]    | `9b44727`    |
 | 8     | Dashboard                      | [ ]    | —            |
 | 9     | Pet management                 | [ ]    | —            |
 | 10    | Health                         | [ ]    | —            |
