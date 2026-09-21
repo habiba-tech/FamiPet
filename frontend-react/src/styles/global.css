@@ -1,5 +1,9 @@
 @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap');
 @import 'tailwindcss';
+@import './navbar.css';
+@import './footer.css';
+@import './sidebar.css';
+@import './admin.css';
 
 /* =========================================================
    GLOBAL DESIGN TOKENS — mirrors docs/design.md §1.1

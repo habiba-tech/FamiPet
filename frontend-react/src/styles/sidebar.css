@@ -1,0 +1,1154 @@
+/* Ported verbatim from frontend/css/sidebar.css (Phase 6). One delta: the
+   Google-Fonts @import is dropped (Poppins already loads via global.css). */
+
+/* =========================================================
+   Famipet UNIVERSAL SIDEBAR
+   CLEAN VERSION
+   ========================================================= */
+
+
+/* =========================================================
+   GLOBAL SIDEBAR FONT
+   This prevents page CSS from changing sidebar typography.
+========================================================= */
+
+#sidebar-container,
+#sidebar-container * {
+    font-family: "Poppins", sans-serif !important;
+}
+
+
+/* =========================================================
+   PAGE LAYOUT
+========================================================= */
+
+html,
+body {
+    margin: 0;
+    width: 100%;
+    min-height: 100%;
+}
+
+body:has(#sidebar-container) {
+    display: flex;
+    align-items: stretch;
+
+    min-height: 100vh;
+
+    overflow: hidden;
+}
+
+
+/* Sidebar column */
+
+#sidebar-container {
+    flex: 0 0 288px;
+
+    width: 288px;
+    height: 100vh;
+
+    position: relative;
+}
+
+
+/* =========================================================
+   SIDEBAR
+========================================================= */
+
+#sidebar-container .ann-sidebar {
+
+    position: fixed;
+
+    top: 0;
+    left: 0;
+
+    width: 288px;
+    height: 100vh;
+
+    box-sizing: border-box;
+
+    display: flex;
+    flex-direction: column;
+
+    padding: 24px 16px 14px;
+
+    background: #fff9fb;
+
+    border-right: 1px solid #f1e5eb;
+
+    overflow: hidden;
+
+    z-index: 1000;
+
+    transition:
+        width 0.3s ease,
+        transform 0.3s ease;
+}
+
+
+/* =========================================================
+   BRAND
+========================================================= */
+
+#sidebar-container .sidebar-brand {
+
+    flex-shrink: 0;
+
+    display: flex;
+
+    align-items: center;
+
+    gap: 14px;
+
+    padding: 4px 8px 26px;
+}
+
+
+/* Logo */
+
+#sidebar-container .brand-logo {
+
+    width: 54px;
+    height: 54px;
+
+    flex-shrink: 0;
+
+    display: flex;
+
+    align-items: center;
+    justify-content: center;
+
+    border-radius: 17px;
+
+    background: #ff4f7b;
+
+    color: white;
+
+    box-shadow:
+        0 8px 20px rgba(
+            255,
+            79,
+            123,
+            0.18
+        );
+}
+
+
+/* Logo icon */
+
+#sidebar-container .brand-logo svg {
+
+    width: 29px;
+    height: 29px;
+
+    stroke-width: 2.2;
+}
+
+
+/* Brand text */
+
+#sidebar-container .brand-text {
+
+    min-width: 0;
+}
+
+
+#sidebar-container .brand-text h2 {
+
+    margin: 0;
+
+    font-size: 24px;
+    line-height: 1;
+
+    font-weight: 800;
+
+    color: #14213d;
+
+    letter-spacing: -0.5px;
+}
+
+
+#sidebar-container .brand-text span {
+
+    display: block;
+
+    margin-top: 6px;
+
+    font-size: 12px;
+
+    font-weight: 400;
+
+    color: #a26b7e;
+
+    white-space: nowrap;
+}
+
+
+/* =========================================================
+   NAVIGATION
+========================================================= */
+
+#sidebar-container .sidebar-nav {
+
+    flex: 1 1 auto;
+
+    min-height: 0;
+
+    display: flex;
+
+    flex-direction: column;
+
+    gap: 4px;
+
+    overflow-y: auto;
+    overflow-x: hidden;
+
+    overscroll-behavior: contain;
+
+    scrollbar-width: thin;
+    scrollbar-color: #ffc2d1 transparent;
+
+    padding-right: 2px;
+}
+
+
+#sidebar-container .sidebar-nav::-webkit-scrollbar {
+
+    width: 6px;
+}
+
+
+#sidebar-container .sidebar-nav::-webkit-scrollbar-track {
+
+    background: transparent;
+
+    border-radius: 999px;
+}
+
+
+#sidebar-container .sidebar-nav::-webkit-scrollbar-thumb {
+
+    background: #ffc2d1;
+
+    border-radius: 999px;
+}
+
+
+#sidebar-container .sidebar-nav::-webkit-scrollbar-thumb:hover {
+
+    background: #ff5c8a;
+}
+
+
+/* =========================================================
+   NAVIGATION ITEM
+========================================================= */
+
+#sidebar-container .ann-nav-item {
+
+    position: relative;
+
+    flex-shrink: 0;
+
+    width: 100%;
+    height: 52px;
+    min-height: 52px;
+
+    display: flex;
+
+    align-items: center;
+
+    gap: 17px;
+
+    padding: 0 14px;
+
+    box-sizing: border-box;
+
+    border-radius: 15px;
+
+    text-decoration: none;
+
+    color: #536b91;
+
+    font-size: 16px;
+
+    font-weight: 500;
+
+    line-height: 1;
+
+    transition:
+        background 0.22s ease,
+        color 0.22s ease,
+        transform 0.22s ease;
+}
+
+
+/* Icon */
+
+#sidebar-container .ann-nav-item svg {
+
+    width: 22px;
+    height: 22px;
+
+    flex-shrink: 0;
+
+    stroke-width: 1.9;
+}
+
+
+/* Text */
+
+#sidebar-container .ann-nav-item span {
+
+    white-space: nowrap;
+
+    font-size: 16px;
+
+    font-weight: 500;
+}
+
+
+/* =========================================================
+   HOVER
+========================================================= */
+
+#sidebar-container .ann-nav-item:hover {
+
+    background: #fff0f4;
+
+    color: #ff4f7b;
+
+    transform: translateX(2px);
+}
+
+
+#sidebar-container .ann-nav-item:hover svg {
+
+    color: #ff4f7b;
+}
+
+
+/* =========================================================
+   ACTIVE ITEM
+========================================================= */
+
+#sidebar-container .ann-nav-item.active {
+
+    background: #ffe8ef;
+
+    color: #ff4f7b;
+
+    font-weight: 600;
+}
+
+
+#sidebar-container .ann-nav-item.active span {
+
+    font-weight: 600;
+}
+
+
+#sidebar-container .ann-nav-item.active::before {
+
+    content: "";
+
+    position: absolute;
+
+    left: 0;
+    top: 50%;
+
+    width: 4px;
+    height: 28px;
+
+    border-radius:
+        0 5px 5px 0;
+
+    background: #ff4f7b;
+
+    transform:
+        translateY(-50%);
+}
+
+
+#sidebar-container .ann-nav-item.active svg {
+
+    color: #ff4f7b;
+
+    stroke-width: 2.2;
+}
+
+
+/* =========================================================
+   PET DECORATION
+   IMPORTANT:
+   This is NOT absolute.
+   It comes AFTER navigation in sidebar.js.
+========================================================= */
+
+#sidebar-container .sidebar-pet-decoration {
+    flex: 0 0 100px;
+
+    width: 100%;
+    height: 100px;
+    min-height: 100px;
+
+    display: flex;
+
+    align-items: flex-end;
+    justify-content: center;
+
+    box-sizing: border-box;
+
+    padding: 0 0 2px;
+    margin: 0;
+
+    pointer-events: none;
+    /* overflow: hidden; */
+}
+
+
+/* Pet image */
+
+#sidebar-container .sidebar-pet-decoration img {
+    display: block;
+    width: 150px !important;
+    height: 150px !important;
+
+    max-width: 150px !important;
+    max-height: 150px !important;
+
+    object-fit: contain;
+
+    opacity: 0.95;
+}
+
+#sidebar-container .sidebar-pet-decoration img {
+    transform: translate(-10px, 20px);
+}
+
+
+/* =========================================================
+   USER PROFILE
+========================================================= */
+
+#sidebar-container .sidebar-profile {
+
+    flex: 0 0 70px;
+
+    width: 100%;
+    height: 70px;
+    min-height: 70px;
+
+    display: flex;
+
+    align-items: center;
+
+    gap: 11px;
+
+    box-sizing: border-box;
+
+    padding: 8px 11px;
+
+    margin: 0;
+
+    border: none;
+
+    border-radius: 17px;
+
+    background: #ffffff;
+
+    box-shadow:
+        0 4px 16px
+        rgba(
+            57,
+            43,
+            48,
+            0.04
+        );
+
+    cursor: pointer;
+
+    text-align: left;
+
+    position: relative;
+
+    z-index: 5;
+
+    transition:
+        background 0.2s ease,
+        transform 0.2s ease;
+}
+
+
+#sidebar-container .sidebar-profile:hover {
+
+    background: #fff2f6;
+
+    transform: translateY(-1px);
+}
+
+
+/* =========================================================
+   PROFILE AVATAR
+========================================================= */
+
+#sidebar-container .profile-avatar {
+
+    width: 44px;
+    height: 44px;
+
+    flex: 0 0 44px;
+
+    overflow: hidden;
+
+    border-radius: 50%;
+
+    background: #ffe5ed;
+}
+
+
+#sidebar-container .profile-avatar img {
+
+    width: 100%;
+    height: 100%;
+
+    object-fit: cover;
+}
+
+
+#sidebar-container .profile-avatar .profile-initials {
+
+    width: 100%;
+    height: 100%;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    font-size: 0.95rem;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+
+    color: #ff5c8a;
+    background: #ffe5ed;
+}
+
+
+/* =========================================================
+   PROFILE TEXT
+========================================================= */
+
+#sidebar-container .profile-info {
+
+    flex: 1;
+
+    min-width: 0;
+
+    display: flex;
+
+    flex-direction: column;
+
+    gap: 3px;
+}
+
+
+#sidebar-container .profile-info strong {
+
+    display: block;
+
+    color: #1c2940;
+
+    font-size: 14px;
+
+    font-weight: 700;
+
+    line-height: 1.2;
+
+    white-space: nowrap;
+
+    overflow: hidden;
+
+    text-overflow: ellipsis;
+}
+
+
+#sidebar-container .profile-info span {
+
+    display: block;
+
+    color: #9a8d91;
+
+    font-size: 11px;
+
+    font-weight: 400;
+
+    line-height: 1.2;
+}
+
+
+/* =========================================================
+   PROFILE ARROW
+========================================================= */
+
+#sidebar-container .profile-arrow {
+
+    width: 17px;
+    height: 17px;
+
+    flex-shrink: 0;
+
+    color: #70809a;
+}
+
+
+/* =========================================================
+   MAIN CONTENT
+========================================================= */
+
+body:has(#sidebar-container) .main-content {
+
+    flex: 1 1 auto;
+
+    width: auto;
+
+    min-width: 0;
+
+    height: 100vh;
+
+    min-height: 0;
+
+    margin-left: 0;
+
+    box-sizing: border-box;
+
+    overflow-y: auto;
+
+    overflow-x: hidden;
+}
+
+
+/* Main scrollbar */
+
+body:has(#sidebar-container)
+.main-content::-webkit-scrollbar {
+
+    width: 8px;
+}
+
+
+body:has(#sidebar-container)
+.main-content::-webkit-scrollbar-track {
+
+    background: transparent;
+}
+
+
+body:has(#sidebar-container)
+.main-content::-webkit-scrollbar-thumb {
+
+    background: #e8c8d3;
+
+    border-radius: 20px;
+}
+
+
+body:has(#sidebar-container)
+.main-content::-webkit-scrollbar-thumb:hover {
+
+    background: #dca8b9;
+}
+
+
+/* =========================================================
+   COLLAPSED SIDEBAR
+========================================================= */
+
+body.sidebar-collapsed
+#sidebar-container {
+
+    flex-basis: 82px;
+
+    width: 82px;
+}
+
+
+body.sidebar-collapsed
+#sidebar-container .ann-sidebar {
+
+    width: 82px;
+}
+
+
+/* Hide text */
+
+body.sidebar-collapsed
+#sidebar-container .brand-text,
+
+body.sidebar-collapsed
+#sidebar-container .ann-nav-item span,
+
+body.sidebar-collapsed
+#sidebar-container .profile-info,
+
+body.sidebar-collapsed
+#sidebar-container .profile-arrow {
+
+    display: none;
+}
+
+
+/* Center brand */
+
+body.sidebar-collapsed
+#sidebar-container .sidebar-brand {
+
+    justify-content: center;
+
+    padding-left: 0;
+    padding-right: 0;
+}
+
+
+/* Center nav */
+
+body.sidebar-collapsed
+#sidebar-container .ann-nav-item {
+
+    justify-content: center;
+
+    padding-left: 0;
+    padding-right: 0;
+}
+
+
+/* Active line */
+
+body.sidebar-collapsed
+#sidebar-container .ann-nav-item.active::before {
+
+    left: 0;
+}
+
+
+/* Smaller pet */
+
+body.sidebar-collapsed
+#sidebar-container .sidebar-pet-decoration {
+
+    flex-basis: 65px;
+
+    height: 65px;
+    min-height: 65px;
+}
+
+
+body.sidebar-collapsed
+#sidebar-container
+.sidebar-pet-decoration img {
+
+    width: 58px;
+
+    max-width: 58px;
+
+    max-height: 60px;
+}
+
+
+/* Profile */
+
+body.sidebar-collapsed
+#sidebar-container .sidebar-profile {
+
+    justify-content: center;
+
+    padding: 8px;
+}
+
+
+/* =========================================================
+   DARK MODE
+========================================================= */
+
+body.dark-theme
+#sidebar-container .ann-sidebar {
+
+    background: #211d2a;
+
+    border-right-color: #352e40;
+}
+
+
+body.dark-theme
+#sidebar-container .brand-text h2 {
+
+    color: #ffffff;
+}
+
+
+body.dark-theme
+#sidebar-container .brand-text span {
+
+    color: #c7a5b1;
+}
+
+
+body.dark-theme
+#sidebar-container .ann-nav-item {
+
+    color: #c5c9d9;
+}
+
+
+body.dark-theme
+#sidebar-container .ann-nav-item:hover {
+
+    background: #332a3b;
+
+    color: #ff86a6;
+}
+
+
+body.dark-theme
+#sidebar-container .ann-nav-item:hover svg {
+
+    color: #ff86a6;
+}
+
+
+body.dark-theme
+#sidebar-container .ann-nav-item.active {
+
+    background: #402b3a;
+
+    color: #ff86a6;
+}
+
+
+body.dark-theme
+#sidebar-container
+.ann-nav-item.active::before {
+
+    background: #ff6f95;
+}
+
+
+body.dark-theme
+#sidebar-container .ann-nav-item.active svg {
+
+    color: #ff86a6;
+}
+
+
+body.dark-theme
+#sidebar-container .sidebar-profile {
+
+    background: #2c2634;
+}
+
+
+body.dark-theme
+#sidebar-container .sidebar-profile:hover {
+
+    background: #382d3c;
+}
+
+
+body.dark-theme
+#sidebar-container .profile-info strong {
+
+    color: #ffffff;
+}
+
+
+body.dark-theme
+#sidebar-container .profile-info span {
+
+    color: #aaa2b1;
+}
+
+
+body.dark-theme
+#sidebar-container .profile-arrow {
+
+    color: #b9b0c0;
+}
+
+
+/* =========================================================
+   SMALL HEIGHT SCREENS
+========================================================= */
+
+@media (max-height: 850px) and (min-width: 851px) {
+
+    #sidebar-container .ann-sidebar {
+
+        padding-top: 18px;
+        padding-bottom: 10px;
+    }
+
+
+    #sidebar-container .sidebar-brand {
+
+        padding-bottom: 16px;
+    }
+
+
+    #sidebar-container .ann-nav-item {
+
+        height: 45px;
+        min-height: 45px;
+    }
+
+
+    #sidebar-container .sidebar-nav {
+
+        gap: 2px;
+    }
+
+
+    #sidebar-container .sidebar-pet-decoration {
+
+        flex-basis: 65px;
+
+        height: 65px;
+        min-height: 65px;
+    }
+
+
+    #sidebar-container
+    .sidebar-pet-decoration img {
+
+        width: 115px;
+
+        max-height: 62px;
+    }
+
+
+    #sidebar-container .sidebar-profile {
+
+        flex-basis: 68px;
+
+        height: 68px;
+        min-height: 68px;
+    }
+
+
+    #sidebar-container .profile-avatar {
+
+        width: 42px;
+        height: 42px;
+
+        flex-basis: 42px;
+    }
+}
+
+
+/* =========================================================
+   MOBILE
+========================================================= */
+
+@media (max-width: 850px) {
+
+    body:has(#sidebar-container) {
+
+        overflow: hidden;
+    }
+
+
+    #sidebar-container {
+
+        width: 0;
+
+        flex-basis: 0;
+    }
+
+
+    #sidebar-container .ann-sidebar {
+
+        width: 288px;
+
+        transform:
+            translateX(-100%);
+
+        box-shadow:
+            10px 0 35px
+            rgba(
+                45,
+                30,
+                40,
+                0.12
+            );
+    }
+
+
+    body.sidebar-open
+    #sidebar-container
+    .ann-sidebar {
+
+        transform:
+            translateX(0);
+    }
+
+
+    body.sidebar-collapsed
+    #sidebar-container {
+
+        width: 0;
+
+        flex-basis: 0;
+    }
+
+
+    body.sidebar-collapsed
+    #sidebar-container
+    .ann-sidebar {
+
+        width: 288px;
+
+        transform:
+            translateX(-100%);
+    }
+
+
+    body.sidebar-open.sidebar-collapsed
+    #sidebar-container
+    .ann-sidebar {
+
+        transform:
+            translateX(0);
+    }
+
+
+    body.sidebar-open
+    #sidebar-container
+    .brand-text,
+
+    body.sidebar-open
+    #sidebar-container
+    .ann-nav-item span,
+
+    body.sidebar-open
+    #sidebar-container
+    .profile-info,
+
+    body.sidebar-open
+    #sidebar-container
+    .profile-arrow {
+
+        display: flex;
+    }
+
+
+    body.sidebar-open
+    #sidebar-container
+    .ann-nav-item {
+
+        justify-content: flex-start;
+
+        padding-left: 14px;
+        padding-right: 14px;
+    }
+
+
+    body.sidebar-open
+    #sidebar-container
+    .sidebar-brand {
+
+        justify-content: flex-start;
+    }
+
+
+    body.sidebar-open
+    #sidebar-container
+    .sidebar-profile {
+
+        justify-content: flex-start;
+    }
+}
+
+/* =========================================================
+   FINAL FULL-WIDTH LAYOUT FIX
+========================================================= */
+
+body:has(#sidebar-container) {
+    display: block;
+    width: 100%;
+    min-width: 0;
+}
+
+body:has(#sidebar-container) .app {
+    width: 100%;
+    min-width: 0;
+    min-height: 100vh;
+}
+
+/* =========================================================
+   FINAL FAMIPET SIDEBAR LOGO FIX
+   Transparent logo only — no colored box/background.
+========================================================= */
+#sidebar-container .sidebar-brand .brand-logo {
+    width: 70px !important;
+    height: 60px !important;
+    min-width: 70px !important;
+    min-height: 60px !important;
+    max-width: 70px !important;
+    max-height: 60px !important;
+    flex: 0 0 70px !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    overflow: hidden !important;
+}
+
+#sidebar-container .sidebar-brand .brand-logo img {
+    width: 70px !important;
+    height: 60px !important;
+    max-width: 70px !important;
+    max-height: 60px !important;
+    object-fit: contain !important;
+    display: block !important;
+}
+
+/* Keep the logo compact when the sidebar is collapsed. */
+body.sidebar-collapsed #sidebar-container .sidebar-brand .brand-logo {
+    width: 58px !important;
+    height: 58px !important;
+    min-width: 58px !important;
+    min-height: 58px !important;
+    flex-basis: 58px !important;
+}
+
+body.sidebar-collapsed #sidebar-container .sidebar-brand .brand-logo img {
+    width: 58px !important;
+    height: 58px !important;
+    max-width: 58px !important;
+    max-height: 58px !important;
+}
+
+/* =========================================================
+   REACT SHELL (Phase 6) — appended to the ported sidebar.
+   Mirrors dashboard.css `.app { display:flex }` so the shared
+   AppLayout keeps the sidebar+main-content horizontal split
+   (the sidebar-container is the 288px flex item, main-content
+   the auto-flexing sibling).
+========================================================= */
+
+.app {
+    display: flex;
+    min-height: 100vh;
+}
+
+/* The mobile-only hamburger must not render as a stray
+   unstyled button on desktop (Vanilla quirk: it is created
+   unconditionally by sidebar.js but only styled ≤850px). */
+@media (min-width: 851px) {
+    .mobile-sidebar-toggle {
+        display: none !important;
+    }
+}
