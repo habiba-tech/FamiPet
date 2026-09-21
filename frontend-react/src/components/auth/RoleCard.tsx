@@ -2,6 +2,8 @@
 // `.role-card:has(input:checked)` (signup.css), so no JS toggle is needed —
 // exactly the cards from signup.html (Vet stays commented out as in Vanilla).
 
+import { Icon } from '../shared/Icon'
+
 interface RoleCardProps {
   name: string
   value: string
@@ -16,7 +18,7 @@ export function RoleCard({ name, value, checked, icon, title, subtitle, onChange
   return (
     <label className="role-card">
       <input type="radio" name={name} value={value} checked={checked} onChange={() => onChange(value)} />
-      <i className={icon} />
+      <Icon name={icon} />
       <h4>{title}</h4>
       <small>{subtitle}</small>
     </label>

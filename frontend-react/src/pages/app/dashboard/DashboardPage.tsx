@@ -20,6 +20,7 @@ import { getReminders, type Reminder } from '../../../api/reminders'
 import { useAuth } from '../../../hooks/useAuth'
 import { useTheme } from '../../../hooks/useTheme'
 import { fmtDate } from '../../../lib/formatters'
+import { Icon } from '../../../components/shared/Icon'
 import {
   ActivitySection,
   AppointmentSection,
@@ -202,7 +203,7 @@ export function DashboardPage() {
 
         <div className="header-actions">
           <div className="search-bar">
-            <i data-lucide="search" />
+            <Icon name="search" />
             <input
               ref={searchRef}
               type="text"
@@ -214,11 +215,11 @@ export function DashboardPage() {
           </div>
 
           <button className="theme-btn active" id="lightModeBtn" type="button" title="Light mode" aria-label="Light mode" onClick={setLight}>
-            <i data-lucide="sun" />
+            <Icon name="sun" />
           </button>
 
           <button className="theme-btn" id="darkModeBtn" type="button" title="Dark mode" aria-label="Dark mode" onClick={setDark}>
-            <i data-lucide="moon" />
+            <Icon name="moon" />
           </button>
 
           <button
@@ -230,7 +231,7 @@ export function DashboardPage() {
             title="Notifications"
             onClick={() => setPanelOpen((o) => !o)}
           >
-            <i data-lucide="bell" />
+            <Icon name="bell" />
             <span className="notification-count">{unreadCount || '0'}</span>
           </button>
         </div>

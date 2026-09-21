@@ -17,6 +17,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { getNotifications, type AppNotification } from '../../../api/notifications'
 import { deletePet, getMyPets } from '../../../api/pets'
 import { useTheme } from '../../../hooks/useTheme'
+import { Icon } from '../../../components/shared/Icon'
 import { genderIcon, toPetView, type PetView } from './petBase'
 import { PetDetailsModal } from './PetDetailsModal'
 import { PetFormModal } from './PetFormModal'
@@ -24,11 +25,11 @@ import { PetFormModal } from './PetFormModal'
 type Filter = 'All' | 'Dog' | 'Cat' | 'Bird' | 'Other'
 
 const TABS: { key: Filter; label: string; icon: string }[] = [
-  { key: 'All', label: 'All', icon: 'fa-border-all' },
-  { key: 'Dog', label: 'Dogs', icon: 'fa-dog' },
-  { key: 'Cat', label: 'Cats', icon: 'fa-cat' },
-  { key: 'Bird', label: 'Birds', icon: 'fa-crow' },
-  { key: 'Other', label: 'Others', icon: 'fa-paw' },
+  { key: 'All', label: 'All', icon: 'border-all' },
+  { key: 'Dog', label: 'Dogs', icon: 'dog' },
+  { key: 'Cat', label: 'Cats', icon: 'cat' },
+  { key: 'Bird', label: 'Birds', icon: 'bird' },
+  { key: 'Other', label: 'Others', icon: 'paw' },
 ]
 
 interface MenuState {
@@ -193,18 +194,18 @@ export function MyPetsPage() {
 
         <div className="header-right">
           <div className="search-bar">
-            <i className="fa-solid fa-magnifying-glass" />
+            <Icon name="search" />
             <input ref={topSearchRef} type="text" placeholder="Search anything..." onChange={(e) => onSearch(e.target.value, 'top')} />
           </div>
           <button className="icon-action-btn" type="button" title="Toggle theme" onClick={toggle}>
-            <i className={`fa-solid ${theme === 'dark' ? 'fa-moon' : 'fa-sun'}`} />
+            <Icon name={theme === 'dark' ? 'moon' : 'sun'} />
           </button>
           <button ref={bellRef} className="icon-action-btn badge-btn" type="button" title="Notifications" onClick={() => setPanelOpen((o) => !o)}>
-            <i className="fa-regular fa-bell" />
+            <Icon name="bell" />
             <span className="badge">{unread || '0'}</span>
           </button>
           <button className="btn btn-pink" type="button" onClick={openCreate}>
-            <i className="fa-solid fa-plus" /> Add New Pet <i className="fa-solid fa-paw icon-small" />
+            <Icon name="plus" /> Add New Pet <Icon name="paw" className="icon-small" />
           </button>
         </div>
       </header>
@@ -214,7 +215,7 @@ export function MyPetsPage() {
       <section className="stats-grid">
         <div className="stat-card pink-card">
           <div className="stat-icon pink-icon">
-            <i className="fa-solid fa-paw" />
+            <Icon name="paw" />
           </div>
           <div className="stat-info">
             <span className="stat-title">Total Pets</span>
@@ -225,7 +226,7 @@ export function MyPetsPage() {
 
         <div className="stat-card green-card">
           <div className="stat-icon green-icon">
-            <i className="fa-solid fa-shield-halved" />
+            <Icon name="shield-halved" />
           </div>
           <div className="stat-info">
             <span className="stat-title">Vaccinated</span>
@@ -241,7 +242,7 @@ export function MyPetsPage() {
 
         <div className="stat-card purple-card">
           <div className="stat-icon purple-icon">
-            <i className="fa-solid fa-dog" />
+            <Icon name="dog" />
           </div>
           <div className="stat-info">
             <span className="stat-title">Dogs</span>
@@ -257,7 +258,7 @@ export function MyPetsPage() {
 
         <div className="stat-card blue-card">
           <div className="stat-icon blue-icon">
-            <i className="fa-solid fa-cat" />
+            <Icon name="cat" />
           </div>
           <div className="stat-info">
             <span className="stat-title">Cats</span>
@@ -274,7 +275,7 @@ export function MyPetsPage() {
 
       <section className="filter-section">
         <div className="search-pets-input">
-          <i className="fa-solid fa-magnifying-glass" />
+          <Icon name="search" />
           <input ref={petSearchRef} type="text" placeholder="Search pets by name, breed..." onChange={(e) => onSearch(e.target.value, 'pets')} />
         </div>
 
@@ -286,7 +287,7 @@ export function MyPetsPage() {
               type="button"
               onClick={() => setFilter(tab.key)}
             >
-              <i className={`fa-solid ${tab.icon}`} /> {tab.label}
+              <Icon name={tab.icon} /> {tab.label}
             </button>
           ))}
         </div>
@@ -295,32 +296,32 @@ export function MyPetsPage() {
       <section className="pets-grid">
         {pets === null ? (
           <div style={{ gridColumn: '1 / -1', textAlign: 'center', padding: '60px 20px', background: '#fff', borderRadius: 20 }}>
-            <i className="fa-solid fa-paw fa-spin" style={{ fontSize: 40, color: '#ff4d6d', marginBottom: 15 }} />
+            <Icon name="paw" spin style={{ fontSize: 40, color: '#ff4d6d', marginBottom: 15 }} />
             <h3>Loading your pets…</h3>
           </div>
         ) : loadFailed && pets.length === 0 ? (
           <div style={{ gridColumn: '1 / -1', textAlign: 'center', padding: '60px 20px', background: '#fff', borderRadius: 20 }}>
-            <i className="fa-solid fa-triangle-exclamation" style={{ fontSize: 40, color: '#ff4d6d', marginBottom: 15 }} />
+            <Icon name="triangle-exclamation" style={{ fontSize: 40, color: '#ff4d6d', marginBottom: 15 }} />
             <h3>Could not load your pets</h3>
             <p style={{ color: '#8a96a8', marginTop: 8 }}>Please check your connection and try again.</p>
             <button type="button" className="btn btn-outline-pink" style={{ marginTop: 16 }} onClick={loadPets}>
-              <i className="fa-solid fa-rotate" /> Retry
+              <Icon name="rotate" /> Retry
             </button>
           </div>
         ) : pets.length === 0 ? (
           <div style={{ gridColumn: '1 / -1', textAlign: 'center', padding: '60px 20px', background: '#fff', borderRadius: 20 }}>
-            <i className="fa-solid fa-paw" style={{ fontSize: 40, color: '#ff4d6d', marginBottom: 15 }} />
+            <Icon name="paw" style={{ fontSize: 40, color: '#ff4d6d', marginBottom: 15 }} />
             <h3>No pets yet</h3>
             <p style={{ color: '#8a96a8', marginTop: 8 }}>
               Add your first pet to get started. <span className="pink-heart">♡</span>
             </p>
             <button type="button" className="btn btn-pink" style={{ marginTop: 16 }} onClick={openCreate}>
-              <i className="fa-solid fa-plus" /> Add New Pet
+              <Icon name="plus" /> Add New Pet
             </button>
           </div>
         ) : filtered && filtered.length === 0 ? (
           <div style={{ gridColumn: '1 / -1', textAlign: 'center', padding: '60px 20px', background: '#fff', borderRadius: 20 }}>
-            <i className="fa-solid fa-paw" style={{ fontSize: 40, color: '#ff4d6d', marginBottom: 15 }} />
+            <Icon name="paw" style={{ fontSize: 40, color: '#ff4d6d', marginBottom: 15 }} />
             <h3>No pets found</h3>
             <p style={{ color: '#8a96a8', marginTop: 8 }}>Try another search or filter.</p>
           </div>
@@ -335,14 +336,14 @@ export function MyPetsPage() {
                   <h3 className="pet-name">
                     {pet.name}{' '}
                     <span className={`gender ${pet.gender === 'Female' ? 'female' : 'male'}`}>
-                      <i className={`fa-solid ${genderIcon(pet.gender)}`} />
+                      <Icon name={genderIcon(pet.gender)} />
                     </span>
                   </h3>
                   <p className="pet-breed">{pet.breed}</p>
                 </div>
                 <div className="pet-header-right">
                   <button className="more-btn" type="button" title="More options" onClick={(e) => openMenu(e, pet)}>
-                    <i className="fa-solid fa-ellipsis-vertical" />
+                    <Icon name="ellipsis-vertical" />
                   </button>
                 </div>
               </div>
@@ -350,19 +351,19 @@ export function MyPetsPage() {
               <div className="info-list">
                 <div className="info-row">
                   <span className="info-label">
-                    <i className="fa-regular fa-calendar" /> Age
+                    <Icon name="calendar" /> Age
                   </span>
                   <span className="info-value">{pet.age}</span>
                 </div>
                 <div className="info-row">
                   <span className="info-label">
-                    <i className="fa-solid fa-scale-balanced" /> Weight
+                    <Icon name="scale" /> Weight
                   </span>
                   <span className="info-value">{pet.weight}</span>
                 </div>
                 <div className="info-row">
                   <span className="info-label">
-                    <i className="fa-solid fa-syringe" /> Vaccinated
+                    <Icon name="syringe" /> Vaccinated
                   </span>
                   <span className={`info-value${pet.vaccinated ? ' status-yes' : ''}`}>{pet.vaccinated ? 'Yes' : 'No'}</span>
                 </div>
@@ -370,10 +371,10 @@ export function MyPetsPage() {
 
               <div className="card-actions">
                 <button className="btn btn-outline-pink view-details-btn" type="button" onClick={() => setDetails(pet)}>
-                  <i className="fa-regular fa-eye" /> View Details
+                  <Icon name="eye" /> View Details
                 </button>
                 <button className="btn btn-icon-blue edit-pet-btn" type="button" title="Edit Pet" onClick={() => openEdit(pet)}>
-                  <i className="fa-solid fa-pen" />
+                  <Icon name="pen" />
                 </button>
               </div>
             </div>
@@ -384,7 +385,7 @@ export function MyPetsPage() {
       <section className="bottom-grid">
         <div className="add-pet-dashed-card" onClick={openCreate} role="button" tabIndex={0}>
           <div className="plus-icon-circle">
-            <i className="fa-solid fa-plus" />
+            <Icon name="plus" />
           </div>
           <h4>Add New Pet</h4>
           <p>
@@ -394,7 +395,7 @@ export function MyPetsPage() {
         <div className="tip-card">
           <div className="tip-content">
             <div className="paw-badge">
-              <i className="fa-solid fa-paw" />
+              <Icon name="paw" />
             </div>
             <div className="tip-text">
               <h4>Pet Care Tip</h4>
@@ -410,16 +411,16 @@ export function MyPetsPage() {
       {menu && (
         <div className="pet-action-menu" style={{ position: 'fixed', top: menu.y + 8, left: menu.x - 160 }} onClick={() => setMenu(null)}>
           <button type="button" onClick={() => setDetails(menu.pet)}>
-            <i className="fa-regular fa-eye" />
+            <Icon name="eye" />
             <span>View Details</span>
           </button>
           <button type="button" onClick={() => openEdit(menu.pet)}>
-            <i className="fa-solid fa-pen" />
+            <Icon name="pen" />
             <span>Edit Pet</span>
           </button>
           <div className="menu-divider" />
           <button type="button" className="delete-action" onClick={() => setDeleteTarget(menu.pet)}>
-            <i className="fa-regular fa-trash-can" />
+            <Icon name="trash-can" />
             <span>Delete Pet</span>
           </button>
         </div>
@@ -442,7 +443,7 @@ export function MyPetsPage() {
         <div className="pet-delete-overlay show">
           <div className="pet-delete-modal">
             <div className="delete-icon">
-              <i className="fa-regular fa-trash-can" />
+              <Icon name="trash-can" />
             </div>
             <h3>Delete {deleteTarget.name}?</h3>
             <p>
@@ -453,7 +454,7 @@ export function MyPetsPage() {
                 Cancel
               </button>
               <button type="button" className="delete-confirm-btn" disabled={deleting} onClick={confirmDelete}>
-                <i className="fa-regular fa-trash-can" /> {deleting ? 'Deleting…' : 'Delete Pet'}
+                <Icon name="trash-can" /> {deleting ? 'Deleting…' : 'Delete Pet'}
               </button>
             </div>
           </div>

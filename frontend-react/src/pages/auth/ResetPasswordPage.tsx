@@ -1,3 +1,4 @@
+import { Icon } from '../../components/shared/Icon'
 import { useState, type FormEvent } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { resetPassword } from '../../api/auth'
@@ -80,7 +81,7 @@ export function ResetPasswordPage() {
           <div className="login-card">
             <div className="card-header">
               <div className="paw-icon">
-                <i className="fa-solid fa-paw" />
+                <Icon name="paw" />
               </div>
               <h2>Reset Password</h2>
               <p>Enter your new password.</p>
@@ -89,7 +90,7 @@ export function ResetPasswordPage() {
             <form id="resetForm" onSubmit={submit}>
               <InputBox
                 id="password"
-                icon="fa-solid fa-lock"
+                icon="lock"
                 type={showPassword ? 'text' : 'password'}
                 placeholder="New Password"
                 value={password}
@@ -104,7 +105,7 @@ export function ResetPasswordPage() {
 
               <InputBox
                 id="confirmPassword"
-                icon="fa-solid fa-lock"
+                icon="lock"
                 type={showConfirm ? 'text' : 'password'}
                 placeholder="Confirm Password"
                 value={confirm}
@@ -118,7 +119,7 @@ export function ResetPasswordPage() {
 
               <SubmitButton
                 id="resetBtn"
-                icon="fa-solid fa-key"
+                icon="key"
                 label="Reset Password"
                 loading={status === 'loading'}
                 loadingLabel="Resetting..."

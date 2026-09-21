@@ -4,6 +4,7 @@
 // styled on every auth page, fixing the dead style in the Vanilla pages).
 
 import type { CSSProperties } from 'react'
+import { Icon } from '../shared/Icon'
 
 interface InputBoxProps {
   id: string
@@ -38,7 +39,7 @@ export function InputBox({
 
   return (
     <div className="input-box">
-      <i className={icon} />
+      <Icon name={icon} />
 
       <input
         id={id}
@@ -51,7 +52,7 @@ export function InputBox({
 
       {toggleClass && onTogglePassword && (
         <span className={toggleClass} onClick={onTogglePassword}>
-          <i className={showPassword ? 'fa-regular fa-eye-slash' : 'fa-regular fa-eye'} />
+          <Icon name={showPassword ? 'eye-slash' : 'eye'} />
         </span>
       )}
 

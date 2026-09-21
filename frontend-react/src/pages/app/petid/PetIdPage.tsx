@@ -13,6 +13,7 @@ import { getMe } from '../../../api/auth'
 import { getNotifications, type AppNotification } from '../../../api/notifications'
 import { getMyPets, getPetQr } from '../../../api/pets'
 import { useTheme } from '../../../hooks/useTheme'
+import { Icon } from '../../../components/shared/Icon'
 import { capFirst, speciesImage, toPetView, type PetView } from '../mypet/petBase'
 
 export function PetIdPage() {
@@ -123,7 +124,7 @@ export function PetIdPage() {
         </header>
         <section className="dashboard-card" id="petIdSection">
           <div className="petid-empty" style={{ marginTop: 0 }}>
-            <i className="fa-solid fa-paw" />
+            <Icon name="paw" />
             <h3>No pets yet</h3>
             <p style={{ marginTop: 8 }}>
               Add a pet first to generate its Digital ID.{' '}
@@ -154,10 +155,10 @@ export function PetIdPage() {
 
         <div className="header-right">
           <button className="icon-action-btn" type="button" title="Toggle theme" onClick={toggle}>
-            <i className={`fa-solid ${theme === 'dark' ? 'fa-moon' : 'fa-sun'}`} />
+            <Icon name={theme === 'dark' ? 'moon' : 'sun'} />
           </button>
           <button ref={bellRef} className="icon-action-btn badge-btn" type="button" title="Notifications" onClick={() => setPanelOpen((o) => !o)}>
-            <i className="fa-regular fa-bell" />
+            <Icon name="bell" />
             <span className="badge-count">{unread || '0'}</span>
           </button>
         </div>
@@ -188,7 +189,7 @@ export function PetIdPage() {
         <div className="petid-layout">
           <div className="petid-panel">
             <h3>
-              <i className="fa-solid fa-qrcode" style={{ color: '#ff5c8a', marginRight: '0.4rem' }} />Select Your Pet
+              <Icon name="qrcode" style={{ color: '#ff5c8a', marginRight: '0.4rem' }} />Select Your Pet
             </h3>
             <div className="petid-select-wrap">
               <label htmlFor="petSelect">Pet</label>
@@ -221,24 +222,24 @@ export function PetIdPage() {
             )}
 
             <button className="btn-pink" id="generateQrBtn" type="button" disabled={!currentPet || generating} onClick={generateQr}>
-              <i className={`fa-solid ${generating ? 'fa-circle-notch fa-spin' : 'fa-bolt'}`} /> {generating ? 'Generating...' : 'Generate QR Code'}
+              <Icon name={generating ? 'circle-notch' : 'bolt'} spin={generating} /> {generating ? 'Generating...' : 'Generate QR Code'}
             </button>
 
             {qr && (
               <button className="btn-pink" id="downloadIdBtn" type="button" style={{ background: '#1e293b' }} onClick={downloadIdCard}>
-                <i className="fa-solid fa-download" /> Download ID Card
+                <Icon name="download" /> Download ID Card
               </button>
             )}
           </div>
 
           <div className="petid-panel">
             <h3>
-              <i className="fa-solid fa-id-card" style={{ color: '#ff5c8a', marginRight: '0.4rem' }} />Pet ID Card
+              <Icon name="id-card" style={{ color: '#ff5c8a', marginRight: '0.4rem' }} />Pet ID Card
             </h3>
 
             {!qr ? (
               <div id="idPlaceholder" className="petid-empty">
-                <i className="fa-regular fa-id-card" />
+                <Icon name="id-card" />
                 <h3>No ID generated yet</h3>
                 <p style={{ marginTop: 8 }}>Choose a pet and click &quot;Generate QR Code&quot;.</p>
               </div>
@@ -253,13 +254,19 @@ export function PetIdPage() {
                 <div className="id-card-body">
                   <img className="id-card-photo" src={photo} alt="Pet" />
                   <div className="id-card-info">
-                    <h2>{currentPet?.name}</h2>
-                    <p>{currentPet?.breed}</p>
+                    {/* Human-readable, label/value presentation of the real
+                        pet data (Vanilla rendered a raw object/JSON here —
+                        Phase 09 polish). Pet ID is the backend petUid, falling
+                        back to the real short database id for legacy pets. */}
                     <div className="id-row">
+                      <span>Pet ID</span>
+                      <strong>{currentPet?.petUid || (currentPet ? currentPet.id.slice(-8).toUpperCase() : '—')}</strong>
+                      <span>Pet Name</span>
+                      <strong>{currentPet?.name}</strong>
                       <span>Species</span>
                       <strong>{capFirst(currentPet?.species)}</strong>
-                      <span>Age</span>
-                      <strong>{currentPet?.age}</strong>
+                      <span>Breed</span>
+                      <strong>{currentPet?.breed || '—'}</strong>
                       <span>Owner</span>
                       <strong>{ownerName || 'Pet Parent'}</strong>
                     </div>

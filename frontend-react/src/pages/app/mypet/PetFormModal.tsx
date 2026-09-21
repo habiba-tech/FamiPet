@@ -9,6 +9,7 @@
 
 import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { createPet, updatePet } from '../../../api/pets'
+import { Icon } from '../../../components/shared/Icon'
 import { BREEDS, buildPetPayload, type PetView } from './petBase'
 
 const AGE_OPTIONS = [
@@ -122,7 +123,7 @@ export function PetFormModal({ editing, onClose, onSaved }: Props) {
         <div className="pet-modal-header">
           <div className="pet-modal-title">
             <div className="pet-modal-icon">
-              <i className="fa-solid fa-paw" />
+              <Icon name="paw" />
             </div>
             <div>
               <h2>{isEditing ? 'Edit Pet' : 'Add New Pet'}</h2>
@@ -130,19 +131,19 @@ export function PetFormModal({ editing, onClose, onSaved }: Props) {
             </div>
           </div>
           <button type="button" className="pet-modal-close" onClick={onClose} aria-label="Close">
-            <i className="fa-solid fa-xmark" />
+            <Icon name="x" />
           </button>
         </div>
 
         <form onSubmit={onSubmit}>
           <div className="pet-modal-body">
             <div className="pet-photo-section">
-              <div className="pet-photo-preview">{photo ? <img src={photo} alt="Pet" /> : <i className="fa-solid fa-camera" />}</div>
+              <div className="pet-photo-preview">{photo ? <img src={photo} alt="Pet" /> : <Icon name="camera" />}</div>
               <div className="pet-photo-info">
                 <h4>Pet Photo</h4>
                 <p>Add a cute photo of your pet</p>
                 <label className="pet-photo-label">
-                  <i className="fa-solid fa-upload" />
+                  <Icon name="upload" />
                   Choose Photo
                   <input ref={fileInputRef} type="file" accept="image/*" onChange={(e) => readPhoto(e.target.files?.[0])} />
                 </label>
@@ -266,7 +267,7 @@ export function PetFormModal({ editing, onClose, onSaved }: Props) {
               Cancel
             </button>
             <button type="submit" className="pet-modal-btn pet-modal-submit" disabled={saving}>
-              <i className="fa-solid fa-plus" />
+              <Icon name="plus" />
               {saving ? 'Saving…' : isEditing ? 'Save Changes' : 'Add Pet'}
             </button>
           </div>

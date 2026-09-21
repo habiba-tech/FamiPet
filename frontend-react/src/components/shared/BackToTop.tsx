@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { Icon } from './Icon'
 
 // Parity with frontend/js/main.js + the scroll visibility half of home.js:
 // shows the button after scrolling 300px (`#backToTop.show`), smooth-scrolls
@@ -22,7 +23,7 @@ export function BackToTop() {
       className={show ? 'show' : undefined}
       onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
     >
-      <i className="fa-solid fa-chevron-up" />
+      <Icon name="chevron-up" />
     </button>
   )
 }

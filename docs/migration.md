@@ -550,10 +550,35 @@ numbered list matches the required scope; execution order note in §12.
   heading `!important` would blank them).
   Screens: mypet grid, add/edit + details + delete-confirm modals, dual search
   sync, filter tabs, three-dot menu, Pet ID page (select/preview/QR/download).
-  lint (`oxlint`) + `tsc -b && vite build` pass. Live-API + ownership-isolation
-  E2E (`pets/:id` PUT/DELETE owner-only) were NOT run: this environment has no
-  running MongoDB/backend — scheduled with the full-app start by the user;
-  re-verify before Phase 25.
+lint (`oxlint`) + `tsc -b && vite build` pass. Live-API + ownership-isolation
+   E2E (`pets/:id` PUT/DELETE owner-only) were NOT run: this environment has no
+   running MongoDB/backend — scheduled with the full-app start by the user;
+   re-verify before Phase 25.
+- **Polish (2026-09-21):** `fix(frontend-react): polish phase 09 icons theme and pet-id`:
+  (7) Icons bundled: dropped the Font Awesome `<link>` + `unpkg lucide` `<script>`
+  from `index.html` and `window.lucide.createIcons()` calls; added `lucide-react`
+  and a single `src/components/shared/Icon.tsx` (`name → LucideIcon` wrapped in
+  `<i>` to keep every ported `i`-selector CSS rule). Brand icons (Instagram/
+  Facebook/LinkedIn/GitHub) have no lucide equivalent → inline SVG paths in
+  `Footer.tsx`; `svg.lucide { width:1em; height:1em }` + `lucide-spin` keyframes
+  in `global.css`. `src/env.d.ts` (window.lucide decl) deleted.
+  (8) Dark-mode scoping bug fixed: `mypet.css` `.main-content` rule targeted
+  `body.dark-theme .mypet-page .main-content` but `.main-content` wraps the page
+  (ancestor) → rewritten as `body.dark-theme:has(.mypet-page) .main-content,`
+  with a pre-paint inline script in `index.html` (`famipetTheme`) so dark applies
+  before first render (no flash). Pet ID panels stay white no longer: `petid.css`
+  now darkens panel/preview surfaces while the downloadable/printed `.id-card`
+  keeps its light gradient + navy text.
+  (9) QR Pet ID card restructured from the old heading/paragraph into labelled
+  rows — Pet ID, Pet Name, Species, Breed, Owner — with real values (petUid /
+  pet name / species / breed / owner name; `—` fallbacks); QR payload, PNG
+  download and print unchanged.
+  Verified live (Vite dev): `npm run lint` (only pre-existing AuthContext/
+  VerifyEmailPage set-state warnings) + `tsc -b && vite build` pass; headless
+  Chrome against the running app confirms 0 remaining `i.fa-*`/`data-lucide`
+  nodes, no CDN requests, dark backgrounds on dashboard/mypet/pet-id, white
+  `.id-card` with correct label/value colors, QR regenerates, dark persists on
+  refresh, and light-mode login/signup/home icons all render.
 
 ### Phase 10 — Health
 - **Objective:** health records + pet selector.

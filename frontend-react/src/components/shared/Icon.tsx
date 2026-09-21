@@ -1,0 +1,170 @@
+// Single bundled icon component — replaces the Font Awesome CDN <link> and the
+// unpkg lucide <script> in index.html (phase 09 polish: CDN glyphs rendered as
+// empty boxes or raced `window.lucide.createIcons()`).
+//
+// The `<i>` wrapper keeps the icon sizing/color rules of the ported CSS
+// (`i` selectors + em-based font-size) working unchanged; the lucide SVG fills
+// it via `svg.lucide { width:1em; height:1em }` (global.css). Map keys double
+// as the `icon` strings passed by data-driven call sites (nav/stat/tab/activity
+// item props).
+
+import type { CSSProperties } from 'react'
+import type { LucideIcon } from 'lucide-react'
+import {
+  Activity,
+  AlertTriangle,
+  ArrowLeft,
+  Bell,
+  Bird,
+  Calendar,
+  CalendarCheck,
+  CalendarDays,
+  Camera,
+  Cat,
+  Check,
+  ChevronDown,
+  ChevronUp,
+  Circle,
+  CircleCheck,
+  Clock,
+  Contact,
+  Dog,
+  Download,
+  Eye,
+  EyeOff,
+  Heart,
+  Home,
+  Key,
+  LayoutGrid,
+  Loader2,
+  Lock,
+  LogIn,
+  LogOut,
+  Mail,
+  MapPin,
+  Menu,
+  MessageSquare,
+  Moon,
+  MoreVertical,
+  PawPrint,
+  Pencil,
+  Phone,
+  PieChart,
+  Pill,
+  Plus,
+  QrCode,
+  RotateCw,
+  Scale,
+  Search,
+  Send,
+  Settings,
+  Shield,
+  Sparkles,
+  Stethoscope,
+  StickyNote,
+  Sun,
+  Syringe,
+  Trash2,
+  Upload,
+  User,
+  UserPlus,
+  Users,
+  UsersRound,
+  Utensils,
+  Venus,
+  Mars,
+  X,
+  XCircle,
+  Zap,
+} from 'lucide-react'
+
+const ICONS: Record<string, LucideIcon> = {
+  activity: Activity,
+  'arrow-left': ArrowLeft,
+  bell: Bell,
+  'border-all': LayoutGrid,
+  bolt: Zap,
+  bird: Bird,
+  calendar: Calendar,
+  'calendar-check': CalendarCheck,
+  'calendar-days': CalendarDays,
+  camera: Camera,
+  cat: Cat,
+  check: Check,
+  'chevron-down': ChevronDown,
+  'chevron-up': ChevronUp,
+  'circle-check': CircleCheck,
+  'circle-notch': Loader2,
+  'circle-xmark': XCircle,
+  clock: Clock,
+  comments: MessageSquare,
+  'chart-pie': PieChart,
+  dog: Dog,
+  download: Download,
+  'ellipsis-vertical': MoreVertical,
+  envelope: Mail,
+  eye: Eye,
+  'eye-slash': EyeOff,
+  heart: Heart,
+  house: Home,
+  'id-card': Contact,
+  key: Key,
+  'layout-grid': LayoutGrid,
+  loading: Loader2,
+  lock: Lock,
+  'log-out': LogOut,
+  'location-dot': MapPin,
+  'magnifying-glass': Search,
+  mars: Mars,
+  menu: Menu,
+  moon: Moon,
+  'note-sticky': StickyNote,
+  paw: PawPrint,
+  'paw-print': PawPrint,
+  pen: Pencil,
+  phone: Phone,
+  pill: Pill,
+  plus: Plus,
+  qrcode: QrCode,
+  'right-to-bracket': LogIn,
+  'right-from-bracket': LogOut,
+  rotate: RotateCw,
+  scale: Scale,
+  'scale-balanced': Scale,
+  search: Search,
+  send: Send,
+  settings: Settings,
+  shield: Shield,
+  'shield-halved': Shield,
+  sparkles: Sparkles,
+  spinner: Loader2,
+  stethoscope: Stethoscope,
+  sun: Sun,
+  syringe: Syringe,
+  'trash-can': Trash2,
+  'triangle-exclamation': AlertTriangle,
+  upload: Upload,
+  user: User,
+  'user-plus': UserPlus,
+  users: Users,
+  'users-round': UsersRound,
+  utensils: Utensils,
+  venus: Venus,
+  x: X,
+}
+
+interface IconProps {
+  name: string
+  className?: string
+  style?: CSSProperties
+  spin?: boolean
+}
+
+export function Icon({ name, className, style, spin }: IconProps) {
+  const Glyph = ICONS[name] ?? Circle
+  return (
+    <i className={className} style={style}>
+      <Glyph className={spin ? 'lucide-spin' : undefined} aria-hidden="true" />
+    </i>
+  )
+}

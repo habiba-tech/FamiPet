@@ -1,3 +1,4 @@
+import { Icon } from '../../components/shared/Icon'
 import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { verifyEmail } from '../../api/auth'
@@ -45,10 +46,11 @@ export function VerifyEmailPage() {
 
   const icon =
     status === 'loading'
-      ? 'fa-solid fa-spinner fa-spin'
+      ? 'spinner'
       : status === 'success'
-        ? 'fa-solid fa-circle-check'
-        : 'fa-solid fa-circle-xmark'
+        ? 'circle-check'
+        : 'circle-xmark'
+  const spin = status === 'loading'
 
   const actionText = status === 'success' ? 'Go to Login' : 'Back to Login'
 
@@ -59,7 +61,7 @@ export function VerifyEmailPage() {
           <div className="login-card verify-card">
             <div className="card-header">
               <div className="paw-icon">
-                <i className="fa-solid fa-paw" />
+                <Icon name="paw" />
               </div>
               <h2>Email Verification</h2>
               <p>Confirm your Famipet account.</p>
@@ -67,7 +69,7 @@ export function VerifyEmailPage() {
 
             <div className="verify-status">
               <div className={`status-icon ${status}`}>
-                <i className={icon} />
+                <Icon name={icon} spin={spin} />
               </div>
 
               <h2>{title}</h2>
@@ -75,7 +77,7 @@ export function VerifyEmailPage() {
 
               {status !== 'loading' && (
                 <Link to="/login" className="submit-btn" style={{ display: 'inline-block', textDecoration: 'none' }}>
-                  <i className="fa-solid fa-right-to-bracket" />
+                  <Icon name="right-to-bracket" />
                   {actionText}
                 </Link>
               )}

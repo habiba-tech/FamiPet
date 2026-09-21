@@ -1,3 +1,4 @@
+import { Icon } from '../../components/shared/Icon'
 import { useState, type FormEvent } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { register } from '../../api/auth'
@@ -132,7 +133,7 @@ export function SignupPage() {
           <div className="login-card">
             <div className="card-header">
               <div className="paw-icon">
-                <i className="fa-solid fa-paw" />
+                <Icon name="paw" />
               </div>
               <h2>Create Account</h2>
               <p>Let's get your pet journey started!</p>
@@ -141,7 +142,7 @@ export function SignupPage() {
             <form id="signupForm" onSubmit={submit} autoComplete="off">
               <InputBox
                 id="fullName"
-                icon="fa-regular fa-user"
+                icon="user"
                 type="text"
                 placeholder="Full Name"
                 value={name}
@@ -151,7 +152,7 @@ export function SignupPage() {
 
               <InputBox
                 id="email"
-                icon="fa-regular fa-envelope"
+                icon="envelope"
                 type="email"
                 placeholder="Email Address"
                 value={email}
@@ -161,7 +162,7 @@ export function SignupPage() {
 
               <InputBox
                 id="phone"
-                icon="fa-solid fa-phone"
+                icon="phone"
                 type="tel"
                 placeholder="Phone Number"
                 value={phone}
@@ -171,7 +172,7 @@ export function SignupPage() {
 
               <InputBox
                 id="password"
-                icon="fa-solid fa-lock"
+                icon="lock"
                 type={showPassword ? 'text' : 'password'}
                 placeholder="Password"
                 value={password}
@@ -184,7 +185,7 @@ export function SignupPage() {
 
               <InputBox
                 id="confirmPassword"
-                icon="fa-solid fa-lock"
+                icon="lock"
                 type={showConfirm ? 'text' : 'password'}
                 placeholder="Confirm Password"
                 value={confirm}
@@ -204,7 +205,7 @@ export function SignupPage() {
                   name="role"
                   value="owner"
                   checked={role === 'owner'}
-                  icon="fa-solid fa-paw"
+                  icon="paw"
                   title="Pet Owner"
                   subtitle="Manage your pets"
                   onChange={setRole}
@@ -214,7 +215,7 @@ export function SignupPage() {
                   name="role"
                   value="shelter"
                   checked={role === 'shelter'}
-                  icon="fa-solid fa-house"
+                  icon="house"
                   title="Shelter"
                   subtitle="Help pets find homes"
                   onChange={setRole}
@@ -232,7 +233,7 @@ export function SignupPage() {
 
               <SubmitButton
                 id="signupBtn"
-                icon="fa-solid fa-user-plus"
+                icon="user-plus"
                 label="Create Account"
                 loading={status === 'loading'}
                 loadingLabel="Creating..."

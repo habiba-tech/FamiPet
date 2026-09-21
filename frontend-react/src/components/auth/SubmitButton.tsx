@@ -3,6 +3,8 @@
 // forgot-password.js, reset-password.js). The green success gradient comes
 // from the `.submit-btn.success` rule in login.css.
 
+import { Icon } from '../shared/Icon'
+
 interface SubmitButtonProps {
   id?: string
   icon?: string
@@ -23,15 +25,11 @@ export function SubmitButton({
   successLabel,
 }: SubmitButtonProps) {
   const busy = loading || success
-  const iconClass = loading
-    ? 'fa-solid fa-spinner fa-spin'
-    : success
-      ? 'fa-solid fa-check'
-      : `fa-solid ${icon}`
+  const iconName = loading ? 'spinner' : success ? 'check' : icon
 
   return (
     <button type="submit" id={id} className={`submit-btn${success ? ' success' : ''}`} disabled={busy}>
-      <i className={iconClass} />
+      <Icon name={iconName || 'check'} spin={loading} />
       {loading ? loadingLabel : success ? successLabel : label}
     </button>
   )

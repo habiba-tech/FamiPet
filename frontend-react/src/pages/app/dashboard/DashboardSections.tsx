@@ -11,6 +11,7 @@ import type { AppNotification } from '../../../api/notifications'
 import type { Pet } from '../../../api/pets'
 import type { Reminder } from '../../../api/reminders'
 import { ageText, breedName, fmtDate, fmtTime, petImage } from '../../../lib/formatters'
+import { Icon } from '../../../components/shared/Icon'
 
 export interface ActivityItem {
   title: string
@@ -73,7 +74,7 @@ export function StatCard({
     <div className={`stat-card ${className}`}>
       <div className="stat-top">
         <div className="stat-icon">
-          <i data-lucide={icon} />
+          <Icon name={icon} />
         </div>
         <span>{label}</span>
       </div>
@@ -123,7 +124,7 @@ export function PetsSection({
                       onToggleFavorite(String(pet._id), liked)
                     }}
                   >
-                    <i data-lucide="heart" />
+                    <Icon name="heart" />
                   </button>
                 </div>
                 <div className="pet-info">
@@ -166,17 +167,17 @@ export function AppointmentSection({
         ) : (
           <>
             <div className="appointment-icon">
-              <i data-lucide="stethoscope" />
+              <Icon name="stethoscope" />
             </div>
             <div className="appointment-details">
               <span className="appointment-label">{String(appointment.type || 'checkup').toUpperCase()}</span>
               <h3>{appointment.pet?.name || 'Your Pet'}</h3>
               <div className="appointment-meta">
                 <span>
-                  <i data-lucide="calendar" /> {fmtDate(appointment.date)}
+                  <Icon name="calendar" /> {fmtDate(appointment.date)}
                 </span>
                 <span>
-                  <i data-lucide="clock" /> {fmtTime(appointment.time)}
+                  <Icon name="clock" /> {fmtTime(appointment.time)}
                 </span>
               </div>
             </div>
@@ -206,7 +207,7 @@ export function ActivitySection({ items }: { items: ActivityItem[] | null }) {
           items.map((it, i) => (
             <div className="activity-item" key={i}>
               <div className={`activity-icon ${it.color}`}>
-                <i data-lucide={it.icon} />
+                <Icon name={it.icon} />
               </div>
               <div>
                 <h4>{it.title}</h4>
@@ -248,7 +249,7 @@ export function RemindersSection({ reminders }: { reminders: Reminder[] | null }
             return (
               <div className="reminder-item" key={r._id}>
                 <div className={`reminder-icon ${colors[i % colors.length]}`}>
-                  <i data-lucide={icons[i % icons.length]} />
+                  <Icon name={icons[i % icons.length]} />
                 </div>
                 <div>
                   <h4>{r.title}</h4>
@@ -316,7 +317,7 @@ export function NotificationPanel({
         notes.slice(0, 5).map((n, i) => (
           <div className="notification-item" key={n._id}>
             <div className={`notification-icon ${colors[i % colors.length]}`}>
-              <i data-lucide={icons[i % icons.length]} />
+              <Icon name={icons[i % icons.length]} />
             </div>
             <div>
               <strong>{n.title}</strong>

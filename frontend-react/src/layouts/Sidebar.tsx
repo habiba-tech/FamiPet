@@ -1,6 +1,6 @@
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
-import { useLayoutEffect } from 'react'
+import { Icon } from '../components/shared/Icon'
 
 // Parity with frontend/js/sidebar.js + sidebar.css: builds the universal app
 // sidebar (brand, nav, pet decoration, profile), highlights the active page by
@@ -61,11 +61,8 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
   const profileImage = user?.avatar || ''
   const navItems = user?.role === 'admin' ? NAV_ITEMS : NAV_ITEMS.filter((i) => i.page !== 'admin')
 
-  // Lucide replaces `<i data-lucide>` with inline SVGs (same as sidebar.js).
-  useLayoutEffect(() => {
-    window.lucide?.createIcons()
-  })
-
+  // Icons are bundled lucide-react components (Icon) — no CDN lucide to replay
+  // on re-render (the Vanilla `window.lucide.createIcons()` swap is dropped).
   const logout2 = () => {
     logout()
     navigate('/login')
@@ -96,13 +93,13 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
             className={`ann-nav-item${isActive(item) ? ' active' : ''}`}
             onClick={onNavigate}
           >
-            <i data-lucide={item.icon} />
+            <Icon name={item.icon} />
             <span>{item.label}</span>
           </Link>
         ))}
 
         <a href="#" className="ann-nav-item" id="sidebarLogout" onClick={(e) => { e.preventDefault(); logout2() }}>
-          <i data-lucide="log-out" />
+          <Icon name="log-out" />
           <span>Logout</span>
         </a>
       </nav>
@@ -125,7 +122,7 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
           <span>{profileRole}</span>
         </div>
 
-        <i data-lucide="chevron-down" className="profile-arrow" />
+        <Icon name="chevron-down" className="profile-arrow" />
       </button>
     </aside>
   )

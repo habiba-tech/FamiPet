@@ -1,3 +1,4 @@
+import { Icon } from '../../components/shared/Icon'
 import { useState, type FormEvent } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { resendVerification } from '../../api/auth'
@@ -100,7 +101,7 @@ export function LoginPage() {
           <div className="login-card">
             <div className="card-header">
               <div className="paw-icon">
-                <i className="fa-solid fa-paw" />
+                <Icon name="paw" />
               </div>
               <h2>Login</h2>
               <p>Sign in to continue caring for your furry friends.</p>
@@ -109,7 +110,7 @@ export function LoginPage() {
             <form id="loginForm" onSubmit={submit}>
               <InputBox
                 id="email"
-                icon="fa-regular fa-envelope"
+                icon="envelope"
                 type="email"
                 placeholder="Email Address"
                 value={email}
@@ -120,7 +121,7 @@ export function LoginPage() {
 
               <InputBox
                 id="password"
-                icon="fa-solid fa-lock"
+                icon="lock"
                 type={showPassword ? 'text' : 'password'}
                 placeholder="Password"
                 value={password}
@@ -155,7 +156,7 @@ export function LoginPage() {
 
               <SubmitButton
                 id="loginBtn"
-                icon="fa-solid fa-right-to-bracket"
+                icon="right-to-bracket"
                 label="Login"
                 loading={status === 'loading'}
                 loadingLabel="Logging In..."

@@ -70,6 +70,23 @@
 /* =========================================================
    BASE RESETS — mirrors frontend/css/style.css
    ========================================================= */
+
+/* Bundled lucide icons (Icon component in place of the FA/lucide CDNs) fill
+   their `<i>` wrapper by em, so existing `i` font-size rules size them. */
+svg.lucide {
+  width: 1em;
+  height: 1em;
+}
+
+@keyframes lucide-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.lucide-spin {
+  animation: lucide-spin 1s linear infinite;
+}
 @layer base {
   html {
     scroll-behavior: smooth;

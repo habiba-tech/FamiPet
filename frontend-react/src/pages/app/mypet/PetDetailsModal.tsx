@@ -5,6 +5,7 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { getPetQr } from '../../../api/pets'
+import { Icon } from '../../../components/shared/Icon'
 import { genderIcon, type PetView } from './petBase'
 
 interface Props {
@@ -46,7 +47,7 @@ export function PetDetailsModal({ pet, onClose }: Props) {
         <div className="pet-details-header">
           <div className="pet-details-title">
             <div className="pet-details-icon">
-              <i className="fa-solid fa-paw" />
+              <Icon name="paw" />
             </div>
             <div>
               <h2>Pet Details</h2>
@@ -54,7 +55,7 @@ export function PetDetailsModal({ pet, onClose }: Props) {
             </div>
           </div>
           <button type="button" className="pet-details-close" aria-label="Close" onClick={onClose}>
-            <i className="fa-solid fa-xmark" />
+            <Icon name="x" />
           </button>
         </div>
 
@@ -64,7 +65,7 @@ export function PetDetailsModal({ pet, onClose }: Props) {
           </div>
           <div className="pet-details-name">
             <h3>
-              {pet.name} <span className={`gender ${pet.gender === 'Female' ? 'female' : 'male'}`}><i className={`fa-solid ${genderIcon(pet.gender)}`} /></span>
+              {pet.name} <span className={`gender ${pet.gender === 'Female' ? 'female' : 'male'}`}><Icon name={genderIcon(pet.gender)} /></span>
             </h3>
             <p>{pet.breed}</p>
           </div>
@@ -73,25 +74,25 @@ export function PetDetailsModal({ pet, onClose }: Props) {
         <div className="pet-details-grid">
           <div className="detail-box">
             <div className="detail-label">
-              <i className="fa-regular fa-calendar" /> Age
+              <Icon name="calendar" /> Age
             </div>
             <strong>{pet.age}</strong>
           </div>
           <div className="detail-box">
             <div className="detail-label">
-              <i className="fa-solid fa-scale-balanced" /> Weight
+              <Icon name="scale" /> Weight
             </div>
             <strong>{pet.weight}</strong>
           </div>
           <div className="detail-box">
             <div className="detail-label">
-              <i className="fa-solid fa-syringe" /> Vaccinated
+              <Icon name="syringe" /> Vaccinated
             </div>
             <strong className={pet.vaccinated ? 'detail-success' : 'detail-warning'}>{pet.vaccinated ? 'Yes' : 'No'}</strong>
           </div>
           <div className="detail-box">
             <div className="detail-label">
-              <i className="fa-solid fa-paw" /> Species
+              <Icon name="paw" /> Species
             </div>
             <strong>{pet.species}</strong>
           </div>
@@ -99,14 +100,14 @@ export function PetDetailsModal({ pet, onClose }: Props) {
 
         <div className="detail-section">
           <h4>
-            <i className="fa-regular fa-note-sticky" /> About {pet.name}
+            <Icon name="note-sticky" /> About {pet.name}
           </h4>
           <p>{pet.notes || 'No notes added yet.'}</p>
         </div>
 
         <div className="detail-section">
           <h4>
-            <i className="fa-solid fa-qrcode" /> Digital Pet ID
+            <Icon name="qrcode" /> Digital Pet ID
           </h4>
           <div className="pet-qr-row">
             {qr ? <img className="pet-qr-image" src={qr} alt={`QR code for ${pet.name}`} /> : <p className="pet-qr-loading">Generating QR code…</p>}

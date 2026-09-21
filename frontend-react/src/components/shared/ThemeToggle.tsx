@@ -1,4 +1,5 @@
 import { useTheme } from '../../hooks/useTheme'
+import { Icon } from './Icon'
 
 // Parity with frontend/js/theme.js icon contract: light shows `fa-regular fa-sun`
 // with "Switch to dark mode", dark shows `fa-regular fa-moon` with
@@ -18,7 +19,7 @@ export function ThemeToggle() {
       title={label}
       onClick={toggle}
     >
-      <i className={isDark ? 'fa-regular fa-moon' : 'fa-regular fa-sun'} />
+      <Icon name={isDark ? 'moon' : 'sun'} />
     </button>
   )
 }

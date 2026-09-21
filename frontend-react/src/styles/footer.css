@@ -309,6 +309,15 @@
 
 }
 
+/* Brand SVG glyphs (Icon-free inline paths) sized like the old 1em FA glyphs */
+.social-links svg{
+
+    width:1em;
+
+    height:1em;
+
+}
+
 /*==========================================
             BACK TO TOP
 ==========================================*/

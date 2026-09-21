@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom'
 import { ThemeToggle } from './ThemeToggle'
+import { Icon } from './Icon'
 
 // Parity with the Vanilla landing header (frontend/index.html). The nav links
 // anchor to on-page sections; "Home" carries the static active state exactly
@@ -48,7 +49,7 @@ export function Navbar() {
         </div>
 
         <div className="menu-toggle">
-          <i className="fa-solid fa-bars" />
+          <Icon name="menu" />
         </div>
       </div>
     </header>

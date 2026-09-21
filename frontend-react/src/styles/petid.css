@@ -182,13 +182,14 @@
     font-size: 0.78rem;
     color: #64748b;
     display: grid;
-    grid-template-columns: auto auto;
+    grid-template-columns: auto minmax(0, 1fr);
     gap: 0.25rem 1rem;
-    justify-content: start;
+    justify-content: stretch;
 }
 
 .petid-page .id-card-info .id-row strong {
     color: #1e293b;
+    overflow-wrap: anywhere;
 }
 
 .petid-page .id-card-qr {
@@ -229,11 +230,27 @@
     margin-bottom: 12px;
 }
 
-/* ponytail: dark mode unsupported for the Pet ID card by design — the ID
-   card is a printed/downloadable artifact and stays on its white/rose
-   surface like Vanilla. */
-body.dark-theme .petid-page .id-card,
-body.dark-theme .petid-page .petid-panel,
+/* =========================================================
+   DARK MODE — PET ID page (Phase 09 polish)
+   Panels get the same #211e30 card surface as dashboard/mypet
+   dark cards; the downloadable/printable ID card stays white.
+   ========================================================= */
+body.dark-theme .petid-page #petIdSection,
+body.dark-theme .petid-page .petid-panel {
+    background: #211e30 !important;
+    border-color: #332e45 !important;
+}
+
 body.dark-theme .petid-page .petid-preview {
-    background: #ffffff !important;
+    background: #2a2640 !important;
+}
+
+body.dark-theme .petid-page .petid-empty,
+body.dark-theme .petid-page .petid-loading {
+    background: #211e30 !important;
+}
+
+body.dark-theme .petid-page .petid-empty i,
+body.dark-theme .petid-page .petid-loading i {
+    color: #ff5c8a;
 }

@@ -1,3 +1,4 @@
+import { Icon } from '../../components/shared/Icon'
 import { useState, type FormEvent } from 'react'
 import { Link } from 'react-router-dom'
 import { forgotPassword } from '../../api/auth'
@@ -54,7 +55,7 @@ export function ForgotPasswordPage() {
           <div className="login-card">
             <div className="card-header">
               <div className="paw-icon">
-                <i className="fa-solid fa-paw" />
+                <Icon name="paw" />
               </div>
               <h2>Forgot Password</h2>
               <p>We'll email you a reset link.</p>
@@ -63,7 +64,7 @@ export function ForgotPasswordPage() {
             <form id="forgotForm" onSubmit={submit}>
               <InputBox
                 id="email"
-                icon="fa-regular fa-envelope"
+                icon="envelope"
                 type="email"
                 placeholder="Email Address"
                 value={email}
@@ -75,7 +76,7 @@ export function ForgotPasswordPage() {
 
               <SubmitButton
                 id="forgotBtn"
-                icon="fa-solid fa-paper-plane"
+                icon="send"
                 label="Send Reset Link"
                 loading={status === 'loading'}
                 loadingLabel="Sending..."

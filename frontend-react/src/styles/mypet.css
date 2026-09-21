@@ -2195,7 +2195,12 @@ body:has(#sidebar-container) .bottom-grid {
    GLOBAL DARK MODE (responsive.css §GLOBAL DARK MODE, scoped)
    ========================================================= */
 
-body.dark-theme .mypet-page .main-content {
+/* `.main-content` is the AppLayout ancestor that wraps `.mypet-page`, so the
+   Vanilla descendant selector below never matched and the page background
+   stayed light in dark mode (Phase 09 polish). `:has` mirrors the dashboard
+   scoping; `.mypet-page` itself is covered too so the padding ring is dark. */
+body.dark-theme:has(.mypet-page) .main-content,
+body.dark-theme .mypet-page {
     background: #171523 !important;
 }
 
@@ -2251,10 +2256,10 @@ body.dark-theme .mypet-page textarea {
 
 /* =========================================================
    DARK MODE — WHITE SURFACES
-   Vanilla ships the pet modals, pet-id panels and ID card on
-   white surfaces; the responsive.css heading/text !important
-   overrides above would blank them out, so restore those text
-   colors here. (Scoping side-effect of the React port.)
+   Vanilla ships the pet modals and ID card on white surfaces;
+   the heading/text !important overrides above would blank them
+   out, so restore those text colors here. (Pet ID page panels
+   now get dark surfaces — see petid.css — so they are exempt.)
    ========================================================= */
 
 body.dark-theme .mypet-page .pet-modal h2,
@@ -2263,13 +2268,14 @@ body.dark-theme .mypet-page .pet-details-modal h3,
 body.dark-theme .mypet-page .pet-details-modal .detail-box strong,
 body.dark-theme .mypet-page .pet-details-modal .pet-qr-info strong,
 body.dark-theme .mypet-page .pet-delete-modal h3,
-body.dark-theme .mypet-page .petid-panel h3,
-body.dark-theme .mypet-page .petid-preview h4,
-body.dark-theme .mypet-page .petid-preview p,
 body.dark-theme .mypet-page .id-card-info h2,
 body.dark-theme .mypet-page .id-card-info p,
 body.dark-theme .mypet-page .id-card-info .id-row strong {
     color: #25304a !important;
+}
+
+body.dark-theme .mypet-page .id-card-info .id-row span {
+    color: #64748b !important;
 }
 
 body.dark-theme .mypet-page .pet-modal-title p,

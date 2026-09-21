@@ -55,7 +55,7 @@ export function speciesImage(species?: string | null): string {
 }
 
 export function genderIcon(gender?: string | null): string {
-  return gender === 'Female' ? 'fa-venus' : 'fa-mars'
+  return gender === 'Female' ? 'venus' : 'mars'
 }
 
 export function parsePetAge(input: string | number | null | undefined): number {
