@@ -1,0 +1,836 @@
+# FamiPet — Migration Plan: Vanilla → Vite + React + TypeScript + Tailwind
+
+Status: OPERATIONAL — this is the working guide for the React migration. Phases are being
+executed incrementally inside `frontend-react/`; progress is tracked in the Phase Status
+table below. `docs/design.md` is the visual source of truth; `frontend/` is the behavioral
+source of truth; `backend/` is unchanged unless a genuine frontend integration issue
+requires it.
+
+---
+
+## 1. Purpose & Principles
+
+Port the existing vanilla FamiPet frontend to **Vite + React + TypeScript + Tailwind CSS**.
+This is an **implementation migration, not a redesign**:
+
+- Preserve existing UI, page structure, layouts, navigation, user flows, functionality,
+  assets, images, logos, static resources, and API behavior — as they are today.
+- `docs/design.md` and the current `frontend/` are the source of truth. Do not "fix"
+  design inconsistencies during migration; carry them over faithfully and record accepted
+  deltas (design.md §8.1–§8.11) in the Phase 25 visual-regression report.
+- Incremental and independently verifiable. Each phase is additive, runs beside the old
+  frontend, and can be reverted individually.
+- Backend (`backend/`, Express + MongoDB) stays untouched. CORS already accepts any
+  `localhost`/`127.0.0.1`/private-range origin (server.js `isDevOrigin`), so Vite (5173)
+  and Nginx proxies work without backend changes.
+- The old vanilla frontend is **not deleted** until Phase 28, after full verification.
+
+### Ground-truth fast-refs (usable during every phase)
+
+- API base: `http://localhost:5000/api` (`frontend/js/api.js`), token key `famipetToken`,
+  user key `famipetUser` (localStorage).
+- Backend mounts (server.js): `/api/auth`, `/api/users`, `/api/pets`, `/api/breeds`,
+  `/api/adoptions`, `/api/lost-found`, `/api/health`, `/api/vaccinations`, `/api/favorites`,
+  `/api/veterinarians`, `/api/appointments`, `/api/community`, `/api/ai`, `/api/notifications`,
+  `/api/reminders`, `/api/admin`; static `/uploads` (multer) + `GET /api/status`.
+- Nav model (sidebar.js, authoritative labels + lucide icons): Dashboard(`layout-grid`),
+  My Pets(`users-round`), Adoption(`heart`), Health(`activity`), Appointments
+  (`calendar-check`), Reminders(`bell`), Community(`users`), Lost & Found(`search`),
+  PetGPT(`sparkles`), Pet Breeds(`paw-print`), Pet ID(`qrcode`), Settings(`settings`),
+  Admin Panel(`shield`, admin-only), Sign Out.
+- Page→API wiring already mapped (see each phase + §11).
+
+---
+
+## Migration Execution Protocol
+
+The rules OpenCode follows for every phase of this migration.
+
+### 1. One phase at a time
+
+Work on exactly one migration phase at a time. Do not combine multiple phases unless
+explicitly requested.
+
+### 2. Read before implementing
+
+At the start of every phase:
+
+* Read `docs/design.md`
+* Read the relevant section of `docs/migration.md`
+* Inspect the existing Vanilla frontend files relevant to that phase
+* Inspect the current React migration implementation in `frontend-react/`
+* Check `git status`
+* Confirm the previous phase is committed and pushed
+
+The existing Vanilla frontend remains the source of truth for UI, structure, behavior,
+assets, and user flows.
+
+### 3. Preserve the existing application
+
+During the migration:
+
+* `frontend/` remains untouched until final cutover
+* `backend/` remains untouched unless explicitly approved
+* Docker configuration remains untouched
+* Nginx remains untouched
+* Cloudflare/infrastructure remains untouched
+* The existing working application must continue working
+* Do not redesign the UI
+* Do not replace existing assets
+* Do not invent new user flows
+
+The React frontend is developed independently inside `frontend-react/`.
+
+### 4. Implement
+
+For the current phase:
+
+* Implement only the scope of that phase
+* Reuse existing assets
+* Follow `docs/design.md`
+* Preserve the existing page structure and behavior
+* Prefer reusable React components where the existing UI has repeated patterns
+* Use Tailwind to reproduce the existing design
+* Avoid unnecessary abstractions
+* Do not prematurely implement future phases
+
+### 5. Verify
+
+Before marking a phase complete, run the appropriate checks. At minimum when applicable:
+
+* lint
+* TypeScript check
+* production build
+* route verification
+* API/functionality verification
+* asset verification
+* visual verification against the Vanilla frontend
+
+Fix issues found within the current phase before completing it.
+
+### 6. Checkpoint report
+
+At the end of every phase, report:
+
+* Phase number and name
+* What was implemented
+* Files/components added or changed
+* Existing Vanilla files used as reference
+* API dependencies
+* Verification performed
+* Verification results
+* Known differences/issues
+* Whether the phase is complete
+
+### 7. Commit
+
+After the phase passes verification:
+
+* Review `git diff`
+* Ensure unrelated user changes are not included
+* Create one logical commit for the completed phase
+* Use a clear commit message such as:
+
+`feat(frontend-react): complete phase 04 routing migration`
+
+Do not create one giant commit containing multiple phases.
+
+### 8. Push
+
+After committing:
+
+* Push the current migration branch to `origin`
+* Verify the push succeeded
+* Confirm the working tree status
+
+A phase is not considered complete until its commit has been pushed successfully.
+
+### 9. Stop at checkpoint
+
+After commit + push:
+
+STOP.
+
+Do not automatically begin the next phase. Wait for the next instruction.
+
+### 10. Rollback safety
+
+If a phase introduces a problem:
+
+* Do not modify unrelated parts of the project
+* Keep the previous committed checkpoint intact
+* Fix the current phase if possible
+* If rollback is required, revert only the current phase changes
+* Never delete the working Vanilla frontend to solve a React migration problem
+
+### Authoritative phase order
+
+**The migration phase order is authoritative. OpenCode must not skip ahead, merge phases,
+redesign existing UI, or perform final cutover unless explicitly instructed.**
+
+## Phase Status
+
+Updated after every completed phase. A phase MUST NOT be marked `[x]` until:
+implementation complete → verification passes → commit created → commit pushed → working
+tree verified.
+
+| Phase | Name                           | Status | Commit       |
+| ----- | ------------------------------ | ------ | ------------ |
+| 1     | Scaffold (Vite + React + TS)   | [x]    | `80cc21d`    |
+| 2     | Tailwind setup                 | [x]    | `80cc21d`    |
+| 3     | Asset migration                | [x]    | `80cc21d`    |
+| 4     | Routing migration              | [x]    | `c5f23f3`    |
+| 5     | Global styles/theme            | [x]    | `be87712`   |
+| 6     | Shared layout components       | [ ]    | —            |
+| 7     | Authentication                 | [ ]    | —            |
+| 8     | Dashboard                      | [ ]    | —            |
+| 9     | Pet management                 | [ ]    | —            |
+| 10    | Health                         | [ ]    | —            |
+| 11    | Vaccinations                   | [ ]    | —            |
+| 12    | Appointments                   | [ ]    | —            |
+| 13    | Veterinarians                  | [ ]    | —            |
+| 14    | Reminders                      | [ ]    | —            |
+| 15    | Notifications                  | [ ]    | —            |
+| 16    | Community                      | [ ]    | —            |
+| 17    | Favorites                      | [ ]    | —            |
+| 18    | Adoption                       | [ ]    | —            |
+| 19    | Lost & Found                   | [ ]    | —            |
+| 20    | AI/PetGPT                      | [ ]    | —            |
+| 21    | Admin panel                    | [ ]    | —            |
+| 22    | API integration layer          | [ ]    | —            |
+| 23    | Auth/state management          | [ ]    | —            |
+| 24    | Responsive behavior            | [ ]    | —            |
+| 25    | Visual regression              | [ ]    | —            |
+| 26    | Functional regression          | [ ]    | —            |
+| 27    | Docker/Nginx integration       | [ ]    | —            |
+| 28    | Removal of old Vanilla frontend | [ ]    | —            |
+
+Status legend: `[ ]` not started · `[~]` in progress · `[x]` completed and pushed ·
+`[-]` intentionally skipped · `[!]` blocked/problem.
+
+---
+
+## 2. Proposed React Project Structure
+
+New self-contained project at repo root in `frontend-react/` (old `frontend/` untouched):
+
+```
+frontend-react/
+├─ package.json  vite.config.ts  tsconfig*.json  index.html  tailwind.config.*
+├─ Dockerfile  nginx.conf                          (Phase 27)
+├─ public/
+│  └─ assets/{icons,logos,images/…}                (mirror of frontend/assets, Phase 3)
+└─ src/
+   ├─ main.tsx  App.tsx  router.tsx
+   ├─ api/                      client.ts + one module per resource (§6)
+   │  └─ {auth,users,pets,breeds,adoptions,lostFound,health,vaccinations,
+   │     favorites,veterinarians,appointments,community,ai,notifications,reminders,admin}.ts
+   ├─ hooks/                    useAuth, useTheme, useNotifications, useFetcher (etc.)
+   ├─ contexts/                 AuthContext, ThemeContext
+   ├─ lib/                      storage.ts (localStorage key constants), errors.ts, image.ts
+   ├─ styles/                   global.css (tokens + resets), fonts
+   ├─ layouts/                  LandingLayout, AuthLayout, AppLayout, AdminLayout, Sidebar, TopBar
+   ├─ components/               ui/ (Button, Input, Badge, Modal, Toast, Card, SearchBar,
+   │                             IconButton, EmptyState, ConfirmDialog, StatCard, StatusPill)
+   │                            shared/ (Navbar, Footer, NotificationBell, PetCard, FavoriteButton)
+   ├─ pages/
+   │  ├─ landing/               Home.tsx (+ services/about/why/join/contact sections)
+   │  ├─ auth/                  Login, Signup, ForgotPassword, ResetPassword, VerifyEmail
+   │  ├─ app/                   dashboard, mypet, health, appointments, reminders,
+   │  │                         community, lostFound, petgpt, breeds, breedDetails,
+   │  │                         petId, adoption, settings
+   │  └─ admin/                 AdminDashboard, AdminUsers, AdminPets, AdminAdoptions,
+   │                            AdminCommunity, AdminLostFound
+   └─ routes/                   route config + guards (lazy-loaded)
+```
+
+## 3. Component Organization
+
+- `components/ui/`: presentational, design-token-driven primitives rebuilt around their
+  exact existing values (Button `.primary-btn`/`.btn-pink`/`.submit-btn`/`.action-btn`;
+  Input `.input-box`; Modal + ConfirmDialog; Toast `.success-toast`; StatusPill/StatusBadge;
+  StatCard; SearchBar; Badge; EmptyState; IconButton).
+- `components/shared/`: cross-page composites — Navbar (navbar.css), Footer (footer.css),
+  Sidebar (sidebar.css/sidebar.js), TopBar + PageHeader variants (§6 of design.md),
+  NotificationBell + NotificationPanel, PetCard (dashboard/mypet/adoption variants),
+  FavoriteButton (Phase 17).
+- Page-level composites live with their page folder; no global catch-all components.
+
+## 4. Page Organization
+
+Pages are organized by URL surface, mirroring the existing file inventory exactly:
+
+| Area | Old files | React routes (target) |
+|---|---|---|
+| Landing | `index.html` | `/` |
+| Auth | login/signup/forgot-password/reset-password/verify-email | `/login /signup /forgot-password /reset-password/:token /verify-email/:token` |
+| App (sidebar shell) | dashboard, mypet, adoption, health, appointments, reminders, community, lost-found, petgpt, breeds, breed-details, pet-id, settings | `/app/dashboard /app/mypet /app/adoption /app/health /app/appointments /app/reminders /app/community /app/lost-found /app/petgpt /app/breeds /app/breeds/:id /app/pet-id /app/settings` |
+| Admin | `admin/{dashboard,users,pets,adoptions,community,lost-found}.html` | `/app/admin` (dashboard) `/app/admin/{users,pets,adoptions,community,lost-found}` |
+| 404 | browser default / server fallback (server.js `*` → index.html) | `NotFound` fallback route |
+
+Deep links (`/verify-email/:token`, `/reset-password/:token`) must remain reachable
+unauthenticated (email links) — handled by dev history fallback and Nginx `try_files`
+(Phase 27).
+
+## 5. API / Service Organization
+
+- `src/api/client.ts`: single fetch wrapper reproducing `api.js` behavior — `API_BASE`
+  from `VITE_API_URL` (default `http://localhost:5000/api`), `Authorization: Bearer
+  <famipetToken>`, JSON + FormData support, error normalization to the backend shape
+  `{success, message}`. No backend change required.
+- One typed module per backend resource (§2 tree). Function names mirror controller
+  actions (e.g. `pets.getMy()`, `health.update(id, data)`, `auth.login(creds)`).
+- `src/lib/image.ts`: URL resolution parity — relative `/uploads/...` paths resolved
+  against the API origin; absolute (Cloudinary) URLs passed through; matching whatever
+  transformation `api.js`/page JS applies today.
+- Uploads (multer endpoints: avatars, pet images, community posts, lost-found photos)
+  use `FormData` via the same client.
+
+## 6. State Management Approach
+
+Lazy by default (AGENTS.md ponytail): **no Redux/Zustand/etc.**
+
+- Server state: per-page `fetch` inside feature components or small custom hooks
+  (`useFetcher`), reproducing current on-load fetch behavior (`DOMContentLoaded`
+  fetches). Add TanStack Query **only if/if measurable** request-caching need emerges —
+  none today. (ponytail: per-feature fetch hooks; swap to a query lib only when polling/
+  cache complexity proves it.)
+- Client state: `AuthContext` (user + token), `ThemeContext` (dark/light), each scoped
+  to what the vanilla code already tracks. Everything else is local component state —
+  which is exactly what the old imperative DOM manipulation represented.
+- Persistence keys preserved verbatim so sessions survive migration:
+  `famipetToken`, `famipetUser`, `famipetTheme` (+ logout clears `annProfile` +
+  `sessionStorage` for api.js parity).
+
+## 7. Routing Approach
+
+`react-router-dom` (v6/v7). Config-driven route table (`src/routes/`) with:
+
+- `PublicOnlyRoute` for auth pages (redirect to `/app/dashboard` when logged in).
+- `ProtectedRoute` for `/app/*` (redirect to `/login` when no token; verify `/auth/me`).
+- `AdminRoute` (admin-only) for `/app/admin/*` (backend enforces authorization; UI guard
+  only reduces noise).
+- Lazy `React.lazy` per page group; sidebar active state derived from the current location.
+
+## 8. Tailwind / Design-Token Strategy
+
+- One `@theme`/config block covers **global** tokens (design.md §1.1) and all **per-page**
+  token families (design.md §1.3) using prefixed names so collisions are impossible:
+  e.g. `ldp` global (`--primary #FF5C8A`), `dash` (lavender family), `mypet`
+  (`#ff4d6d`), `comm` (`#ed6590`), `lfd` (`#ed6b95`), `set` (`#8b61d8`), `pgtp`
+  (`#8d68d8`), `health`/`appt` (`#5b9bd5`, `#243b53`), `auth` (`#4AA8FF`). Prefix
+  approach preserves every value unchanged (no redesign, no lost palettes).
+- Base resets in `src/styles/global.css` replicate style.css: Poppins default, body
+  `--background`/`--text-dark`, `overflow-x:hidden`, `scroll-padding-top:90px`,
+  `.container{width:min(90%,1350px)}`, `img{width:100%;display:block}`, link reset.
+- Per-page font stacks (design.md §1.4) become Tailwind font-family tokens
+  (`font-dmsans`, `font-poppins`, `font-jakarta`, `font-segoe`, admin system stack) and
+  are applied per page wrapper — preserving divergence.
+- Dark mode: Tailwind `dark:` variant driven by `.dark-theme` class (not `prefers-color-
+  scheme`), toggled by ThemeContext exactly as `theme.js` does; keep `dark-theme` class
+  name so CSS token parity is trivially diffable against dashboard.css.
+
+## 9. Asset Strategy
+
+- Phase 3 copies `frontend/assets/**` verbatim into `frontend-react/public/assets/` keeping the
+  exact directory+filename layout (design.md §5). Static imports (`/assets/icons/paw.svg`)
+  then match old markup 1:1; the two trees can be byte-compared.
+- Backend-owned media (`/uploads/...`, Cloudinary) is never copied; always rendered via
+  `src/lib/image.ts` from API responses.
+- Font Awesome / Lucide: bundled as installed packages per page scope (resolves design.md
+  §8.4–§8.5 version drift); exact icon glyphs preserved. No switch to new icon sets.
+
+## 10. Authentication Strategy
+
+- Credentials flow unchanged: `POST /api/auth/login`, `POST /api/auth/register` (+ role
+  picker), `/me` on boot to hydrate user.
+- Token/user state in `AuthContext`, persisted under the existing localStorage keys
+  (sessions survive the cutover — users logged in on the old site stay logged in).
+- Guards enforce logged-in at `/app/*` and admin-only at `/app/admin/*`; the backend
+  (`protect`/`adminOnly`) remains the actual authority (AGENTS.md §2, §3, §14).
+- Email flows preserved: verify/reset deep links + resend-verification.
+- Logout clears identical keys/state as api.js (`footprint parity`).
+
+---
+
+## 11. Phased Plan
+
+Each phase is independently shippable and verified against the running backend. The
+numbered list matches the required scope; execution order note in §12.
+
+### Phase 1 — Vite + React + TypeScript setup
+- **Objective:** standing `frontend-react/` Vite React-TS app with strict TS + lint, Dev (5173) and
+  production build working, old frontend untouched.
+- **Existing source files:** none required (new project); spec = whole `frontend/`.
+- **Target React structure:** `frontend-react/` scaffold (§2) with a placeholder `App`.
+- **Reusable components:** none yet.
+- **API dependencies:** none.
+- **UI preservation requirements:** nothing rendered; keep the old stack serving on 5502.
+- **Verification:** `npm run dev` serves on 5173; `npm run build` + `tsc --noEmit` +
+  lint clean; no frontend/ files modified.
+- **Completion criteria:** clean scaffold, green build, run-tested.
+- **Rollback/safety:** fully additive; delete `frontend-react/` to revert.
+
+### Phase 2 — Tailwind setup
+- **Objective:** install + wire Tailwind; bring in global tokens (design.md §1.1) and
+  base resets; Poppins font asset.
+- **Existing source files:** `css/style.css` (§1.1 tokens/resets).
+- **Target React structure:** `tailwind.config`, `src/styles/global.css`, token maps.
+- **Reusable components:** token token maps only.
+- **API dependencies:** none.
+- **UI preservation requirements:** `container/min(90%,1350px)`, body bg `#FFF9F6`, text
+  `#3D2314`, Poppins default; scroll behavior.
+- **Verification:** built CSS contains expected hex values; token classes resolve;
+  `npm run build` clean.
+- **Completion criteria:** global token layer matches style.css values exactly.
+- **Rollback/safety:** revert config + css; additive.
+
+### Phase 3 — Existing asset migration
+- **Objective:** mirror `frontend/assets/` into `frontend-react/public/assets/` byte-identical.
+- **Existing source files:** `frontend/assets/**` (icons 13 SVG, logos, image dirs: hero,
+  adoption, dashboard, my-pet, lost-found, Pet-gpt).
+- **Target React structure:** `frontend-react/public/assets/{icons,logos,images/**}`.
+- **Reusable components:** `Image`, `Logo`.
+- **API dependencies:** none (backend `/uploads` untouched).
+- **UI preservation requirements:** same filenames/paths so every `<img>`/CSS url matches.
+- **Verification:** scripted diff of file tree + bytes between old/new asset trees; spot
+  load each referenced asset in dev.
+- **Completion criteria:** full mirror, no missing/renamed file.
+- **Rollback/safety:** additive.
+
+### Phase 4 — Routing migration
+- **Objective:** route table matching every existing page (landing, auth×5 deep links,
+  app×13, admin×6); lazy loading; nav order/labels/icons parity.
+- **Existing source files:** `index.html`, `pages/*.html`, `admin/*.html`,
+  `js/sidebar.js` nav definition.
+- **Target React structure:** `src/router.tsx`, `src/routes/*`, per-area shells
+  (stubbed layouts rendering route content later).
+- **Reusable components:** `RouteShell`, `ProtectedRoute`, `AdminRoute`, `NotFound`.
+- **API dependencies:** none yet.
+- **UI preservation requirements:** every old URL reachable (incl. history-fallback deep
+  links); sidebar routes listed in the exact existing order (§1 fast-ref).
+- **Verification:** visit each route in dev incl. reload/deep-link; unused-route 404 parity.
+- **Completion criteria:** 100% route coverage table; navigation items render.
+- **Rollback/safety:** additive; old server unchanged.
+
+### Phase 5 — Global styles / theme
+- **Objective:** global styles (navbar, footer, landing sections) + theme toggle parity.
+- **Existing source files:** `css/style.css`, `css/navbar.css`, `css/footer.css`,
+  `css/home.css`, `css/responsive.css` (global parts), `js/theme.js`, `js/main.js`.
+- **Target React structure:** `src/styles/global.css`, `components/shared/Navbar`,
+  `Footer`, landing section components, `contexts/ThemeContext`, `lib/storage.ts`.
+- **Reusable components:** `Button` (primary/secondary), `Container`, `SectionTitle`,
+  `BackToTop`.
+- **API dependencies:** none.
+- **UI preservation requirements:** navbar 90px sticky + blur(12px) + rgba bg, 130px logo,
+  active pink underline; footer `#2C1A12` + 4px `--primary` border + newsletter pill;
+  landing buttons 16px/30px/radius 15px + hover lift; theme toggle contract (dark-theme
+  class, `famipetTheme` key, sun/moon swap, same aria-labels/titles).
+- **Verification:** screenshot diff of landing + theme toggle before/after; localStorage
+  key parity; build clean.
+- **Completion criteria:** landing top-level visually identical; toggle persists.
+- **Rollback/safety:** unscoped components; delete to revert.
+
+### Phase 6 — Shared layout components
+- **Objective:** reusable app shell — Sidebar, TopBar/PageHeader variants, shell layouts.
+- **Existing source files:** `css/sidebar.css`, `js/sidebar.js`, `css/dashboard.css`
+  (`.main-content`, `.top-header`), `css/responsive.css`, per-page `.top-bar`/`.page-header`.
+- **Target React structure:** `src/layouts/{AppLayout,AuthLayout,LandingLayout,
+  AdminLayout}.tsx`, `src/layouts/{Sidebar,TopBar}.tsx`, `src/components/shared/
+  NotificationBell` (stub until Phase 15).
+- **Reusable components:** `Sidebar`, `TopBar`, `PageHeader`, `SearchBar`, `Badge`,
+  `IconButton`, `HamburgerButton`.
+- **API dependencies:** `/api/auth/me` for profile chip + admin link visibility (stub OK).
+- **UI preservation requirements:** 285px fixed sidebar `#fff9fb`/`#f1e5eb`, Poppins
+  forced, collapse→88px on narrow, group/active states, mobile overlay, top-header/top-bar
+  variants as-is (do NOT unify variant naming now).
+- **Verification:** shell renders on every /app route; collapse + mobile toggle work;
+  active route highlights.
+- **Completion criteria:** all app pages can mount inside the shell.
+- **Rollback/safety:** `AppLayout` only; old pages untouched.
+
+### Phase 7 — Authentication
+- **Objective:** full auth flows (login, signup w/ role cards + strength, forgot, reset,
+  verify, resend) + auth state/guards (§10).
+- **Existing source files:** `pages/{login,signup,forgot-password,reset-password,
+  verify-email}.html`, `css/{login,signup}.css`, `js/{login,signup,forgot-password,
+  reset-password,verify-email,api}.js`.
+- **Target React structure:** `src/pages/auth/*` (5 pages), `AuthLayout`, `AuthContext`,
+  `useAuth`, `src/api/auth.ts`.
+- **Reusable components:** `InputBox`+PasswordToggle+dependency-level `.error` (port the
+  signup.css error style onto ALL auth pages — fixes dead style, values unchanged),
+  `StrengthBar`, `RoleCard`, `SubmitButton`, `SuccessToast`, `Divider`.
+- **API dependencies:** `/api/auth/register`, `/login`, `/verify-email/:token` (GET),
+  `/resend-verification`, `/forgot-password`, `/reset-password/:token`, `/me`, plus
+  `/profile`, `/change-password` (settings later).
+- **UI preservation requirements:** glass two-column split layout (login.css: `#F6FBFF`
+  bg, gradient bg, blurred circles, 35px radius, left brand/hero art), role-card gradient
+  checked state, strength bar, slide-in toast `border-left:#22C55E`.
+- **Verification:** register→verify→login→`/me` against real backend; wrong-credential
+  errors; token survival on reload; logged-out users blocked from `/app/*`; email deep
+  links; role claim on admin guard.
+- **Completion criteria:** complete auth loop E2E; session continuity.
+- **Rollback/safety:** auth is behind `/login`/guards; old auth pages remain live at old
+  URL — a broken React auth cannot strand users (they use the old site).
+
+### Phase 8 — Dashboard
+- **Objective:** dashboard page parity (stats, pets list, appointments, reminders,
+  adoption card, love-card, notification panel stub, banner asset, search).
+- **Existing source files:** `pages/dashboard.html`, `css/dashboard.css`, `js/
+  dashboard-data.js`, `js/dashboard.js`.
+- **Target React structure:** `src/pages/app/dashboard/` (page + subcomponents).
+- **Reusable components:** `StatCard`, `PetCard`, `AppointmentCard`, `ReminderCard`,
+  `DashboardGrid`, `WelcomeHeader`, `NotificationPanel` (stub → Phase 15), `LoveCard`.
+- **API dependencies:** `/auth/me`, `/pets/my`, `/appointments`, `/reminders`,
+  `/adoptions/my`, `/notifications` (reflected per dashboard-data.js).
+- **UI preservation requirements:** lavender token family (dashboard.css §1.3), welcome
+  `clamp(25px,2.3vw,36px)/800/-1px`, stat-card hover lift, 4-col stats, dashboard-grid
+  cards, dark-theme overrides (biggest dark-mode surface today — full parity here).
+- **Verification:** data renders from real API; layout/screenshot diff desktop+mobile;
+  dark mode toggles all dashboard surfaces.
+- **Completion criteria:** pixel-equivalent dashboard with live data; dark parity.
+- **Rollback/safety:** isolated page.
+
+### Phase 9 — Pet management (My Pets + Pet ID)
+- **Objective:** mypet grid + add/edit/delete pet, statuses, search, and Pet ID page
+  (QR generation + public pet-id resolution without auth).
+- **Existing source files:** `pages/mypet.html`, `pages/pet-id.html`, `css/mypet.css`,
+  `js/mypet.js`, `js/pet-id.js`; QR/photo handling; `pets/:id/qr`.
+- **Target React structure:** `src/pages/app/mypet/*`, `src/pages/app/petId/*`, shared
+  `PetCard`, `PetFormModal`, `QRModal`, `ConfirmDialog`.
+- **Reusable components:** `PetCard`, `StatusBadge`(green/purple/blue), `PetFormModal`
+  (owner+photo), `QRModal`, `ConfirmDialog`, `EmptyState`, `SearchBar`.
+- **API dependencies:** `/pets` (all/featured/my), `/pets` POST, `/pets/:id` PUT/DELETE,
+  `/pets/:id/qr`, `/auth/me`.
+- **UI preservation requirements:** mypet tokens (`--primary-pink #ff4d6d`, Segoe stack),
+  4-col stats, heart/cherry header spans, status pill variants; breed + breed-details
+  public cards (styles read at build time from breeds.css).
+- **Verification:** full CRUD E2E; photo upload; QR modal; ownership isolation (User B
+  cannot mutate User A's pet); public pet-id page loads without a session.
+- **Completion criteria:** pet lifecycle + Pet ID parity.
+- **Rollback/safety:** isolated pages; destructive actions use ConfirmDialog parity.
+
+### Phase 10 — Health
+- **Objective:** health records + pet selector.
+- **Existing source files:** `pages/health.html`, `css/health.css`, `js/health.js`.
+- **Target React structure:** `src/pages/app/health/*`.
+- **Reusable components:** `HealthRecordCard`, `RecordForm`, `PetSelector`, `EmptyState`,
+  `StatusBadge`.
+- **API dependencies:** `/health` CRUD, `/pets/my` (pet dropdown).
+- **UI preservation requirements:** health tokens (`#5b9bd5`/`#243b53` + tints), record
+  cards + status badges, top-bar header.
+- **Verification:** list/create/edit/delete scoped to selected pet; empty state visible
+  with no records.
+- **Completion criteria:** record lifecycle parity, no fabricated medical data.
+- **Rollback/safety:** isolated.
+
+### Phase 11 — Vaccinations
+- **Objective:** vaccinations (list, upcoming, CRUD) — currently lives inside the health
+  page/JS.
+- **Existing source files:** `pages/health.html` (vaccination section), `css/health.css`,
+  `js/health.js` (vaccinations), plus `reminders.css` chip styles used for vaccine chips.
+- **Target React structure:** `src/pages/app/health/vaccinations/*` components.
+- **Reusable components:** `VaccinationCard`, `VaccineForm`, `UpcomingList`, colored type
+  chips (`#ef78a2`, `#f2a43a`, `#9b82df`, `#5b9bd5`, `#4db394`).
+- **API dependencies:** `/vaccinations` CRUD, `/vaccinations/upcoming`.
+- **UI preservation requirements:** existing colored chips/timing pills; same layout as
+  today inside health page.
+- **Verification:** CRUD + upcoming list against backend.
+- **Completion criteria:** vaccination flow parity.
+- **Rollback/safety:** isolated.
+
+### Phase 12 — Appointments
+- **Objective:** appointments list + book/edit/cancel, vet selection.
+- **Existing source files:** `pages/appointments.html`, `css/appointments.css`,
+  `js/appointments.js`.
+- **Target React structure:** `src/pages/app/appointments/*`.
+- **Reusable components:** `AppointmentCard`, `AppointmentFormModal`, `VetSelect`
+  (Phase 13), `StatusPill`, `PetSelector`, `DatePickerInput` (native, matching current
+  input types).
+- **API dependencies:** `/appointments` CRUD, `/veterinarians` (list), `/pets/my`.
+- **UI preservation requirements:** appointments palette (`#5b9bd5`, `#243b53`, tints),
+  status pills, list layout.
+- **Verification:** book→list→edit→cancel; vet dropdown shows real data.
+- **Completion criteria:** appointment lifecycle parity.
+- **Rollback/safety:** isolated.
+
+### Phase 13 — Veterinarians
+- **Objective:** vet data layer shared by Appointments (dropdown) and PetGPT (find-a-vet
+  modal) — no dedicated old page exists; preserve consumption points only.
+- **Existing source files:** `js/appointments.js`, `js/petgpt.js`, `backend/routes/
+  veterinarian.routes.js` (public `/`, `/:id`).
+- **Target React structure:** `src/api/veterinarians.ts`, `components/shared/VetSelect`,
+  `VetCard`, `FindVetModal`.
+- **Reusable components:** `VetSelect`, `VetCard`, `FindVetModal`, `VetDetails`.
+- **API dependencies:** `GET /veterinarians`, `GET /veterinarians/:id`.
+- **UI preservation requirements:** vet appearing exactly where it does today (appointment
+  form + PetGPT modal); admin vet CRUD stays in admin (Phase 21).
+- **Verification:** both entry points show identical vet data.
+- **Completion criteria:** consumption parity at both call sites.
+- **Rollback/safety:** shared component; consume in Phase 12/20.
+
+### Phase 14 — Reminders
+- **Objective:** reminders page (list, add, edit, complete, delete, due chips).
+- **Existing source files:** `pages/reminders.html`, `css/reminders.css`,
+  `js/reminders.js`.
+- **Target React structure:** `src/pages/app/reminders/*`.
+- **Reusable components:** `ReminderCard`, `ReminderForm`, `DueDateChip`, `TypeChip`,
+  `CompleteToggle`, `ConfirmDialog`.
+- **API dependencies:** `/reminders` CRUD, `/reminders/:id/complete`, `/pets/my`.
+- **UI preservation requirements:** reminders palette (pink/orange/purple/blue chips,
+  `#eee9fc`/`#fdeaf2` tints), due-date pills.
+- **Verification:** CRUD + complete toggle E2E.
+- **Completion criteria:** reminder lifecycle parity.
+- **Rollback/safety:** isolated.
+
+### Phase 15 — Notifications
+- **Objective:** bell + dropdown panel + unread/read/read-all + badge, replace dashboard
+  panel and health-page toasts-with-notification calls.
+- **Existing source files:** `css/dashboard.css` (`.notification-btn`, `.notification-panel`),
+  `js/health.js` (read-all usage), sidebar icon.
+- **Target React structure:** `components/shared/NotificationBell` + `NotificationPanel`,
+  `hooks/useNotifications.ts`, `src/api/notifications.ts`.
+- **Reusable components:** `NotificationBell`, `NotificationPanel`, `Badge`.
+- **API dependencies:** `/notifications` GET, `/notifications/unread`,
+  `/notifications/:id/read`, `/notifications/read-all`, `/notifications/:id` DELETE.
+- **UI preservation requirements:** bell badge count, panel `.show` toggle, read/seen
+  styling as current; unread state survives refresh; no duplicates (AGENTS §7).
+- **Verification:** produce notification → badge count updates → mark read → persists on
+  reload; read-all clears.
+- **Completion criteria:** notification lifecycle parity + no dupes.
+- **Rollback/safety:** hook swap only.
+
+### Phase 16 — Community
+- **Objective:** community feed (posts, image upload, like, comments, delete).
+- **Existing source files:** `pages/community.html`, `css/community.css`, `js/community.js`.
+- **Target React structure:** `src/pages/app/community/*`.
+- **Reusable components:** `PostCard`, `CommentSection`, `LikeButton`, `ComposePostModal`,
+  `Avatar`, `UploadInput`.
+- **API dependencies:** `/community` GET (public), POST (multer image), PUT, DELETE,
+  `/:id/like`, `/:id/comments`.
+- **UI preservation requirements:** community palette (`--pink #ed6590`, `#273142`,
+  `#403648`, `--purple-light`), post cards/reaction buttons layout.
+- **Verification:** post with image, like toggle, comments, delete-own-post E2E.
+- **Completion criteria:** feed parity with real data.
+- **Rollback/safety:** isolated.
+
+### Phase 17 — Favorites
+- **Objective:** favorite toggle on pet surfaces (dashboard pet list, adoption cards, my
+  pet) + persisted favorites list; no NEW page/nav (old site has no favorites page —
+  preserve parity).
+- **Existing source files:** `js/dashboard.js` (`/users/favorites/`), pet-card markup,
+  `backend/routes/favorite.routes.js`, `user.routes.js` (`/favorites/:petId`).
+- **Target React structure:** `components/shared/FavoriteButton`, `hooks/useFavorites.ts`,
+  `src/api/favorites.ts`.
+- **Reusable components:** `FavoriteButton`.
+- **API dependencies:** `GET /favorites`, `POST /favorites`, `DELETE /favorites/:id`,
+  `POST /users/favorites/:petId`.
+- **UI preservation requirements:** heart behavior exactly where present today; no new
+  entry points.
+- **Verification:** toggle adds/removes; state survives reload; multi-user isolation.
+- **Completion criteria:** favorite parity on all existing entry points.
+- **Rollback/safety:** component-only.
+
+### Phase 18 — Adoption
+- **Objective:** adoption gallery (search, filters, counters) + apply flow; admin
+  status/review untouched here.
+- **Existing source files:** `pages/adoption.html`, `css/adoption.css`, `js/adoption.js`.
+- **Target React structure:** `src/pages/app/adoption/*`.
+- **Reusable components:** `AdoptionCard`, `PetCounterBadge`, `FilterChips`, `SearchBar`,
+  `AdoptionModal`.
+- **API dependencies:** `/adoptions/my`, `POST /adoptions`, public pets (`/pets`),
+  favorites toggle.
+- **UI preservation requirements:** adoption palette (incl. hardcoded `#ff4d6d`/`#f43f5e`
+  etc.), hero art (`Hero-Page.png`, `Mainn-bg.png`), filter chips, counter badge.
+- **Verification:** gallery = real records; apply works; non-admin cannot hit admin
+  status endpoints (403 test).
+- **Completion criteria:** adoption browse/apply parity; backend rules enforced.
+- **Rollback/safety:** isolated.
+
+### Phase 19 — Lost & Found
+- **Objective:** report cards grid, filters, status badges, create/edit/delete (image
+  upload).
+- **Existing source files:** `pages/lost-found.html`, `css/lost-found.css`, `js/lost-found.js`.
+- **Target React structure:** `src/pages/app/lostFound/*`.
+- **Reusable components:** `ReportCard`, `ReportForm`, `StatusBadge` (found/lost),
+  `UploadInput`, `FilterChips`, `ConfirmDialog`, `EmptyState`.
+- **API dependencies:** `/lost-found` GET (public), POST/PUT (multer image), DELETE.
+- **UI preservation requirements:** lost-found palette (`--pink #ed6b95` etc.), card grid,
+  status pills.
+- **Verification:** list/create/edit/delete with real DB; photo upload.
+- **Completion criteria:** lost & found lifecycle parity.
+- **Rollback/safety:** isolated.
+
+### Phase 20 — AI / PetGPT
+- **Objective:** chat UI (bubbles, typing indicator, quick suggests, find-a-vet modal)
+  wired to the real AI backend.
+- **Existing source files:** `pages/petgpt.html`, `css/petgpt.css`, `js/petgpt.js`,
+  `js/appointments.js` (vet list).
+- **Target React structure:** `src/pages/app/petgpt/*`.
+- **Reusable components:** `ChatPanel`, `MessageBubble`(.user/.ai), `QuickSuggestionChips`,
+  `TypingIndicator`, `ChatInput`, `FindVetModal`.
+- **API dependencies:** `POST /ai/ask`, `POST /ai/advice`, `GET /veterinarians`.
+- **UI preservation requirements:** PetGPT palette (`#8d68d8`, `#65738e`), existing bubble
+  alignment/imgs, no fabricated canned answers — real API only (AGENTS §5).
+- **Verification:** ask → streamed/returned AI response renders; loading + error states;
+  vet modal populated.
+- **Completion criteria:** chat parity with genuine AI responses.
+- **Rollback/safety:** isolated page.
+
+### Phase 21 — Admin panel
+- **Objective:** all 6 admin pages (stats, users, pets, adoptions, community, lost-found)
+  inside admin shell with admin-only guard.
+- **Existing source files:** `admin/*.html`, `admin/css/admin.css`, `admin/js/*.js`,
+  `js/api.js`.
+- **Target React structure:** `src/pages/admin/*` + `src/layouts/AdminLayout.tsx`,
+  `src/api/admin.ts`.
+- **Reusable components:** `AdminTable`, `RowActions`, `ConfirmDialog`, `StatusPill`,
+  `StatsCards`, `Pagination`, `LoadingRow`, `EmptyState`.
+- **API dependencies:** `/api/admin/dashboard|users|users/recent|users/:id/block|
+  users/:id|pets|pets/:id|lost-found|lost-found/:id/status|lost-found/:id|community|
+  community/:id/status|community/:id`, `/api/adoptions` + `/:id` (status/delete).
+- **UI preservation requirements:** admin design system (#design.md §1.5 — dark slate
+  sidebar `#1e293b`/`#0f172a`, light tables, `#dc2626` danger, `#f1f5f9` table surface),
+  FA 6.4.0-only icons, loading rows, `body[data-page]`-equivalent page identification.
+- **Verification:** all admin flows E2E; non-admin gets blocked (guard + 403 from
+  backend); block/delete/status transitions correct.
+- **Completion criteria:** full admin parity, authorization enforced.
+- **Rollback/safety:** admin routes isolated; destructive ops behind confirm + backend.
+
+### Phase 22 — API integration layer (formalization)
+- **Objective:** consolidate the typed `src/api/` layer + `client.ts` + `lib/*` so ALL
+  pages use one client (many phases above will have started with ad-hoc hooks; this
+  removes drift). Reproduces `api.js` exactly.
+- **Existing source files:** `js/api.js` (base, token, user, isLoggedIn/isAdmin, request
+  wrapper, logout footprint).
+- **Target React structure:** `src/api/*` (§2 tree), `src/lib/{storage,errors,image}.ts`,
+  `src/hooks/useFetcher.ts`.
+- **Reusable components:** none (infra).
+- **API dependencies:** full backend surface (§1 fast-ref).
+- **UI preservation requirements:** identical request semantics; error messages surface
+  exactly as today (backend `message` field).
+- **Verification:** grep audit finds zero raw `fetch` outside `client.ts`; network-tab
+  parity for a sample flow; `VITE_API_URL` override works.
+- **Completion criteria:** single typed client; no helper drift.
+- **Rollback/safety:** infra beneath pages; pages still work via old helper until swap.
+
+### Phase 23 — Authentication / state management (consolidation)
+- **Objective:** single AuthContext + ThemeContext implementation, storage-key constants,
+  route-guard wiring end-to-end; document the fetch-based state approach (§6).
+- **Existing source files:** `js/theme.js`, `js/api.js`, `js/sidebar.js` (profile/
+  logout), `js/login.js`, `js/settings.js`.
+- **Target React structure:** `src/contexts/*`, `src/hooks/*`, `src/lib/storage.ts`.
+- **Reusable components:** `RequireAuth`, `RequireAdmin`, `RedirectIfAuthed`.
+- **API dependencies:** `/auth/me` (hydration), logout client-side only (per api.js).
+- **UI preservation requirements:** key names/behavior identical; theme remember +
+  sun/moon labels; logout clears `annProfile`/sessionStorage parity.
+- **Verification:** session continuity (token written by old site works in React and
+  vice versa); guard matrix tested for anon/user/admin.
+- **Completion criteria:** one auth/theme code path, guard matrix green.
+- **Rollback/safety:** centralized; old-site session keys make fallback seamless.
+
+### Phase 24 — Responsive behavior
+- **Objective:** grid/typography breakpoints parity across every page (Tailwind) —
+  1200 (auth), 1100 (app grids→1-col, stats→2-col), 992 (nav/menu + hamburger + sidebar
+  collapse), 768 (auth card radius 28px, role grid 1-col), ~480 (pet-card stacks);
+  `overflow-x:hidden` and `img max-width:100%` globals.
+- **Existing source files:** `css/responsive.css` (universal overrides), `css/sidebar.css`
+  collapse, per-page grid rules.
+- **Target React structure:** tokenized breakpoints in `tailwind.config`; per-page
+  responsive classes.
+- **Reusable components:** responsive variants of grid components.
+- **API dependencies:** none.
+- **UI preservation requirements:** identical layout at 1280/1024/768/480 on key pages;
+  hamburger + sidebar collapse on mobile; grids collapse to 1-col parity.
+- **Verification:** full-page screenshots at the 4 widths, diff against old site.
+- **Completion criteria:** responsive parity across all pages at all breakpoints.
+- **Rollback/safety:** additive CSS; wander minimal.
+
+### Phase 25 — Visual regression
+- **Objective:** scripted Playwright screenshot comparison: old site (5502) vs new
+  (5173/build) for every page; document accepted deltas (e.g. FA glyph rendering, font
+  loading timing) — values must NOT change.
+- **Existing source files:** all old pages + CSS (reference), all new pages.
+- **Target React structure:** `frontend-react/tests/visual/*` (or repo-level `tests/`).
+- **Reusable components:** Playwright config + screenshot harness.
+- **API dependencies:** backend + seeded DB for consistent data.
+- **UI preservation requirements:** pixel-diff thresholds per page; any exceeded diff is
+  either fixed or recorded as an accepted delta with rationale (design.md §8 list).
+- **Verification:** all pages under threshold or listed in accepted-diff report.
+- **Completion criteria:** visual parity audit signed off.
+- **Rollback/safety:** additive test infra; no prod impact.
+
+### Phase 26 — Functional regression
+- **Objective:** Playwright E2E flows for every feature against the real backend +
+  seeded DB; multi-user ownership tests (AGENTS §14).
+- **Existing source files:** old page + page-JS behavior as spec.
+- **Target React structure:** `frontend-react/tests/e2e/*` per feature.
+- **Reusable components:** test helpers (loginAs, seed fixtures).
+- **API dependencies:** full backend; seeded DB; Cloudinary/multer uploads in flow.
+- **UI preservation requirements:** behavior parity — CRUD, guards, badges, empty states,
+  notifications no-dupe, admin authorization, ownership isolation (User B ↔ User A).
+- **Verification:** every phase's core flow asserted; red-green against reference; nothing
+  claims "tested" without a run (AGENTS §17).
+- **Completion criteria:** full functional sign-off matrix green.
+- **Rollback/safety:** E2E on dev DB; no change to old stack.
+
+### Phase 27 — Docker / Nginx integration
+- **Objective:** productionize the React app: multi-stage build (`node:*-alpine` build →
+  `nginx:*-alpine` static), SPA `try_files … /index.html`, `/api` + `/uploads` proxied to
+  the backend container; backend image unchanged.
+- **Existing source files:** `backend/server.js` (reference for ports/origins), new `frontend-react/`.
+- **Target React structure:** `frontend-react/Dockerfile`, `frontend-react/nginx.conf`, optional
+  `docker-compose.yml`.
+- **Reusable components:** none.
+- **API dependencies:** proxied `/api` + `/uploads` to backend service.
+- **UI preservation requirements:** deep links (verify/reset) resolve behind SPA fallback;
+  assets served from dist with correct caching.
+- **Verification:** docker build + run; deep-link reload; API proxied; `/uploads` images
+  load; CORS not needed same-origin (and backend `isDevOrigin` still passes if separated).
+- **Completion criteria:** one-command production stack, E2E green inside container.
+- **Rollback/safety:** new artifacts only; backend untouched.
+
+### Phase 28 — Removal of the old Vanilla frontend (ONLY after Phases 25+26 green)
+- **Objective:** remove `frontend/` vanilla files; repoint anything that referenced them
+  to the React build; update docs.
+- **Existing source files:** all of `frontend/` (delete/move to archive), `backend/
+  server.js` frontend-fallback listener (serve built React dist on `CLIENT_URL`, or drop
+  the fallback when Nginx owns hosting), `AGENTS.md`/`ROADMAP.md`/`docs/design.md` refs.
+- **Target React structure:** existing `frontend-react/` (= the new `frontend`).
+- **Reusable components:** n/a.
+- **API dependencies:** unchanged backend.
+- **UI preservation requirements:** post-removal smoke = full manual + automated pass on
+  the production stack only.
+- **Verification:** old URLs redirect/equivalent; no page references dead `frontend/`
+  assets; full Phase 25+26 runs green after removal.
+- **Completion criteria:** vanilla frontend gone from live tree; git history retains it.
+- **Rollback/safety:** keep tag/commit boundary; restore `frontend/` from git on any
+  regression; never do this phase early.
+
+---
+
+## 12. Dependency / sequencing notes
+
+Phases 1–6 are the foundation chain (strict order). Phases 7–21 are feature pages and
+can run in **any order once 4–6 land**; the listed numbering matches the required scope
+(not a hard execution order). Phases 22/23 are *enabling infra*: although numbered late,
+their content should be bootstrapped starting Phase 4/7 and consolidated as Phase 22/23
+close-out (as written). Phase 24 depends on 7–21. Phases 25–26 depend on 24. Phase 27
+depends on 25/26. **Phase 28 depends on all — and only runs on explicit sign-off.**
+
+Suggested parallel tracks: Track A (1→2→3→4→5→6), Track B (7, 8, 14, 15), Track C
+(9, 10, 11, 12, 13, 17), Track D (16, 18, 19, 20), Track E (21), then 22/23→24→25→26→27→28.
+
+## 13. Invariants during migration (do-not-break list)
+
+1. `frontend/` and `backend/` remain untouched except Phase 28's removal of `frontend/`.
+2. Backend routes, middleware, auth, ownership, admin rules unchanged (only exceptional,
+   documented frontend-integration issues may touch it — none required per CORS/server.js
+   analysis).
+3. localStorage keys and API error shape stay identical.
+4. No fake/default data anywhere; empty states from real emptiness (AGENTS §5, §11).
+5. Every backend-enforced rule is mirrored by the backend first, UI second (§14).
+6. Tags/commits at each completed phase; working tree verified clean per phase
+   (AGENTS §16).
+7. "Tested" = actually run against the real backend; report what could not be run
+   (AGENTS §17).
