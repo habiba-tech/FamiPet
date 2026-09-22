@@ -188,7 +188,7 @@ tree verified.
 | 10    | Health                         | [x]    | `17fc630`    |
 | 11    | Vaccinations                   | [x]    | `3d10701`  |
 | 12    | Appointments                   | [x]    | `6876e43`  |
-| 13    | Veterinarians                  | [ ]    | —            |
+| 13    | Veterinarians                  | [x]    | `.`          |
 | 14    | Reminders                      | [ ]    | —            |
 | 15    | Notifications                  | [ ]    | —            |
 | 16    | Community                      | [ ]    | —            |
@@ -787,6 +787,38 @@ lint (`oxlint`) + `tsc -b && vite build` pass. Live-API + ownership-isolation
 - **Verification:** both entry points show identical vet data.
 - **Completion criteria:** consumption parity at both call sites.
 - **Rollback/safety:** shared component; consume in Phase 12/20.
+
+  Implemented (commit + push under Phase 13): `src/api/veterinarians.ts` (typed
+  `GET /veterinarians` + `GET /veterinarians/:id`, both public) landed with
+  Phase 12 and is verified live here; `components/shared/VetSelect.tsx` extracted
+  (the doc's `VetSelect` target) and consumed by the appointment booking modal —
+  the "Veterinary Clinic" `<select>` now renders the exact Vanilla payload shape
+  (`name - clinic` option text, controlled value) via the shared component.
+  Accepted deltas:
+  (1) The doc's `VetCard` / `FindVetModal` were NOT built — no Vanilla vet
+  listing/modal UI exists to migrate. `js/petgpt.js` "Find Nearby" only
+  `alert()`s the first 5 names, and `js/appointments.js` "Find a Vet" only
+  alerts "Vet finder will be available soon."; both are PetGPT/appointment
+  surfaces. PetGPT stays deferred per the phase scope, so a find-a-vet listing
+  would be speculative UI (YAGNI) — the shared `getVeterinarians()`/
+  `getVeterinarian()` API it will call is in place and verified.
+  (2) Admin vet CRUD stays in the Phase 21 admin surface (backed by admin-only
+  routes — untouched).
+  Verified live against the real backend (`backend/` running, seeded data):
+  `GET /veterinarians` (2 active vets) matches the app's booking dropdown;
+  `GET /veterinarians/:id` returns the full public record; unknown id → `404`.
+  `npm run lint` (only pre-existing AuthContext/VerifyEmailPage warnings) +
+  `tsc -b && vite build` pass. Headless Chrome against the dev server (demo
+  user): appointment page renders; booking modal's VetSelect shows the real
+  vets; a full book flow (pet/date/time/vet from the modal) succeeded — toast +
+  new row in the listing against the live DB — and the test record plus its
+  backend notification were removed afterward. A freshly-created real DB test
+  user (cleaned up after) verified the empty states (0/0/0/0 stats + both
+  "No upcoming/history" messages); mobile 390px viewport and dark mode
+  (`#171523` scoped bg) both render with 0 horizontal overflow. Error state
+  verified by taking the backend offline (Retry UI renders) — the Retry handler
+  re-runs the same `loadData` used at mount, so recovery was not re-audited
+  end-to-end in the browser.
 
 ### Phase 14 — Reminders
 - **Objective:** reminders page (list, add, edit, complete, delete, due chips).
