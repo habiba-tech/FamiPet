@@ -23,11 +23,14 @@ import { useNavigate } from 'react-router-dom'
 import { deleteHealthRecord, getHealthRecords, type HealthRecord } from '../../../api/health'
 import { getNotifications, markAllNotificationsRead, type AppNotification } from '../../../api/notifications'
 import { getMyPets } from '../../../api/pets'
+import { getUpcomingVaccinations, getVaccinations, type Vaccination } from '../../../api/vaccinations'
 import { Icon } from '../../../components/shared/Icon'
 import { HEALTH_SELECTED_PET_KEY } from '../../../lib/storage'
 import { capFirst, toPetView, type PetView } from '../mypet/petBase'
 import { FALLBACK_PET_IMAGE, formatDate, iconForRecord, petIdOf, toISO } from './healthBase'
 import { RecordFormModal } from './RecordFormModal'
+import { VaccinationCard } from './vaccinations/VaccinationCard'
+import { petIdOf as vaccinePetIdOf } from './vaccinations/vaccinationBase'
 
 export function HealthPage() {
   const navigate = useNavigate()
@@ -36,6 +39,9 @@ export function HealthPage() {
   const [loadFailed, setLoadFailed] = useState(false)
   const [records, setRecords] = useState<HealthRecord[] | null>(null)
   const [notifications, setNotifications] = useState<AppNotification[] | null>(null)
+  const [vaccinations, setVaccinations] = useState<Vaccination[] | null>(null)
+  const [upcoming, setUpcoming] = useState<Vaccination[] | null>(null)
+  const [vaccineError, setVaccineError] = useState('')
   const [selectedPet, setSelectedPet] = useState('')
   const [query, setQuery] = useState('')
   const [showAll, setShowAll] = useState(false)
@@ -45,6 +51,23 @@ export function HealthPage() {
 
   const bellRef = useRef<HTMLButtonElement>(null)
   const recordsCardRef = useRef<HTMLDivElement>(null)
+
+  // Vaccinations load independently so a /vaccinations failure shows an error
+  // inside the tracker card instead of blanking the whole health page (parity
+  // with vanilla health.js, which kept the page usable after its alert()).
+  const loadVaccinations = () => {
+    setVaccineError('')
+    Promise.all([getVaccinations(), getUpcomingVaccinations()])
+      .then(([listRes, upRes]) => {
+        setVaccinations(listRes.vaccinations || [])
+        setUpcoming(upRes.upcoming || [])
+      })
+      .catch((err) => {
+        setVaccinations([])
+        setUpcoming([])
+        setVaccineError((err as Error).message || 'Could not load vaccinations.')
+      })
+  }
 
   const loadData = () => {
     setLoadFailed(false)
@@ -63,6 +86,7 @@ export function HealthPage() {
         setNotifications([])
         setLoadFailed(true)
       })
+    loadVaccinations()
   }
 
   useEffect(() => {
@@ -88,6 +112,9 @@ export function HealthPage() {
 
   const stats = useMemo(() => {
     const vaccinationRecords = petRecords.filter((r) => r.type.toLowerCase().includes('vaccination'))
+    // Prefer the real /vaccinations records (vanilla health.js: petVaccines
+    // count, falling back to vaccination-type health records).
+    const petVaccineCount = (vaccinations || []).filter((v) => vaccinePetIdOf(v) === selectedPet).length
     const weightRecord = petRecords
       .filter((r) => r.type.toLowerCase().includes('weight'))
       .sort((a, b) => b.date.localeCompare(a.date))[0]
@@ -98,15 +125,21 @@ export function HealthPage() {
       .sort((a, b) => a.date.getTime() - b.date.getTime())
     const next = futureVisits[0]
     return {
-      vaccinationCount: vaccinationRecords.length,
-      vaccinationStatus: vaccinationRecords.length ? 'In health records' : 'None recorded',
+      vaccinationCount: petVaccineCount || vaccinationRecords.length,
+      vaccinationStatus: petVaccineCount
+        ? petVaccineCount === 1
+          ? '1 vaccine'
+          : `${petVaccineCount} vaccines`
+        : vaccinationRecords.length
+          ? 'In health records'
+          : 'None recorded',
       recordCount: petRecords.length,
       weightValue: weightRecord ? 'Checked' : '\u2014',
       weightStatus: weightRecord ? formatDate(weightRecord.record.visitDate || weightRecord.date) : 'No weight record',
       nextVisitValue: next ? next.date.toLocaleDateString('en-GB', { day: '2-digit', month: 'short' }) : '\u2014',
       nextVisitStatus: next ? 'Vet appointment' : 'No upcoming visits',
     }
-  }, [petRecords])
+  }, [petRecords, vaccinations, selectedPet])
 
   const visibleRecords = useMemo(() => {
     const q = query.trim().toLowerCase()
@@ -365,6 +398,15 @@ export function HealthPage() {
           </section>
 
           <section className="health-grid">
+            <VaccinationCard
+              petId={currentPet.id}
+              petName={currentPet.name}
+              vaccinations={vaccinations}
+              upcoming={upcoming}
+              error={vaccineError}
+              onChanged={loadVaccinations}
+            />
+
             <div className="health-card tips-card">
               <div className="card-header">
                 <div>

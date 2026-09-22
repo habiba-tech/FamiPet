@@ -754,15 +754,15 @@ body:has(.health-page) .main-content {
 
 
 /* =========================================================
-   HEALTH GRID — Phase 10 renders only the Care Guide tips
-   card (legit static content); full-width until Phase 11/12
-   add back the tracker/appointment cards.
+   HEALTH GRID — Phase 10 rendered only the Care Guide tips card
+   (full-width); Phase 11 adds the Vaccination Tracker, so the
+   grid is back to the Vanilla 1.25fr 1fr (1fr below 1000px).
    ========================================================= */
 
 .health-page .health-grid {
     display: grid;
 
-    grid-template-columns: 1fr;
+    grid-template-columns: 1.25fr 1fr;
 
     gap: 1.2rem;
 
@@ -879,6 +879,205 @@ body:has(.health-page) .main-content {
     color: var(--text-muted);
 
     line-height: 1.45;
+}
+
+
+/* =========================================================
+   VACCINATION TRACKER (health.css §VACCINATION, scoped —
+   add/edit/delete buttons are new; see migration.md Phase 11)
+   ========================================================= */
+
+.health-page .vaccination-card .add-vaccine-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+
+    padding: 0.5rem 0.9rem;
+
+    border: none;
+
+    border-radius: 50px;
+
+    background: var(--mint-light);
+
+    color: var(--mint-dark);
+
+    font-family: inherit;
+
+    font-size: 0.68rem;
+
+    font-weight: 700;
+
+    cursor: pointer;
+
+    transition: 0.25s ease;
+}
+
+.health-page .vaccination-card .add-vaccine-btn:hover {
+    background: var(--mint);
+
+    color: white;
+
+    transform: translateY(-2px);
+}
+
+.health-page .vaccination-section-label {
+    display: block;
+
+    margin: 0.1rem 0 0.5rem;
+
+    font-size: 0.6rem;
+
+    font-weight: 800;
+
+    letter-spacing: 0.8px;
+
+    text-transform: uppercase;
+
+    color: var(--text-light);
+}
+
+.health-page .vaccination-upcoming {
+    margin-bottom: 0.9rem;
+}
+
+.health-page .vaccination-list {
+    display: flex;
+    flex-direction: column;
+
+    gap: 0.7rem;
+}
+
+.health-page .vaccine-item {
+    display: flex;
+    align-items: center;
+
+    gap: 0.75rem;
+
+    padding: 0.7rem;
+
+    background: #f9fcfb;
+
+    border-radius: 13px;
+}
+
+.health-page .vaccine-icon {
+    width: 37px;
+    height: 37px;
+
+    flex-shrink: 0;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    border-radius: 10px;
+
+    background: var(--mint-light);
+
+    color: var(--mint-dark);
+}
+
+.health-page .vaccine-icon.upcoming {
+    background: var(--orange-light);
+    color: var(--orange);
+}
+
+.health-page .vaccine-info {
+    flex: 1;
+
+    min-width: 0;
+}
+
+.health-page .vaccine-info strong {
+    display: block;
+
+    font-size: 0.76rem;
+
+    color: var(--text-dark);
+}
+
+.health-page .vaccine-info span {
+    display: block;
+
+    margin-top: 0.18rem;
+
+    font-size: 0.62rem;
+
+    color: var(--text-muted);
+}
+
+.health-page .status {
+    display: inline-flex;
+    align-items: center;
+    white-space: nowrap;
+
+    gap: 0.25rem;
+
+    padding: 0.3rem 0.55rem;
+
+    border-radius: 50px;
+
+    font-size: 0.59rem;
+
+    font-weight: 700;
+}
+
+.health-page .vaccine-item .status.completed {
+    background: var(--mint-light);
+    color: var(--mint-dark);
+}
+
+.health-page .vaccine-item .status.upcoming-status {
+    background: var(--orange-light);
+    color: #c47b28;
+}
+
+.health-page .vaccine-actions {
+    display: flex;
+
+    gap: 0.4rem;
+}
+
+.health-page .vaccination-state {
+    padding: 1.2rem 0.8rem;
+    text-align: center;
+    color: var(--text-muted);
+    font-size: 0.68rem;
+}
+
+.health-page .view-all-btn {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+
+    gap: 0.4rem;
+
+    width: 100%;
+
+    margin-top: 0.8rem;
+
+    padding: 0.55rem;
+
+    border-radius: 10px;
+
+    border: none;
+
+    background: transparent;
+
+    color: var(--mint-dark);
+
+    font-size: 0.68rem;
+
+    font-weight: 700;
+
+    cursor: pointer;
+
+    transition: 0.25s ease;
+}
+
+.health-page .view-all-btn:hover {
+    background: var(--mint-light);
 }
 
 
@@ -1427,6 +1626,53 @@ body.dark-theme .health-page .tip-item {
     border-bottom-color: #332e45;
 }
 
+/* Vaccination tracker */
+
+body.dark-theme .health-page .vaccine-item {
+    background: #2a2640 !important;
+}
+
+body.dark-theme .health-page .vaccine-info strong {
+    color: #f5f2ff !important;
+}
+
+body.dark-theme .health-page .vaccine-info span,
+body.dark-theme .health-page .vaccination-section-label,
+body.dark-theme .health-page .vaccination-state {
+    color: #b7b0c9;
+}
+
+body.dark-theme .health-page .vaccine-icon { background: rgba(59, 191, 155, 0.15) !important; }
+body.dark-theme .health-page .vaccine-icon.upcoming { background: rgba(243, 164, 93, 0.15) !important; }
+
+body.dark-theme .health-page .vaccination-card .add-vaccine-btn {
+    background: rgba(59, 191, 155, 0.15) !important;
+    color: #3fd0a8 !important;
+}
+
+body.dark-theme .health-page .vaccination-card .add-vaccine-btn:hover {
+    background: var(--mint) !important;
+    color: white !important;
+}
+
+body.dark-theme .health-page .vaccine-item .status.completed {
+    background: rgba(59, 191, 155, 0.15) !important;
+    color: #3fd0a8 !important;
+}
+
+body.dark-theme .health-page .vaccine-item .status.upcoming-status {
+    background: rgba(243, 164, 93, 0.15) !important;
+    color: #e0a257 !important;
+}
+
+body.dark-theme .health-page .view-all-btn {
+    color: #3fd0a8 !important;
+}
+
+body.dark-theme .health-page .view-all-btn:hover {
+    background: rgba(59, 191, 155, 0.15) !important;
+}
+
 /* =========================================================
    RESPONSIVE (health.css + responsive.css, scoped)
    ========================================================= */
@@ -1470,6 +1716,10 @@ body.dark-theme .health-page .tip-item {
         height: 190px;
     }
 
+    .health-page .health-grid {
+        grid-template-columns: 1fr;
+    }
+
 }
 
 
@@ -1494,6 +1744,10 @@ body.dark-theme .health-page .tip-item {
 
     .health-page .search-box {
         width: 100%;
+    }
+
+    .health-page .vaccine-item {
+        flex-wrap: wrap;
     }
 
     .health-page .notification-panel {
