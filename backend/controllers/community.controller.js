@@ -1,4 +1,6 @@
 const CommunityPost = require("../models/CommunityPost");
+const mongoose = require("mongoose");
+const logger = require("../utils/logger");
 
 // ==========================
 // Get All Community Posts
@@ -34,7 +36,7 @@ exports.getAllPosts = async (req, res) => {
       posts,
     });
   } catch (error) {
-    console.error("Get Community Posts Error:", error);
+    logger.error("Get Community Posts Error:", error);
 
     res.status(500).json({
       success: false,
@@ -48,6 +50,13 @@ exports.getAllPosts = async (req, res) => {
 // ==========================
 exports.getPostById = async (req, res) => {
   try {
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid post ID.",
+      });
+    }
+
     const post = await CommunityPost.findById(req.params.id)
       .populate("user", "name email avatar")
       .populate("likes", "name")
@@ -65,7 +74,7 @@ exports.getPostById = async (req, res) => {
       post,
     });
   } catch (error) {
-    console.error("Get Community Post Error:", error);
+    logger.error("Get Community Post Error:", error);
 
     res.status(500).json({
       success: false,
@@ -111,7 +120,7 @@ exports.createPost = async (req, res) => {
       post: populatedPost,
     });
   } catch (error) {
-    console.error("Create Community Post Error:", error);
+    logger.error("Create Community Post Error:", error);
 
     res.status(500).json({
       success: false,
@@ -162,7 +171,7 @@ exports.updatePost = async (req, res) => {
       post,
     });
   } catch (error) {
-    console.error("Update Community Post Error:", error);
+    logger.error("Update Community Post Error:", error);
 
     res.status(500).json({
       success: false,
@@ -203,7 +212,7 @@ exports.deletePost = async (req, res) => {
       message: "Post deleted successfully.",
     });
   } catch (error) {
-    console.error("Delete Community Post Error:", error);
+    logger.error("Delete Community Post Error:", error);
 
     res.status(500).json({
       success: false,
@@ -249,7 +258,7 @@ exports.toggleLike = async (req, res) => {
       liked: !alreadyLiked,
     });
   } catch (error) {
-    console.error("Toggle Like Error:", error);
+    logger.error("Toggle Like Error:", error);
 
     res.status(500).json({
       success: false,
@@ -298,7 +307,7 @@ exports.addComment = async (req, res) => {
       post: updatedPost,
     });
   } catch (error) {
-    console.error("Add Comment Error:", error);
+    logger.error("Add Comment Error:", error);
 
     res.status(500).json({
       success: false,
@@ -349,7 +358,7 @@ exports.deleteComment = async (req, res) => {
       message: "Comment deleted successfully.",
     });
   } catch (error) {
-    console.error("Delete Comment Error:", error);
+    logger.error("Delete Comment Error:", error);
 
     res.status(500).json({
       success: false,

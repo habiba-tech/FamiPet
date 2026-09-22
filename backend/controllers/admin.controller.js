@@ -4,6 +4,7 @@ const Adoption = require("../models/Adoption");
 const LostFound = require("../models/LostFound");
 const CommunityPost = require("../models/CommunityPost");
 const mongoose = require("mongoose");
+const logger = require("../utils/logger");
 
 // ==========================
 // Admin Dashboard Statistics
@@ -38,7 +39,7 @@ exports.getDashboardStats = async (req, res) => {
       },
     });
   } catch (error) {
-    console.error("Dashboard Stats Error:", error);
+    logger.error("Dashboard Stats Error:", error);
 
     res.status(500).json({
       success: false,
@@ -62,7 +63,7 @@ exports.getAllUsers = async (req, res) => {
       users,
     });
   } catch (error) {
-    console.error("Get Users Error:", error);
+    logger.error("Get Users Error:", error);
 
     res.status(500).json({
       success: false,
@@ -76,6 +77,21 @@ exports.getAllUsers = async (req, res) => {
 // ==========================
 exports.toggleUserBlock = async (req, res) => {
   try {
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid user ID.",
+      });
+    }
+
+    // Admin cannot block themselves (avoids locking the account out).
+    if (req.params.id === req.user._id.toString()) {
+      return res.status(400).json({
+        success: false,
+        message: "You cannot block your own account.",
+      });
+    }
+
     const user = await User.findById(req.params.id);
 
     if (!user) {
@@ -102,7 +118,7 @@ exports.toggleUserBlock = async (req, res) => {
       },
     });
   } catch (error) {
-    console.error("Toggle User Block Error:", error);
+    logger.error("Toggle User Block Error:", error);
 
     res.status(500).json({
       success: false,
@@ -116,6 +132,21 @@ exports.toggleUserBlock = async (req, res) => {
 // ==========================
 exports.deleteUser = async (req, res) => {
   try {
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid user ID.",
+      });
+    }
+
+    // Admin cannot delete their own account via this endpoint.
+    if (req.params.id === req.user._id.toString()) {
+      return res.status(400).json({
+        success: false,
+        message: "You cannot delete your own account.",
+      });
+    }
+
     const user = await User.findByIdAndDelete(req.params.id);
 
     if (!user) {
@@ -130,7 +161,7 @@ exports.deleteUser = async (req, res) => {
       message: "User deleted successfully.",
     });
   } catch (error) {
-    console.error("Delete User Error:", error);
+    logger.error("Delete User Error:", error);
 
     res.status(500).json({
       success: false,
@@ -159,7 +190,6 @@ exports.getAllPets = async (req, res) => {
       status: pet.status,
       adopted: pet.adopted,
       vaccinated: pet.vaccinated,
-      location: pet.location,
       owner: pet.owner ? { id: pet.owner._id, name: pet.owner.name, email: pet.owner.email } : null,
       createdAt: pet.createdAt,
     }));
@@ -170,7 +200,7 @@ exports.getAllPets = async (req, res) => {
       pets: petList,
     });
   } catch (error) {
-    console.error("Get All Pets Error:", error);
+    logger.error("Get All Pets Error:", error);
 
     res.status(500).json({
       success: false,
@@ -184,6 +214,13 @@ exports.getAllPets = async (req, res) => {
 // ==========================
 exports.deletePet = async (req, res) => {
   try {
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid pet ID.",
+      });
+    }
+
     const pet = await Pet.findByIdAndDelete(req.params.id);
 
     if (!pet) {
@@ -198,7 +235,7 @@ exports.deletePet = async (req, res) => {
       message: "Pet deleted successfully.",
     });
   } catch (error) {
-    console.error("Delete Pet Error:", error);
+    logger.error("Delete Pet Error:", error);
 
     res.status(500).json({
       success: false,
@@ -222,7 +259,7 @@ exports.getRecentUsers = async (req, res) => {
       users,
     });
   } catch (error) {
-    console.error("Recent Users Error:", error);
+    logger.error("Recent Users Error:", error);
 
     res.status(500).json({
       success: false,
@@ -252,7 +289,7 @@ exports.getAllLostFoundReports = async (req, res) => {
       reports,
     });
   } catch (error) {
-    console.error("Get All Lost & Found Reports Error:", error);
+    logger.error("Get All Lost & Found Reports Error:", error);
 
     res.status(500).json({
       success: false,
@@ -298,7 +335,7 @@ exports.updateLostFoundStatus = async (req, res) => {
       report,
     });
   } catch (error) {
-    console.error("Update Report Status Error:", error);
+    logger.error("Update Report Status Error:", error);
 
     res.status(500).json({
       success: false,
@@ -330,7 +367,7 @@ exports.deleteLostFoundReport = async (req, res) => {
       message: "Report deleted successfully.",
     });
   } catch (error) {
-    console.error("Delete Report Error:", error);
+    logger.error("Delete Report Error:", error);
 
     res.status(500).json({
       success: false,
@@ -354,7 +391,7 @@ exports.getAllCommunityPosts = async (req, res) => {
       posts,
     });
   } catch (error) {
-    console.error("Get All Community Posts Error:", error);
+    logger.error("Get All Community Posts Error:", error);
 
     res.status(500).json({
       success: false,
@@ -400,7 +437,7 @@ exports.updateCommunityPostStatus = async (req, res) => {
       post,
     });
   } catch (error) {
-    console.error("Update Community Post Status Error:", error);
+    logger.error("Update Community Post Status Error:", error);
 
     res.status(500).json({
       success: false,
@@ -432,7 +469,7 @@ exports.deleteCommunityPost = async (req, res) => {
       message: "Post deleted successfully.",
     });
   } catch (error) {
-    console.error("Delete Community Post Error:", error);
+    logger.error("Delete Community Post Error:", error);
 
     res.status(500).json({
       success: false,

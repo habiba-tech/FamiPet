@@ -1,5 +1,6 @@
 const mongoose = require("mongoose");
 const Veterinarian = require("../models/Veterinarian");
+const logger = require("../utils/logger");
 
 // ========================================
 // Get All Veterinarians
@@ -37,7 +38,7 @@ exports.getAllVeterinarians = async (req, res) => {
       veterinarians,
     });
   } catch (error) {
-    console.error("Get Veterinarians Error:", error);
+    logger.error("Get Veterinarians Error:", error);
 
     res.status(500).json({
       success: false,
@@ -51,6 +52,13 @@ exports.getAllVeterinarians = async (req, res) => {
 // ========================================
 exports.getVeterinarianById = async (req, res) => {
   try {
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid veterinarian ID.",
+      });
+    }
+
     const veterinarian = await Veterinarian.findById(req.params.id);
 
     if (!veterinarian) {
@@ -65,7 +73,7 @@ exports.getVeterinarianById = async (req, res) => {
       veterinarian,
     });
   } catch (error) {
-    console.error("Get Veterinarian Error:", error);
+    logger.error("Get Veterinarian Error:", error);
 
     res.status(500).json({
       success: false,
@@ -124,7 +132,7 @@ exports.createVeterinarian = async (req, res) => {
       veterinarian,
     });
   } catch (error) {
-    console.error("Create Veterinarian Error:", error);
+    logger.error("Create Veterinarian Error:", error);
 
     res.status(500).json({
       success: false,
@@ -164,7 +172,7 @@ exports.updateVeterinarian = async (req, res) => {
       veterinarian,
     });
   } catch (error) {
-    console.error("Update Veterinarian Error:", error);
+    logger.error("Update Veterinarian Error:", error);
 
     res.status(500).json({
       success: false,
@@ -196,7 +204,7 @@ exports.deleteVeterinarian = async (req, res) => {
       message: "Veterinarian deleted successfully.",
     });
   } catch (error) {
-    console.error("Delete Veterinarian Error:", error);
+    logger.error("Delete Veterinarian Error:", error);
 
     res.status(500).json({
       success: false,

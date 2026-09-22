@@ -4,8 +4,16 @@ const cors = require('cors');
 const helmet = require('helmet');
 const compression = require('compression');
 const morgan = require('morgan');
+const fs = require('fs');
 const path = require('path');
 require('dotenv').config();
+const logger = require('./utils/logger');
+
+// Ensure the local uploads directory exists before multer writes to it.
+const UPLOADS_DIR = path.join(__dirname, 'uploads');
+if (!fs.existsSync(UPLOADS_DIR)) {
+  fs.mkdirSync(UPLOADS_DIR, { recursive: true });
+}
 
 const app = express();
 
@@ -43,8 +51,8 @@ app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // Database Connection
 mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/animal_planet')
-  .then(() => console.log('✅ MongoDB Connected'))
-  .catch(err => console.error('❌ MongoDB Error:', err));
+  .then(() => logger.info('✅ MongoDB Connected'))
+  .catch(err => logger.error('❌ MongoDB Error:', err));
 
 // Health Check (registered before the protected /api/health records router)
 app.get('/api/status', (req, res) => {
@@ -79,8 +87,8 @@ app.get("/",(req,res)=>{
 });
 
 // Error Handler
-app.use((err, req, res, next) => {
-  console.error(err.stack);
+app.use((err, req, res, _next) => {
+  logger.error(err.stack);
   res.status(err.status || 500).json({
     success: false,
     message: err.message || 'Internal Server Error'
@@ -94,7 +102,7 @@ app.use((req, res) => {
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
-  console.log(`🚀 Server running on http://localhost:${PORT}`);
+  logger.info(`🚀 Server running on http://localhost:${PORT}`);
 });
 
 // ---------------------------------------------------------
@@ -112,7 +120,7 @@ function startFrontendFallback() {
   try {
     const clientUrl = new URL(process.env.CLIENT_URL || 'http://localhost:5502');
     clientPort = Number(clientUrl.port) || 5502;
-  } catch (e) { /* keep default */ }
+  } catch { /* keep default */ }
 
   if (clientPort === PORT) return;
 
@@ -125,14 +133,14 @@ function startFrontendFallback() {
   });
 
   const server = frontendApp.listen(clientPort, '0.0.0.0', () => {
-    console.log(`🌐 Frontend available at http://localhost:${clientPort} (fallback)`);
+    logger.info(`🌐 Frontend available at http://localhost:${clientPort} (fallback)`);
   });
 
   server.on('error', (err) => {
     if (err && err.code === 'EADDRINUSE') {
-      console.log(`⏭ Port ${clientPort} is already in use (Live Server). Skipping frontend fallback.`);
+      logger.info(`⏭ Port ${clientPort} is already in use (Live Server). Skipping frontend fallback.`);
     } else {
-      console.error('❌ Frontend fallback error:', err.message);
+      logger.error('❌ Frontend fallback error:', err.message);
     }
   });
 }

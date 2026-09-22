@@ -1,5 +1,6 @@
 const mongoose = require("mongoose");
 const User = require("../models/User");
+const Pet = require("../models/Pet");
 const cloudinary = require("../config/cloudinary");
 
 exports.getAllUsers = async (req, res) => {
@@ -20,8 +21,17 @@ exports.getUserById = async (req, res) => {
       return res.status(400).json({ success: false, message: "Invalid user ID." });
     }
 
+    // Users may only view their own profile; admins may view anyone.
+    const isAdmin = req.user.role === "admin";
+    if (req.params.id !== req.user._id.toString() && !isAdmin) {
+      return res.status(403).json({
+        success: false,
+        message: "You are not allowed to view this user.",
+      });
+    }
+
     const user = await User.findById(req.params.id)
-      .select("-password -resetPasswordToken -resetPasswordExpire")
+      .select("-password -resetPasswordToken -resetPasswordExpire -emailVerificationToken -emailVerificationExpire")
       .populate("pets")
       .populate("favorites");
 
@@ -41,6 +51,11 @@ exports.toggleFavorite = async (req, res) => {
 
     if (!mongoose.Types.ObjectId.isValid(petId)) {
       return res.status(400).json({ success: false, message: "Invalid pet ID." });
+    }
+
+    const pet = await Pet.findById(petId);
+    if (!pet) {
+      return res.status(404).json({ success: false, message: "Pet not found." });
     }
 
     const user = await User.findById(req.user._id);

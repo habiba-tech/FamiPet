@@ -2,6 +2,7 @@ const mongoose = require("mongoose");
 const Adoption = require("../models/Adoption");
 const Pet = require("../models/Pet");
 const Notification = require("../models/Notification");
+const logger = require("../utils/logger");
 
 exports.getAllAdoptions = async (req, res) => {
   try {
@@ -58,6 +59,14 @@ exports.createAdoption = async (req, res) => {
       });
     }
 
+    // A user cannot request to adopt their own pet.
+    if (petExists.owner.toString() === req.user._id.toString()) {
+      return res.status(400).json({
+        success: false,
+        message: "You cannot adopt your own pet.",
+      });
+    }
+
     const existing = await Adoption.findOne({
       pet,
       user: req.user._id,
@@ -82,6 +91,18 @@ exports.createAdoption = async (req, res) => {
       reasonForAdoption,
     });
 
+    // Notify the pet owner that a new adoption request was submitted.
+    try {
+      await Notification.create({
+        user: petExists.owner,
+        title: "New Adoption Request",
+        message: `${fullName} has submitted an adoption request for your pet ${petExists.name}.`,
+        type: "adoption",
+      });
+    } catch (notifyError) {
+      logger.error("Adoption owner notification error:", notifyError);
+    }
+
     res.status(201).json({
       success: true,
       message: "Adoption request submitted successfully.",
@@ -94,6 +115,13 @@ exports.createAdoption = async (req, res) => {
 
 exports.updateAdoptionStatus = async (req, res) => {
   try {
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid adoption request ID.",
+      });
+    }
+
     const allowed = ["Pending", "Approved", "Rejected"];
     const { status } = req.body;
 
@@ -105,7 +133,7 @@ exports.updateAdoptionStatus = async (req, res) => {
     }
 
     const adoption = await Adoption.findById(req.params.id)
-      .populate("pet", "name status adopted");
+      .populate("pet", "name status adopted owner");
 
     if (!adoption) {
       return res.status(404).json({
@@ -114,20 +142,45 @@ exports.updateAdoptionStatus = async (req, res) => {
       });
     }
 
-    adoption.status = status;
-    await adoption.save();
+    const pet = adoption.pet;
 
     if (status === "Approved") {
-      await Pet.findByIdAndUpdate(adoption.pet._id, {
+      const alreadyAdopted =
+        pet && (pet.adopted === true || pet.status === "adopted");
+      if (alreadyAdopted) {
+        return res.status(400).json({
+          success: false,
+          message: "This pet has already been adopted.",
+        });
+      }
+
+      adoption.status = status;
+      await adoption.save();
+
+      await Pet.findByIdAndUpdate(pet._id, {
         adopted: true,
         status: "adopted",
       });
+
+      // Reject every other pending request for the same pet so only one
+      // request can ever be approved.
+      await Adoption.updateMany(
+        {
+          pet: pet._id,
+          _id: { $ne: adoption._id },
+          status: "Pending",
+        },
+        { status: "Rejected" }
+      );
+    } else {
+      adoption.status = status;
+      await adoption.save();
     }
 
     await Notification.create({
       user: adoption.user,
       title: `Adoption Request ${status}`,
-      message: `Your adoption request for ${adoption.pet.name} is now ${status.toLowerCase()}.`,
+      message: `Your adoption request for ${pet ? pet.name : "this pet"} is now ${status.toLowerCase()}.`,
       type: "adoption",
     });
 
@@ -143,6 +196,13 @@ exports.updateAdoptionStatus = async (req, res) => {
 
 exports.deleteAdoption = async (req, res) => {
   try {
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid adoption request ID.",
+      });
+    }
+
     const adoption = await Adoption.findByIdAndDelete(req.params.id);
 
     if (!adoption) {

@@ -2,6 +2,7 @@ const User = require("../models/User");
 const jwt = require("jsonwebtoken");
 const crypto = require("crypto");
 const { sendEmail } = require("../config/email");
+const logger = require("../utils/logger");
 
 // =====================================================
 // FRONTEND BASE URL
@@ -17,7 +18,7 @@ const getClientBase = (req) => {
       ? String(req.headers.origin)
       : "").trim();
 
-  if (/^https?:\/\/[a-zA-Z0-9.\-]+(?::\d{1,5})?$/.test(origin)) {
+  if (/^https?:\/\/[a-zA-Z0-9.-]+(?::\d{1,5})?$/.test(origin)) {
     return origin.replace(/\/$/, "");
   }
 
@@ -283,10 +284,10 @@ exports.register = async (req, res) => {
     // SEND EMAIL
     // -------------------------------------------------
 
-    console.log("=================================");
-    console.log("📧 SENDING VERIFICATION EMAIL");
-    console.log("Email:", user.email);
-    console.log("=================================");
+    logger.info("=================================");
+    logger.info("📧 SENDING VERIFICATION EMAIL");
+    logger.info("Email:", user.email);
+    logger.info("=================================");
 
     const sent = await sendEmail(
       user.email,
@@ -312,7 +313,7 @@ exports.register = async (req, res) => {
     // SUCCESS
     // -------------------------------------------------
 
-    console.log(
+    logger.info(
       "✅ Verification email sent to:",
       user.email
     );
@@ -325,7 +326,7 @@ exports.register = async (req, res) => {
     });
 
   } catch (error) {
-    console.error(
+    logger.error(
       "❌ Register Error:",
       error
     );
@@ -401,20 +402,20 @@ exports.verifyEmail = async (req, res) => {
 
     await user.save();
 
-    console.log(
+    logger.info(
       "================================="
     );
 
-    console.log(
+    logger.info(
       "✅ EMAIL VERIFIED"
     );
 
-    console.log(
+    logger.info(
       "Email:",
       user.email
     );
 
-    console.log(
+    logger.info(
       "================================="
     );
 
@@ -426,7 +427,7 @@ exports.verifyEmail = async (req, res) => {
     });
 
   } catch (error) {
-    console.error(
+    logger.error(
       "❌ Verify Email Error:",
       error
     );
@@ -502,10 +503,6 @@ exports.resendVerification = async (
     // -------------------------------------------------
     // VERIFICATION URL
     // -------------------------------------------------
-
-    const clientUrl =
-      process.env.CLIENT_URL ||
-      "http://localhost:5502";
 
     const verificationUrl =
       `${getClientBase(req)}/pages/verify-email.html?token=${verificationToken}`;
@@ -601,7 +598,7 @@ exports.resendVerification = async (
     });
 
   } catch (error) {
-    console.error(
+    logger.error(
       "❌ Resend Verification Error:",
       error
     );
@@ -704,7 +701,7 @@ exports.login = async (req, res) => {
     });
 
   } catch (error) {
-    console.error(
+    logger.error(
       "❌ Login Error:",
       error
     );
@@ -742,7 +739,7 @@ exports.getMe = async (req, res) => {
     });
 
   } catch (error) {
-    console.error(
+    logger.error(
       "❌ GetMe Error:",
       error
     );
@@ -808,7 +805,7 @@ exports.updateProfile = async (
     });
 
   } catch (error) {
-    console.error(
+    logger.error(
       "❌ Update Profile Error:",
       error
     );
@@ -891,7 +888,7 @@ exports.changePassword = async (
     });
 
   } catch (error) {
-    console.error(
+    logger.error(
       "❌ Change Password Error:",
       error
     );
@@ -925,20 +922,20 @@ exports.forgotPassword = async (
       });
     }
 
-    console.log(
+    logger.info(
       "================================="
     );
 
-    console.log(
+    logger.info(
       "🔐 PASSWORD RESET REQUEST"
     );
 
-    console.log(
+    logger.info(
       "Email:",
       email
     );
 
-    console.log(
+    logger.info(
       "================================="
     );
 
@@ -952,7 +949,7 @@ exports.forgotPassword = async (
     // -------------------------------------------------
 
     if (!user) {
-      console.log(
+      logger.info(
         "⚠️ No user found for:",
         email
       );
@@ -990,19 +987,15 @@ exports.forgotPassword = async (
     // RESET URL
     // -------------------------------------------------
 
-    const clientUrl =
-      process.env.CLIENT_URL ||
-      "http://localhost:5502";
-
     const resetUrl =
       `${getClientBase(req)}/pages/reset-password.html?token=${resetToken}`;
 
-    console.log(
+    logger.info(
       "✅ User found:",
       user.email
     );
 
-    console.log(
+    logger.info(
       "🔗 Reset URL:",
       resetUrl
     );
@@ -1115,7 +1108,7 @@ exports.forgotPassword = async (
     // SEND EMAIL
     // -------------------------------------------------
 
-    console.log(
+    logger.info(
       "📧 Sending reset email..."
     );
 
@@ -1127,7 +1120,7 @@ exports.forgotPassword = async (
       );
 
     if (!sent) {
-      console.error(
+      logger.error(
         "❌ Password reset email could not be sent."
       );
 
@@ -1146,7 +1139,7 @@ exports.forgotPassword = async (
       });
     }
 
-    console.log(
+    logger.info(
       "✅ Password reset email sent to:",
       user.email
     );
@@ -1158,7 +1151,7 @@ exports.forgotPassword = async (
     });
 
   } catch (error) {
-    console.error(
+    logger.error(
       "❌ Forgot Password Error:",
       error
     );
@@ -1249,7 +1242,7 @@ exports.resetPassword = async (
 
     await user.save();
 
-    console.log(
+    logger.info(
       "✅ Password reset successful for:",
       user.email
     );
@@ -1264,7 +1257,7 @@ exports.resetPassword = async (
     });
 
   } catch (error) {
-    console.error(
+    logger.error(
       "❌ Reset Password Error:",
       error
     );

@@ -45,7 +45,7 @@ async function callGemini(question, petContext) {
       : "";
 
     return text || null;
-  } catch (error) {
+  } catch {
     return null;
   } finally {
     clearTimeout(timer);
@@ -95,7 +95,7 @@ exports.askPetGPT = async (req, res) => {
         species: p.species,
         breed: p.breed && p.breed.name ? p.breed.name : undefined,
       }));
-    } catch (error) {
+    } catch {
       petContext = [];
     }
 
