@@ -6,10 +6,15 @@
 // =========================================================
 
 const { registerReadTools } = require("./read-tools");
+const { registerMutationTools } = require("./mutation-tools");
 
+// Read tools (Phase 5) + mutation tools (Phase 6) — all registered at
+// load time, exactly once, so the worker/loop/tests share one registry.
 registerReadTools();
+registerMutationTools();
 
 module.exports = {
   ...require("./registry"),
   registerReadTools,
+  registerMutationTools,
 };

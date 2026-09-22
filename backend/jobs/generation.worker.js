@@ -41,6 +41,7 @@ const {
   updateConversationMetadata,
 } = require("../ai/context");
 const { canUseTools, runToolCallingLoop } = require("../ai/tool-calling");
+const { logEvent } = require("../ai/logging");
 
 const POLL_MS = AI_CONFIG.worker.pollMs;
 const STALE_MS = AI_CONFIG.worker.staleMs;
@@ -56,6 +57,9 @@ const SAFE_ERRORS = Object.freeze({
 
 let timer = null;
 let busy = false;
+// Resolved when the in-flight tick finishes; lets stopWorker() await the
+// currently running generation before returning (graceful shutdown).
+let busyPromise = Promise.resolve();
 
 // Claim the oldest queued job. Atomic queued -> processing; returns
 // null when nothing was claimable (e.g. another worker won the race).
@@ -98,7 +102,7 @@ async function fail(jobId, safeError) {
 // generate() — entirely inside the durable worker lifecycle. Returns
 // { answer, toolLog } on success, or { error: SAFE_ERRORS.* }. No tool
 // execution ever happens inside the HTTP request that queued the job.
-async function generateJobAnswer({ providerConfig, providerType, userId, userMessage, context }) {
+async function generateJobAnswer({ providerConfig, providerType, userId, userMessage, context, jobId }) {
   // Phase 5 tool path: ONLY for providers that declared tool calling.
   // Others (e.g. Gemini) keep the legacy single-turn path unchanged.
   if (canUseTools(providerType)) {
@@ -127,6 +131,7 @@ async function generateJobAnswer({ providerConfig, providerType, userId, userMes
       config: request.config,
       messages,
       userId,
+      options: { jobId: jobId },
     });
 
     // Transport/HTTP provider failure mid-loop: safe client error, never
@@ -186,6 +191,7 @@ async function runJob(job) {
       userId: job.owner,
       userMessage,
       context,
+      jobId: job._id,
     });
 
     if (result.error) {
@@ -217,38 +223,66 @@ async function runJob(job) {
 
     await updateConversationMetadata(conversation, userMessage.content, answer);
     const toolNote = result.toolLog && result.toolLog.length ? `, ${result.toolLog.length} tool call(s)` : "";
+    logEvent("info", "petgpt.job.completed", {
+      userId: String(job.owner),
+      jobId: String(job._id),
+      provider,
+      chars: assistantMessage.content.length,
+      toolCalls: result.toolLog ? result.toolLog.length : 0,
+    });
     console.log(`PetGPT: job ${job._id} completed via provider "${provider}" (${assistantMessage.content.length} chars${toolNote}).`);
   } catch (error) {
+    logEvent("error", "petgpt.job.failed", {
+      userId: String(job.owner),
+      jobId: String(job._id),
+      reason: "internal",
+      message: error.message,
+    });
     console.error(`PetGPT: job ${job._id} failed unexpectedly:`, error.message);
     await fail(job._id, SAFE_ERRORS.INTERNAL);
   }
 }
 
-async function tick() {
-  if (busy) return;
+function tick() {
+  if (busy) return busyPromise;
   busy = true;
-  try {
-    await reapStale();
-    const job = await claimNext();
-    if (job) await runJob(job);
-  } catch (error) {
-    console.error("PetGPT: worker tick failed:", error.message);
-  } finally {
-    busy = false;
-  }
+  const run = (async () => {
+    try {
+      await reapStale();
+      const job = await claimNext();
+      if (job) await runJob(job);
+    } catch (error) {
+      logEvent("error", "petgpt.worker.tick_failed", { message: error.message });
+      console.error("PetGPT: worker tick failed:", error.message);
+    } finally {
+      busy = false;
+    }
+  })();
+  // Keep a handle to the in-flight tick so a graceful stop can await it.
+  busyPromise = run;
+  return run;
 }
 
 function startWorker() {
   if (timer) return timer;
   timer = setInterval(() => { tick().catch(() => {}); }, POLL_MS);
   if (timer.unref) timer.unref();
+  logEvent("info", "petgpt.worker.started", {
+    pollMs: POLL_MS,
+    staleMs: STALE_MS,
+    maxAttempts: MAX_ATTEMPTS,
+  });
   console.log(`PetGPT: durable generation worker started (poll ${POLL_MS}ms, stale ${STALE_MS}ms, maxAttempts ${MAX_ATTEMPTS}).`);
   return timer;
 }
 
-function stopWorker() {
+// Graceful stop: clear the poller and await any tick already in flight
+// (a provider exchange in progress) so a shutdown never abandons a
+// claimed job mid-mutation with an unfinished ledger write.
+async function stopWorker() {
   if (timer) clearInterval(timer);
   timer = null;
+  await busyPromise;
 }
 
 module.exports = { startWorker, stopWorker, claimNext, reapStale, POLL_MS, STALE_MS, MAX_ATTEMPTS };

@@ -727,4 +727,64 @@ Providers declare `supportsToolCalling()` (default false); OpenAI-compatible ret
 - **Full `npm test` chain exit 0 with the OmniRoute env** — all 11 suites: ai-provider 17, conversation-api 15, petgpt-provider-conversation 5, petgpt-omniroute 5, provider-config 19, petgpt-provider-config-omniroute 6, petgpt-jobs 11/7, petgpt-jobs-omniroute, petgpt-tools 10, petgpt-jobs-tools, petgpt-tools-omniroute.
 - No frontend file changes; no React-migration worktree/file changes; no mutation tools; no Phase 6.
 
+## 20. Phase 6 — Mutation Tools, Per-User Limits & Reliability
+
+Status: **✅ implemented & verified** (2026-09-22). Backend-only. Provider-neutral (mock-verified, no OmniRoute hard-coding); React-migration worktree untouched; no streaming; no Phase 7. Builds directly on Phase 5: the same registry, the same durable worker, the same tool-calling loop.
+
+### Design rules (from the Phase 5 notes)
+
+- **Mutation surface is tiny and low-risk**: exactly two mutation tools — `create_reminder`, `complete_reminder`. Both are additive or a reversible status flag. Destructive/high-risk tools (delete, hard update, booking confirmations) are **not** implemented because there is no confirmation UX and the model can never be given the last word on destructive writes (product rule 5).
+- **Confirmation is model-side + guardrail**: before mutating, the model must tell the user exactly what it will do and wait for confirmation. This lives in `buildSystemPrompt()`. Backend enforcement is by *exclusion*: the registerable surface only contains safe mutations, so there is nothing destructive to "confirm".
+- **Idempotency is server-side and durable**: a retried/re-enqueued GenerationJob must never run a mutation twice. Every successful mutation writes a **MutationEffect** ledger row keyed `(owner, sha256(jobId:tool:normalizedArgs))` where `jobId` is the durable job id; a re-run of the same job+args **replays the recorded result** instead of executing again. Different job or different args = a legitimate separate action (its own key).
+- **Reliability retry policy is intentionally unchanged**: provider failures stay terminal `failed` (`code:"provider"`) — the ledger, not retry semantics, protects against duplicate mutations. Legacy `/api/ai/ask` stays stateless and unquotaed.
+
+### Mutation idempotency ledger (`backend/models/MutationEffect.js`)
+
+- Schema: `owner` (ref User), `job` (ref GenerationJob, `index:true`), `tool`, `key`, `result` (Mixed — the normalized bounded result), timestamps.
+- Unique index `{ owner, key }` — one recorded execution per (owner, mutation). `key` embeds the job id, so the same logical mutation across different jobs never collides.
+- Write-once, **success-only**: a failed mutation leaves no row, so a retry is still allowed. `result` is the normalized/tool-returned value (id/title/status — never secrets or provider payloads).
+- `GenerationJob` stays free of business data; the ledger is careful not to store keys or auth material.
+
+### Mutation tools (`backend/ai/tools/mutation-tools.js`)
+
+- `create_reminder { petId, title, type, description?, date (YYYY-MM-DD), time (HH:MM), frequency? }` — `type ∈ feeding/medicine/vaccination/grooming/appointment/exercise/custom`, `frequency ∈ once/daily/weekly/monthly` (default `once`). Enum/date/format validation lives in `execute()` (schema.js is types-only). Ownership gate via `authorizePetMutation` (full args returned only after `requireOwnedPet` passes — unlike the read-tool gate, which returns `{ petId }` only). Writes `Reminder.create`, then returns the **normalized created reminder** — success is only ever claimed after the backend write succeeds.
+- `complete_reminder { reminderId }` — `Reminder.findOneAndUpdate({ _id, user: userId }, { isCompleted: true }, { new, runValidators })`; not found / not owned fail identically (`"Reminder not found or not owned by you."` — no existence oracle). Malformed ids → typed `invalid_arguments`.
+- `readOnly:false` (defaults in `registerTool` are read-only; mutation tools opt out). Registered in `backend/ai/tools/index.js` exactly once, same as the read tools.
+
+### Registry idempotency (`backend/ai/tools/registry.js`)
+
+- `executeTool(name, args, userId, context)` — when `context.jobId` is present **and** the tool is a mutation, compute the deterministic key from the **scoped** (post-authorization) args via `stableStringify` (sorted-object-serial, so argument order doesn't change the key), look up the ledger; on hit `logEvent('petgpt.tool.replayed')` and return `{ ok:true, result: prior.result, replayed:true }`; on miss execute → `MutationEffect.create` → return result.
+- Read tools (`readOnly:false === false`) skip the ledger entirely — the ledger is for side effects only.
+
+### Per-user generation quota (`backend/ai/quota.js` + controller)
+
+- `enforceGenerationQuota(userId)`: counts the owner's `GenerationJob` docs with `createdAt >= now - AI_CONFIG.rateLimit.windowMs`. The durable job collection **is** the usage ledger — one in-scope exchange (plain **or** tool path) creates exactly one job, so no second counting system exists. Default `max: 30 / windowMs: 60_000` via env `PETGPT_RATE_LIMIT_MAX`/`PETGPT_RATE_LIMIT_WINDOW_MS`.
+- Enforced in `conversation.controller.js addMessage` **after** the scope gate (out-of-scope exchanges create no job and cost nothing) and **before** persisting the user message or creating a job → an exceeded window returns a deterministic `429 { success:false, message:"Rate limit exceeded. Please try again later." }` with **no orphan message/doc**.
+- Out-of-scope and legacy `/api/ai/ask` (stateless) are intentionally exempt; the quota governs durable generations.
+
+### Structured observability (`backend/ai/logging.js`)
+
+- `logEvent(level, event, fields)` → one JSON object per line: `{ t, level, event, ... }`. Used by the worker (`petgpt.job.completed/failed`, `petgpt.worker.started`, `petgpt.worker.tick_failed`) and the tool layer (`petgpt.tool.executed` with `{userId, tool, ok, replayed}`, `petgpt.tool.replayed`).
+- Log-greppable by event, but only ids/statuses/counts/labels; **never** args, results, keys, auth material, or raw provider payloads.
+
+### Worker changes (`backend/jobs/generation.worker.js`)
+
+- `runToolCallingLoop` now receives `options: { jobId }` so the durable job id reaches the mutation ledger.
+- Graceful `stopWorker()`: clears the poller, then `await`s the in-flight tick (a claimed job mid-provider-exchange) before returning — a shutdown never abandons a claimed job mid-mutation with an unfinished ledger write.
+
+### Config & env (`backend/config/ai.js`, `backend/.env.example`)
+
+`PETGPT_RATE_LIMIT_MAX` (30), `PETGPT_RATE_LIMIT_WINDOW_MS` (60000). No new dependencies; ledger/quota/logging are stdlib/mongoose.
+
+### Verification (2026-09-22)
+
+- `node --check` all touched files → pass.
+- **`petgpt-mutation-tools.test.js` 10/10** (local Mongo, direct layer): both mutation tools registered `readOnly:false` alongside read tools (get_my_pets stays read-only); `create_reminder` writes a real owner-scoped Reminder; argument/enum/date/id validation (schema + execute-level enums); ownership isolation (foreign pet error === nonexistent-pet error, foreign reminder === unknown reminder); `complete_reminder` reports the verified `isCompleted:true` only; idempotency ledger — same `jobId`+args → `replayed:true` returning the identical record, one Reminder, reordered args hit the same key, **different** jobId → legitimate second Reminder; failed mutation leaves **no** ledger row and stays retryable; no `jobId` → no ledger; system prompt confirm-first guardrail; persisted docs + declarations secret-free.
+- **`petgpt-quota-reliability.test.js`** (local Mongo + mock provider on :4116, `PETGPT_RATE_LIMIT_MAX=3`, worker `poll 60/stale 150/maxAttempts 3`): 3 in-window exchanges → completed, 4th → `429` with no orphan job/message; quotas are per-user; legacy `/ask` unbounded; a mutation job **simulated-crash-re-enqueued twice** re-runs its full provider flow (≥6 tool requests) yet the Reminder and the ledger row exist **exactly once** (`attemptCount ≥ 2` proven); graceful `stopWorker()` waits out an in-flight 400 ms generation and the job lands `completed`; full security scan (jobs/messages/reminders/ledger/responses/logs) clean.
+- **`petgpt-jobs.test.js` race assert hardened** (was timing-flaky when the fast mock completes an assistant reply before the follow-up GET — now counts the raced user message by content, not a length delta). Re-ran 3× green.
+- Full `npm test` chain exit 0 — prior 11 suites + the 2 new ones (OmniRoute suites skip cleanly without the container).
+- No frontend file changes; no React-migration worktree/file changes; no streaming; no Phase 7.
+
+Commit: Phase 6 on `feature/petgpt-enhancement`.
+
 Commit: this phase on `feature/petgpt-enhancement` (backend `ai/` tooling, worker integration, tests, config/docs).

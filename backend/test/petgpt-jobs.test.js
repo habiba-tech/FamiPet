@@ -352,7 +352,6 @@ async function main() {
 
     // Parallel identical submissions: the unique (owner, key) index lets
     // exactly one job and one user message through; the loser is cleaned up.
-    const raceBefore = (await api("GET", `/conversations/${convA2}`, alice.token)).json.messages.length;
     const [p1, p2] = await Promise.all([
       api("POST", `/conversations/${convA2}/messages`, alice.token, { content: "Race", idempotencyKey: "dup-race" }),
       api("POST", `/conversations/${convA2}/messages`, alice.token, { content: "Race", idempotencyKey: "dup-race" }),
@@ -360,8 +359,11 @@ async function main() {
     assert.ok([202, 200].includes(p1.status), `p1 status ${p1.status}`);
     assert.ok([202, 200].includes(p2.status), `p2 status ${p2.status}`);
     assert.strictEqual(await GenerationJob.countDocuments({ idempotencyKey: "dup-race" }), 1, "exactly one job survives a parallel duplicate race");
-    const raceAfter = (await api("GET", `/conversations/${convA2}`, alice.token)).json.messages.length;
-    assert.strictEqual(raceAfter - raceBefore, 1, "exactly one user message survives the race");
+    // Count the raced user message, not total length: the worker may already
+    // have written the assistant reply before this GET, which would make a
+    // plain length delta flaky.
+    const raceAfter = (await api("GET", `/conversations/${convA2}`, alice.token)).json.messages.filter((m) => m.role === "user" && m.content === "Race");
+    assert.strictEqual(raceAfter.length, 1, "exactly one user message survives the race");
 
     // A failed job is still the idempotency result: resubmitting with the
     // same key returns it (no accidental re-generation).

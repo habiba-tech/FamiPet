@@ -31,6 +31,7 @@
 
 const { AI_CONFIG } = require("../config/ai");
 const { supportsToolCalling } = require("./provider");
+const { logEvent } = require("./logging");
 const {
   listToolDeclarations,
   executeTool,
@@ -72,7 +73,11 @@ function toolLogEntry(call, outcome) {
 //   { ok: false, reason: "no_tools" }                            — capability/declarations absent
 // The caller compensates by persisting a safe outcome — never by
 // fabricating a success the model did not confirm.
-async function runToolCallingLoop({ adapter, config, messages, userId }) {
+//
+// options.jobId (Phase 6): the caller passes the durable GenerationJob
+// id so mutation tools can key their idempotency ledger — a retried job
+// replays its recorded mutation results instead of executing twice.
+async function runToolCallingLoop({ adapter, config, messages, userId, options = {} }) {
   if (!adapter || !adapter.capabilities || !adapter.capabilities.toolCalling) {
     return { ok: false, reason: "no_tools" };
   }
@@ -84,6 +89,7 @@ async function runToolCallingLoop({ adapter, config, messages, userId }) {
   if (!declarations.length) {
     return { ok: false, reason: "no_tools" };
   }
+  const { jobId } = options;
 
   const toolLog = [];
   let lastText = null;
@@ -116,10 +122,16 @@ async function runToolCallingLoop({ adapter, config, messages, userId }) {
       });
 
       for (const call of response.toolCalls) {
-        const outcome = await executeTool(call.name, call.arguments, userId);
+        const outcome = await executeTool(call.name, call.arguments, userId, { jobId });
         if (toolLog.length < TOOL_CALLS_METADATA_MAX) {
           toolLog.push(toolLogEntry(call, outcome));
         }
+        logEvent("info", "petgpt.tool.executed", {
+          userId: String(userId),
+          tool: call.name,
+          ok: outcome.ok,
+          replayed: !!(outcome && outcome.replayed),
+        });
         messages.push({
           role: "tool",
           tool_call_id: call.id || null,

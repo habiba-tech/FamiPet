@@ -35,6 +35,7 @@ const GenerationJob = require("../models/GenerationJob");
 const { AI_CONFIG, outOfScopeResponse } = require("../config/ai");
 const { publicMessage, updateConversationMetadata } = require("../ai/context");
 const { publicJob } = require("./job.controller");
+const { enforceGenerationQuota } = require("../ai/quota");
 
 const DEFAULT_TITLE = "New conversation";
 const IDEMPOTENCY_KEY_MAX = 200;
@@ -209,6 +210,21 @@ exports.addMessage = async (req, res) => {
         conversationId,
         userMessage: publicMessage(userMessage),
         assistantMessage: publicMessage(scopeMessage),
+      });
+    }
+
+    // Per-user generation quota (Phase 6): check AFTER the scope gate
+    // (out-of-scope exchanges create no jobs and cost nothing) and BEFORE
+    // persisting the message or creating a job, so an exceeded window
+    // returns a deterministic 429 and never leaves an orphan message. The
+    // durable GenerationJob collection IS the usage ledger via
+    // enforceGenerationQuota().
+    const quota = await enforceGenerationQuota(req.user._id);
+    if (!quota.allowed) {
+      console.log(`PetGPT: rate limit exceeded for user ${req.user._id} (${quota.count}/${quota.max}).`);
+      return res.status(429).json({
+        success: false,
+        message: "Rate limit exceeded. Please try again later.",
       });
     }
 
