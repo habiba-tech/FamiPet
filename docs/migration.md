@@ -186,7 +186,7 @@ tree verified.
 | 8     | Dashboard                      | [x]    | `d2f6952`    |
 | 9     | Pet management                 | [x]    | `38c6aa9`  |
 | 10    | Health                         | [x]    | `17fc630`    |
-| 11    | Vaccinations                   | [ ]    | —            |
+| 11    | Vaccinations                   | [x]    | `3d10701`  |
 | 12    | Appointments                   | [ ]    | —            |
 | 13    | Veterinarians                  | [ ]    | —            |
 | 14    | Reminders                      | [ ]    | —            |
@@ -681,6 +681,35 @@ lint (`oxlint`) + `tsc -b && vite build` pass. Live-API + ownership-isolation
 - **Verification:** CRUD + upcoming list against backend.
 - **Completion criteria:** vaccination flow parity.
 - **Rollback/safety:** isolated.
+
+  Implemented (commit + push under Phase 11): `api/vaccinations.ts` (typed CRUD
+  + `/vaccinations/upcoming`) and
+  `src/pages/app/health/vaccinations/{VaccinationCard,VaccineFormModal,UpcomingList}.tsx` +
+  `vaccinationBase.ts`, wired into the health page grid after the tips card with
+  the shared `health.css` tracker styles (scoped `.health-page`, dark-mode and
+  responsive parity with the Phase 10 cards).
+  (1) Tracker splits into an **Upcoming** section — real `/vaccinations/upcoming`
+  records for the selected pet, `Next due:` label, orange pill — plus a **History**
+  section (remaining pet vaccines, `Done`/`Due:` pill matching the Vanilla
+  `vaccineDueLabel`), each vaccine in exactly one section.
+  (2) Vanilla only listed vaccinations; add/edit/delete are new per the plan and
+  work on real records with backend validation/ownership errors surfaced inline
+  (missing required fields → 400, foreign pet → 404).
+  (3) Vaccinations load in their own `Promise.all` so a tracker failure shows an
+  error state with Retry inside the card instead of blanking the health page.
+  (4) Stat card counts the selected pet's vaccines (Vanilla always claimed "Up to
+  date"), with honest empty text.
+  (5) The plan's colored type chips (`#ef78a2`/`#f2a43a`/`#9b82df`/`#5b9bd5`/
+  `#4db394`) were skipped — the Vaccination model has no type field to color by;
+  the Vanilla mint/orange status chips were kept instead.
+  Verified live (backend seeded, same demo user): `npm run lint` (only the
+  pre-existing AuthContext/VerifyEmailPage warnings) + `tsc -b && vite build`
+  pass. Backend CRUD checks: create → appears in list; missing required field →
+  `400`; pet not owned → `404`; update → reflected; delete → gone. Headless
+  Chrome (CDP) against the dev server: tracker renders real upcoming/history rows,
+  stat count, pet-scoped empty state, add/edit/delete UI flows, dark mode
+  (`#211e30` card / `#2a2640` rows), and 390px viewport with 0 horizontal
+  overflow. Test records created during verification were removed afterward.
 
 ### Phase 12 — Appointments
 - **Objective:** appointments list + book/edit/cancel, vet selection.
