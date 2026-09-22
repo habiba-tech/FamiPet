@@ -194,7 +194,7 @@ tree verified.
 | 16    | Lost & Found                   | [x]    | `d637cd9`    |
 | 17    | Favorites                      | [x]    | `d7a6f10`    |
 | 18    | Adoption                       | [x]    | `70293d0`    |
-| 19    | Pet Breeds                     | [x]    | —            |
+| 19    | Pet Breeds                     | [x]    | `526f78e`    |
 | 20    | Settings                       | [ ]    | —            |
 | 21    | Admin panel                    | [ ]    | —            |
 | 22    | AI / PetGPT (redesign)         | [ ]    | —            |
