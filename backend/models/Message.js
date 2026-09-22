@@ -30,6 +30,23 @@ const messageSchema = new mongoose.Schema(
       required: true,
       trim: true,
     },
+
+    // Phase 5: bounded trace of the tool calls executed to produce this
+    // assistant message ({ name, arguments?, ok, error? }). Absent on
+    // messages generated without tools. Metadata only — never API keys,
+    // auth headers, provider payloads, or raw record dumps. The worker
+    // writes it bounded (backed by ai/tool-calling.TOOL_CALLS_METADATA_MAX).
+    toolCalls: {
+      type: [
+        {
+          name: { type: String, required: true },
+          arguments: { type: mongoose.Schema.Types.Mixed, default: undefined },
+          ok: { type: Boolean, required: true },
+          error: { type: String, default: undefined },
+        },
+      ],
+      default: undefined,
+    },
   },
   {
     timestamps: true,

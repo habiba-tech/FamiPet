@@ -18,6 +18,10 @@ const {
 
 const name = "google";
 
+// Chat-only adapter (Phase 5): declares capabilities so policy code knows
+// tool calling is unavailable here. It never receives tools.
+const capabilities = { chat: true, toolCalling: false };
+
 async function generate({ system, question, petContext, history = [], config = {} }) {
   // config (Phase 3): a user-owned provider configuration resolved by
   // backend/ai — { apiKey, model }. When absent the adapter falls back
@@ -72,4 +76,4 @@ async function generate({ system, question, petContext, history = [], config = {
   return { text, latencyMs: Date.now() - startedAt };
 }
 
-module.exports = { name, generate };
+module.exports = { name, generate, capabilities };

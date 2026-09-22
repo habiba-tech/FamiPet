@@ -2,27 +2,7 @@ const mongoose = require("mongoose");
 const Pet = require("../models/Pet");
 const { AI_CONFIG, outOfScopeResponse } = require("../config/ai");
 const { generatePetGPTResponse } = require("../ai");
-
-// Loads the authenticated user's own pet context (max 5) for provider
-// prompts. Ownership is enforced by the caller passing req.user._id.
-// Silently degrades to [] on failure (unchanged Phase 1 behaviour).
-async function loadPetContext(userId) {
-  try {
-    const pets = await Pet.find({ owner: userId })
-      .select("name species breed")
-      .populate("breed", "name")
-      .limit(5)
-      .lean();
-
-    return pets.map((p) => ({
-      name: p.name,
-      species: p.species,
-      breed: p.breed && p.breed.name ? p.breed.name : undefined,
-    }));
-  } catch (error) {
-    return [];
-  }
-}
+const { loadPetContext } = require("../ai/pet-context");
 
 function fallbackAnswer(question) {
   const q = question.toLowerCase();

@@ -50,7 +50,7 @@ PetGPT's behavior is governed by these rules. They are encoded in the backend sy
 - Entry: `backend/server.js` mounts helmet (with `crossOriginResourcePolicy: cross-origin` for image embedding), compression, CORS (dev-origin allowlist incl. LAN private ranges), `express.json({limit:'50mb'})`, morgan, static `/uploads`, a health route (`GET /api/status`), all route modules under `/api/...` (incl. `/api/ai`), an inline error handler, and a 404 handler.
 - `backend/middleware/errorHandler.js` exists but is **not wired into `server.js`** (dead code; `server.js` has its own inline handler).
 - Data: `mongodb://localhost:27017/animal_planet` by default. No `.env` present locally (only tracked `backend/.env.example`; `backend/.gitignore` ignores `.env`, `node_modules/`, `uploads/`).
-- PetGPT is a controller pair (`ai.controller.js` + `conversation.controller.js`) behind the `/api/ai` router, a central config module (`backend/config/ai.js`), a provider layer (`backend/ai/`) with a Google/Gemini adapter and an OpenAI-compatible adapter, and (Phase 2) persistent `Conversation`/`Message` models. No tool layer, no SSE/streaming yet.
+- PetGPT is a controller pair (`ai.controller.js` + `conversation.controller.js`) behind the `/api/ai` router, a central config module (`backend/config/ai.js`), a provider layer (`backend/ai/`) with a Google/Gemini adapter and an OpenAI-compatible adapter, persistent `Conversation`/`Message` models (Phase 2), a durable `GenerationJob` + in-process worker (Phase 4), and (Phase 5) a pet-aware context builder + a registered/schema-validated/ownership-scoped read-tool layer with a bounded calling loop. No SSE/streaming yet.
 
 ## 2. Complete Request/Response Flow
 
@@ -86,6 +86,8 @@ Exchange flow behind `POST /api/ai/conversations/:conversationId/messages`:
 5. Persist the assistant message — whatever the user actually saw (provider text, or the Phase 1 fallback answer if the provider failed). **The persisted assistant message is the source of truth; it never depends on the HTTP request staying alive.**
 6. Update conversation `title` (only if still the default), `lastMessageAt`, `lastMessagePreview`; respond with both persisted messages.
 
+> **Phase 4/5 override:** in-scope `POST .../messages` now returns `202` + a durable `GenerationJob` (§18) that the worker runs. The worker reuses this same pet-context + history pipeline and, when the active provider is tool-capable, dispatches through the bounded tool-calling loop (§19) instead of `generatePetGPTResponse`. Legacy `/api/ai/ask` still uses the sync `generatePetGPTResponse` path unchanged.
+
 ## 3. Relevant Files and Modules
 
 | File | Role |
@@ -115,6 +117,15 @@ Exchange flow behind `POST /api/ai/conversations/:conversationId/messages`:
 | `backend/test/petgpt-omniroute.test.js` (new, npm `test`) | **Phase 2 real OpenAI-compatible E2E** through the local OmniRoute container; SKIPS when `PETGPT_OPENAI_API_KEY` is unset |
 | `backend/test/provider-config.test.js` (new, npm `test`) | **Phase 3 assert-based checks** over real local Mongo + a mock OpenAI-compatible endpoint: encryption round-trip/wrong-key/missing-key fail-safe, CRUD, validation, ownership isolation, active selection, disabled behavior, test endpoint (no persistence), conversation uses configured provider, disable/delete → env fallback, legacy `/ask` intact, no-secret leakage in messages/docs/logs |
 | `backend/test/petgpt-provider-config-omniroute.test.js` (new, npm `test`) | **Phase 3 real OpenAI-compatible E2E** through the local OmniRoute container using an encrypted user-owned configuration; disable/delete → deterministic system fallback; no-secret checks; SKIPS when unset |
+| `backend/ai/pet-context.js` | **Phase 5** — pet-aware context service: owner-scoped normalization (no secrets, no Mongo dumps), `requireOwnedPet` ownership gate (foreign/invalid ids → null, no existence leak), `loadPetContext` (thin legacy prompt context, bounded at `AI_CONFIG.tools.maxContextPets`), `buildPetContext` (rich per-pet records bounded per type at `AI_CONFIG.tools.maxResults`) |
+| `backend/ai/context.js` | **Phase 5** — `buildProviderMessages` (mirrors the OpenAI user-turn assembly: pet context + `"User asks: "` + question) for the worker tool path; `buildConversationContext`/`updateConversationMetadata` (Phase 2 metadata shared with the worker); `publicMessage` exposure of bounded `toolCalls` |
+| `backend/ai/tools/` | **Phase 5** — tool layer: `registry.js` (explicit `registerTool` + declaration/schema validation, typed `ToolError`, `TOOL_ERRORS`), `read-tools.js` (registers the 6 read tools: `get_my_pets`, `get_my_pet`, `get_health_records`, `get_vaccinations`, `get_reminders`, `search_veterinarians`), `index.js` (`listToolDeclarations`, `executeTool`) |
+| `backend/ai/tool-calling.js` | **Phase 5** — bounded tool-calling loop (`runToolCallingLoop({ adapter, config, messages, userId })`): owns message assembly, appends assistant `tool_calls` + `role:"tool"` result messages per round, caps rounds at `AI_CONFIG.tools.maxIterations`, returns `{ok, text, toolLog}` and `{ok:false, reason:`max_iterations`|`error`|`no_tools`}`; `canUseTools(provider)` via capability declaration; `TOOL_CALLS_METADATA_MAX` (20) bounds persisted tool metadata |
+| `backend/jobs/generation.worker.js` | **Phase 4/5** — durable worker; tool-calling providers take the tool path via `runToolCallingLoop`, other providers fall back to legacy `generatePetGPTResponse`; tool-round provider failure fails the job safely (`SAFE_ERRORS.PROVIDER`, no fabricated answer); `toolCalls: result.toolLog` persisted on the assistant message |
+| `backend/ai/index.js` | **Phase 5** — `require("./tools")` registers the read tools with the AI layer as a side effect (this registration was the integration fix that made the worker's tool path actually dispatch) |
+| `backend/test/petgpt-tools.test.js` (new, npm `test`) | **Phase 5 assert-based checks** over real local Mongo + a mock OpenAI-compatible provider: registry/declarations, `get_my_pets` normalization + no-secrets, unknown tool, argument validation, ownership isolation (foreign pet error indistinguishable from nonexistent), capability gates (google stays off the tool path), bounded iterations, bounded metadata (25 calls → 20 recorded), per-tool failure model-safety, provider failure mid-round abort |
+| `backend/test/petgpt-jobs-tools.test.js` (new, npm `test`) | **Phase 5 durable-worker checks** over real local Mongo + a mode-switchable mock provider on :4115: tool path (worker → tool execution → final answer, 2 provider calls), persisted assistant `toolCalls`, tool result fed back to the model, tool failure completes the job with `ok:false` + error, always-tools provider bounded then failed, HTTP 500 aborts without a fake assistant, ownership isolation, idempotency, no secrets in jobs/messages/docs/logs |
+| `backend/test/petgpt-tools-omniroute.test.js` (new, npm `test`) | **Phase 5 real OpenAI-compatible E2E** through the live `catlium-omniroute` container: the model actually calls `get_my_pets`, the worker executes it and the final reply names **Rex and not Max** (no foreign-pet leak), bounded tool metadata, legacy `/ask` intact, no secrets in logs/DB; retried probe, SKIPS honestly when unreachable |
 | `backend/models/HealthRecord.js`, `Vaccination.js`, `Reminder.js`, `Appointment.js`, `Veterinarian.js` | Adjacent data (currently **not** exposed to PetGPT) |
 | `backend/server.js` | Route mount `/api/ai`, middleware, error/404 handlers |
 | `frontend/js/petgpt.js` | Chat UI: `FamiPetAPI.post("/ai/ask", {question})`, error fallback to **its own** canned `getResponse()` |
@@ -137,14 +148,15 @@ Exchange flow behind `POST /api/ai/conversations/:conversationId/messages`:
 
 ## 5. Tools
 
-**None implemented.** No function calling / tool parameters are sent to the provider. Product rule 5 means tools can only be added via the backend tool architecture (§D below). The only "tool" today is the hard-coded `fallbackAnswer` keyword matcher on the backend, plus a duplicated client-side canned matcher in `petgpt.js`.
+**Phase 5: read-only tool calling implemented.** Tools are explicitly registered in `backend/ai/tools/` (never invented by the model — product rule 5), strictly schema-validated, ownership-scoped per call, and only dispatched by providers that declare tool-calling capability (`canUseTools`). The calling loop (`backend/ai/tool-calling.js`) is bounded at `AI_CONFIG.tools.maxIterations` rounds and never fabricates a final answer. Only read tools exist; **mutation tools are deliberately deferred to Phase 6** (see `petGPT.md` §19 and the `ponytail:` comment in `read-tools.js`). The only non-AI "tool" remains the hard-coded `fallbackAnswer` keyword matcher.
 
 ## 6. Data/Context Available to the AI
 
-Currently sent per ask:
-- `name`, `species`, `breed.name` — for up to 5 pets owned by the user.
+**Phase 5 (rich pet context, enabled for OpenAI-compatible tool-calling providers):** per ask, the backend injects the authenticated user's own pet records — pet `name`, `species`, `breed.name`, plus `age`, `weight`, `gender`, `vaccinated`, `description` (bounded: max 5 pets, max 3 records each by type). Health records, vaccinations, reminders, and vets are served on demand by the read tools §5 rather than pre-injected — the model stays honest about what it knows.
 
-Available in the DB but **not** used:
+Pre-Phase-5 (legacy) path sent only `name`, `species`, `breed.name` for up to 5 owned pets.
+
+Available in the DB but **not** used by the AI:
 - Pet: `age`, `weight`, `gender`, `vaccinated`, `description`, `status`, `adopted`.
 - Breed: `origin`, `lifespan`, `weightRange`, `heightRange`, `temperament`, `exerciseRequirements`, `groomingGuide`, `commonDiseases`, `suitableEnvironment`, `description`.
 - Per-user, per-pet: health records, vaccinations, reminders, appointments, veterinarians.
@@ -178,9 +190,10 @@ Available in the DB but **not** used:
 ## 10. Current Limitations
 
 - Legacy `/api/ai/ask` remains stateless single-turn chat (deliberate; persistent chat lives on `/api/ai/conversations`).
-- Thin context (no age/weight/health/vaccination data) — Phase 5.
-- No tool/function calling.
-- `gemini-1.5-flash` default, no streaming, no retry/backoff, no structured output.
+- Rich pet context + read-tool calling are **only** exercised when the active provider declares tool-calling capability (OpenAI-compatible completions that advertise `tool_calling`); Gemini (`google`) currently stays on the legacy chat path without tools.
+- No mutation tools (Phase 6); the AI can read pet data but cannot change anything.
+- Tool-call metadata persisted on assistant messages is bounded (`TOOL_CALLS_METADATA_MAX` = 20) and the loop caps at `AI_CONFIG.tools.maxIterations` rounds — a chatty provider degrades to a safe stop, not an unbounded loop.
+- No streaming, no retry/backoff, no structured output.
 - Scope gate is a keyword heuristic (deliberate; see `config/ai.js` `ponytail:` comment).
 - Duplicated drifting canned-answer logic (backend `fallbackAnswer` vs frontend `getResponse`).
 - No safety/observability infra beyond console logs.
@@ -204,7 +217,7 @@ Available in the DB but **not** used:
 
 ## 12. Architecture Roadmap (design intent)
 
-Implementations: A ✅ (Phase 1), B ✅ (Phase 2), provider configuration ✅ (Phase 3). C/D/E-F design, not implemented.
+Implementations: A ✅ (Phase 1), B ✅ (Phase 2), provider configuration ✅ (Phase 3), C ✅ (Phase 4), D ✅ (Phase 5), E ✅ (Phase 5). F design, not implemented.
 
 ### A. Provider abstraction
 - PetGPT must NOT be architecturally tied to Google/Gemini, nor to OmniRoute.
@@ -226,20 +239,21 @@ Implementations: A ✅ (Phase 1), B ✅ (Phase 2), provider configuration ✅ (P
 - A generation record (request, status: queued/running/done/failed, result, timestamps) owned by the user.
 - Streaming/reconnection is a later delivery mechanism (Phase 8), not a requirement for durability.
 
-### D. Tool architecture (design, not implemented)
+### D. Tool architecture ✅ implemented (Phase 5, see §19)
 - Tools must be:
-  - explicitly registered (not discoverable/invented by the model);
-  - strictly schema-validated (arguments);
-  - authenticated-user ownership enforced on every record access;
-  - only exposed for actually implemented FamiPet capabilities;
-  - never invented by the model;
-  - returning structured results;
-  - auditable (logged invocations).
+  - explicitly registered (not discoverable/invented by the model) — `registerTool` in `backend/ai/tools/registry.js`;
+  - strictly schema-validated (arguments) — JSON-schema-like `<arg>.type`/`required`/`enum` checks, unknown args rejected;
+  - authenticated-user ownership enforced on every record access — each tool resolves records as `owner: req.user._id`; foreign pets are indistinguishable from nonexistent ones (no existence oracle);
+  - only exposed for actually implemented FamiPet capabilities — read-only today (Phase 5); mutation tools are Phase 6;
+  - never invented by the model — the backend sends explicit function declarations; any other call is rejected as an unknown tool;
+  - returning structured results — normalized results, numbers/names/IDs only, no secrets;
+  - auditable (logged invocations) — every execution is logged with name/ok/error and persisted (bounded) as `Message.toolCalls`.
 - Backend decides which tools exist and are available; the model only calls what the backend offers (product rule 5).
+- Capability-gated: tools are only offered to providers that declare `tool_calling` support (`canUseTools`); chat-only providers keep the legacy path.
 
-### E. Provider capabilities
+### E. Provider capabilities ✅ implemented (Phase 5)
 - Providers/models differ in capability: chat, streaming, tool calling, structured output, vision, context length, cost.
-- Never assume a provider supports every capability; capability detection/declaration lives in the provider layer and is checked before a request relies on it.
+- Never assume a provider supports every capability; capability detection/declaration lives in the provider layer and is checked before a request relies on it — `supportsToolCalling`, surfaced as `canUseTools` and used by the worker to pick the tool path vs the legacy chat path.
 
 ### F. Observability and limits
 - Needed: input/question length limits (Phase 0), provider timeout handling (Phase 0), retries/backoff where appropriate, rate limiting, per-user quotas, provider failure logging (Phase 0), usage/cost tracking where available.
@@ -267,10 +281,10 @@ Ordering rationale: (1) a stable provider interface must exist before anything c
   Per-user provider + model + API key configuration (encrypted); owner-scoped CRUD + test API; active-provider resolution honored by the provider layer with system-env fallback. See §17.
 - **Phase 4 — Durable AI generations + recovery** ✅ implemented (see §18)
   Implement §C: generation records with status transition, persisted result as source of truth, replay/recovery path, cleanup/retention.
-- **Phase 5 — Rich pet context**
-  Expand context: pet age/weight/gender/vaccinated/description, full breed doc, recent health records, vaccinations, reminders, upcoming appointments; token-budget assembly.
-- **Phase 6 — Tool/function calling**
-  Implement §D: registered, schema-validated, ownership-scoped read tools (pet records, vaccinations, reminders, upcoming appointments, vets by city); structured results fed back; audit logging.
+- **Phase 5 — Rich pet context + read-only tool calling** ✅ implemented (see §19)
+  Expand context (pet age/weight/gender/vaccinated/description, bounded per-type) and implement §D read tools: registered, schema-validated, ownership-scoped read tools (pet records, health records, vaccinations, reminders, vets by city) with a bounded calling loop, capability gating, and a durable-worker integration. Phases 5+6 merged: read-only here; mutation tools stay deferred (see below).
+- **Phase 6 — Mutation tool calling**
+  Implement §D mutation tools the model can invoke on FamiPet data (e.g. schedule/create reminders, record medication). Read-only tools from Phase 5 are the safety floor; mutation requires explicit design of side effects, idempotency, and confirmation UX (product rule 5).
 - **Phase 7 — Safety, rate limits, quotas, observability**
   Implement §F: provider rate limits + per-user quotas, retries/backoff, structured failure logging, usage/cost tracking, stronger scope handling (replace keyword gate with provider/moderator judgment).
 - **Phase 8 — Streaming/reconnection**
@@ -649,3 +663,68 @@ Out-of-scope content stays synchronous `200` (canned scope answer persisted + me
 - No frontend file changes; no React-migration worktree/file changes.
 
 Commit: see Phase 4 commit on `feature/petgpt-enhancement`.
+
+## 19. Phase 5 — Pet-Aware Context + Backend Tool Calling
+
+Status: **✅ implemented & verified** (2026-09-22). Backend-only; no frontend changes; React-migration worktree untouched; no streaming; no mutation tools (Phase 6); legacy `/api/ai/ask` unchanged.
+
+### Goal
+
+Give the AI an honest, bounded view of the authenticated user's own pet data — partially injected as rich context, partially served on demand — via **registered, schema-validated, ownership-scoped read tools** executed by the backend in a **bounded calling loop** (product rule 5: the backend decides what tools exist, the model only calls what is offered). Tool calling is wired into the durable worker only, so legacy sync `/ask` is untouched.
+
+### Phase 5 merges the original roadmap's Phase 5 ("Rich pet context") and Phase 6 ("Tool/function calling")
+
+Read tools are the safety floor; mutation tools (create/update FamiPet records) are deliberately deferred to the new **Phase 6** and will need side-effect/idempotency/confirmation design.
+
+### Pet-aware context (`backend/ai/pet-context.js`)
+
+- Every lookup is owner-scoped through `userId` — pet IDs supplied by the model are **untrusted input**, re-checked by `requireOwnedPet` (`Pet.findOne({ _id, owner: userId })`); invalid/foreign/unknown IDs all normalize to `null` (no existence oracle).
+- Normalized shapes only (no Mongo dumps, no secrets): pet `id/name/species/breed/gender/age/weight/color/vaccinated/status/description`; health records `diagnosis/treatment/doctor/hospital/visitDate/nextVisit/notes`; vaccinations `vaccineName/doseNumber/vaccinationDate/nextDueDate/veterinarian/hospital/status/notes`; appointments (vet name/clinic/specialization only, no fees/payment); reminders `title/type/description/date/time/frequency/isActive/isCompleted`.
+- `loadPetContext` (≤ `AI_CONFIG.tools.maxContextPets`) keeps the thin legacy prompt injection; `buildPetContext` adds bounded per pet records (`AI_CONFIG.tools.maxResults` per category), feeding the tool-calling flow and available to chat-only providers.
+
+### Tool layer (`backend/ai/tools/`)
+
+- `registry.js`: `registerTool({ name, description, args, run })` — throws `ToolError` (typed, exported `TOOL_ERRORS`) on duplicate names, invalid declarations (missing name/description/run, non-object args), or unknown/duplicate args; duplicate registration is idempotent-safe.
+- `read-tools.js`: registers the 6 read tools — `get_my_pets` (own normalized pets), `get_my_pet` (one owned pet by id + its records), `get_health_records`, `get_vaccinations`, `get_reminders` (per pet, ownership-re-checked), `search_veterinarians` (public name/clinic/specialization/city/address only, no contact/fee). Unknown tools → typed error.
+- `index.js`: `listToolDeclarations()` (OpenAI function shapes sent to the provider), `executeTool({ name, args, userId })`.
+- `ponytail:` read-only by design (mutation tools are Phase 6); results bounded; ownership gate per call.
+
+### Bounded calling loop (`backend/ai/tool-calling.js`)
+
+`runToolCallingLoop({ adapter, config, messages, userId })` owns **all** message assembly:
+
+1. Call `adapter.complete(messages, { functions, ... })` (only when `canUseTools(provider)`).
+2. If the reply contains `tool_calls`, execute each (`executeTool`) → append the assistant `tool_calls` message **plus** a `role:"tool"` message per result → next round.
+3. Stop when a round returns plain text (≤ `maxIterations` rounds), returns `{ ok:true, text, toolLog }`.
+4. Cap overflow → `{ ok:false, reason:"max_iterations", text }` (no fabricated answer). Per-tool failures become model-safe results (`{ ok:false, error }`), never fake success. Provider error mid-round → `{ ok:false, reason:"error" }`.
+5. `toolLogEntry({ name, args, ok, error })` builds the audit trail; persisted metadata is bounded at `TOOL_CALLS_METADATA_MAX` = 20.
+
+### Worker integration (`backend/jobs/generation.worker.js`)
+
+- New `generateJobAnswer({ providerConfig, providerType, userId, userMessage, context })`: `canUseTools(providerType)` → assemble `buildProviderMessages` (system + bounded history + pet context + question) and run the loop with the resolved adapter/config (`providerConfig ? buildProviderRequest(providerConfig) : { adapter: getActiveProvider(), config: AI_CONFIG.openai }`); otherwise fall back to legacy `generatePetGPTResponse`.
+- Result handling mirrors Phase 4: `reason:"error"` → job fails `SAFE_ERRORS.PROVIDER` (no fake assistant); `max_iterations` → completed with the loop's safe text; success persists the assistant `Message` with `toolCalls: result.toolLog`; completion log includes the tool call count.
+- The one integration bug that mattered: `backend/ai/index.js` now `require("./tools")` so the read tools are **registered** — without it the loop saw `no_tools` and silently fell back to the legacy path.
+- Job `provider` label: `providerConfig ? providerConfig.provider : AI_CONFIG.provider`; capability checked on the raw provider type (user-config labels resolve through it). Stored-config decrypt failure is reported as the configured provider failing to resolve — job fails safely.
+
+### Persisted metadata
+
+`Message.toolCalls: [{ name (required), arguments (Mixed), ok (required), error }]`, bounded at `TOOL_CALLS_METADATA_MAX`, `default: undefined`; surfaced through `publicMessage` and the conversation/job GET responses. Arguments are stored (bounded array, ≤ 20 items) so "what the AI asked to do" is auditable without ever leaking keys.
+
+### Capability gating (`backend/ai/openai.js` + `gemini.js`)
+
+Providers declare `supportsToolCalling()` (default false); OpenAI-compatible returns true when the declared model advertises `tool_calling`; Google/Gemini stays false (legacy chat path). No capability, no tools — never assume.
+
+### Config (`backend/config/ai.js` — set env before require)
+
+`PETGPT_MAX_TOOL_ITERATIONS` (default 3), `PETGPT_TOOL_MAX_RESULTS` (default 10), `PETGPT_CONTEXT_MAX_PETS` (default 5). See `backend/.env.example`.
+
+### Verification (2026-09-22)
+
+- `node --check` all touched files → pass.
+- **`petgpt-tools.test.js` 10/10** (local Mongo + mock OpenAI): registry/declarations; `get_my_pets` normalization + no secrets; unknown tool; argument validation (missing args / wrong type / unknown args); ownership isolation (foreign pet error === nonexistent-pet error, no existence leak); capability gates (google stays off the tool path); bounded iterations (maxIterations=3); bounded metadata (25 calls → 20 recorded); per-tool failures model-safe; provider failure mid-round abort.
+- **`petgpt-jobs-tools.test.js`** (local Mongo + mode-switchable mock provider on :4115): worker → tool execution → final answer over 2 provider calls; persisted assistant `toolCalls` `[{ get_my_pets, ok:true }]`; tool result fed back (answer names **Rex, not Max**); wipe_all_data tool failure → job completed with `ok:false` + error, no fake success; always-tools provider → bounded at maxIterations then job failed `provider`, no fabricated answer, no dangling jobs; HTTP 500 → failed with no assistant message; ownership isolation 404; no secrets in jobs/messages/docs/logs. Calls `startWorker()`/`stopWorker()`.
+- **`petgpt-tools-omniroute.test.js`** (real `catlium-omniroute`, dummy key works on `/chat/completions`): the model actually called `get_my_pets`, the worker executed it, final reply "You have one pet: Rex, a 3-year-old male Golden Retriever"; 1 tool call recorded; ≤ 20 and only registered tools; no "Max"/"aged 7" leak; legacy `/ask` 200; no API key in logs/DB; honest SKIP when unreachable (probe retried 3×).
+- **Full `npm test` chain exit 0 with the OmniRoute env** — all 11 suites: ai-provider 17, conversation-api 15, petgpt-provider-conversation 5, petgpt-omniroute 5, provider-config 19, petgpt-provider-config-omniroute 6, petgpt-jobs 11/7, petgpt-jobs-omniroute, petgpt-tools 10, petgpt-jobs-tools, petgpt-tools-omniroute.
+- No frontend file changes; no React-migration worktree/file changes; no mutation tools; no Phase 6.
+
+Commit: this phase on `feature/petgpt-enhancement` (backend `ai/` tooling, worker integration, tests, config/docs).

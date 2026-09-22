@@ -7,6 +7,13 @@
 //   conversation messages, oldest-first, already capped by the caller
 //   (AI_CONFIG.maxHistoryMessages). Inserted between the system message and
 //   the current user turn. Ignoring it is allowed (single-turn providers).
+//   capabilities (Phase 5): { chat: true, toolCalling: false|true }. When a
+//   provider declares toolCalling it MAY also implement
+//   generateWithTools({ messages, tools, config }) =>
+//     Promise<{ text, toolCalls: [{ id, name, arguments }], latencyMs? }>,
+//   used by the Phase 5 tool-calling loop. Policies must check capabilities
+//   before relying on a provider behaviour; never assume every provider
+//   supports tool calling.
 // Providers throw AiProviderError(code, message) on any failure.
 // Normalized error codes let callers distinguish:
 //   config / timeout / http / malformed / unknown
@@ -22,6 +29,14 @@ const AI_ERROR_CODES = Object.freeze({
   HTTP: "http",
   MALFORMED: "malformed",
   UNKNOWN: "unknown",
+});
+
+// Provider capabilities (Phase 5). Capabilities are declared by each
+// adapter and checked by policy code before a request relies on one.
+// Never assume a provider supports a capability it did not declare.
+const AI_CAPABILITIES = Object.freeze({
+  CHAT: "chat",
+  TOOL_CALLING: "toolCalling",
 });
 
 class AiProviderError extends Error {
@@ -55,6 +70,17 @@ function getProviderNames() {
 
 function getActiveProvider() {
   return getProvider(AI_CONFIG.provider);
+}
+
+// Capability reflection (Phase 5). Unknown/missing capability = absent
+// (safe default: never treat an undeclared capability as available).
+function getProviderCapabilities(name) {
+  const provider = providers.get(name);
+  return provider && provider.capabilities ? provider.capabilities : {};
+}
+
+function supportsToolCalling(name) {
+  return !!getProviderCapabilities(name)[AI_CAPABILITIES.TOOL_CALLING];
 }
 
 // Shared HTTP helpers ---------------------------------------------------
@@ -97,11 +123,14 @@ function userPetsText(petContext) {
 
 module.exports = {
   AI_ERROR_CODES,
+  AI_CAPABILITIES,
   AiProviderError,
   register,
   getProvider,
   getProviderNames,
   getActiveProvider,
+  getProviderCapabilities,
+  supportsToolCalling,
   fetchWithTimeout,
   parseJson,
   userPetsText,

@@ -9,16 +9,33 @@
 
 const { AI_CONFIG } = require("../config/ai");
 const Message = require("../models/Message");
-const { loadPetContext } = require("../controllers/ai.controller");
+const { loadPetContext } = require("./pet-context");
+const { userPetsText } = require("./provider");
 
 const DEFAULT_TITLE = "New conversation";
 const TITLE_CHARS = 60;
 const PREVIEW_CHARS = 60;
 
 // Public message shape used across the API (never leaks internal fields).
+// toolCalls is a bounded, secret-free trace of tool executions that shaped
+// this assistant message; absent when no tools ran.
 function publicMessage(m) {
   if (!m) return null;
-  return { id: m._id, role: m.role, content: m.content, createdAt: m.createdAt };
+  const out = { id: m._id, role: m.role, content: m.content, createdAt: m.createdAt };
+  if (m.toolCalls && m.toolCalls.length) out.toolCalls = m.toolCalls;
+  return out;
+}
+
+// Assistant message shape handed to a generateWithTools adapter on the
+// FIRST round of the tool-calling exchange. Mirrors the exact user-turn
+// shape the openai.generate() adapter builds for the non-tool path, so a
+// provider sees identical context whether or not the tool path is used.
+function buildProviderMessages({ system, history, petContext, question }) {
+  return [
+    { role: "system", content: system },
+    ...(history || []).map((m) => ({ role: m.role, content: m.content })),
+    { role: "user", content: userPetsText(petContext) + "User asks: " + question },
+  ];
 }
 
 // Loads the user's owned pet context PLUS the capped conversation
@@ -54,4 +71,4 @@ async function updateConversationMetadata(conversation, userMessageContent, assi
   await conversation.save();
 }
 
-module.exports = { publicMessage, buildConversationContext, updateConversationMetadata };
+module.exports = { publicMessage, buildProviderMessages, buildConversationContext, updateConversationMetadata };

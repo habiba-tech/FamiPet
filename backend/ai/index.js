@@ -21,16 +21,24 @@
 const { buildSystemPrompt } = require("../config/ai");
 const {
   AI_ERROR_CODES,
+  AI_CAPABILITIES,
   register,
   getProvider,
   getProviderNames,
   getActiveProvider,
+  supportsToolCalling,
 } = require("./provider");
 const { decryptSecret } = require("../utils/cipher");
 const AiProvider = require("../models/AiProvider");
 
 register("google", require("./gemini"));
 register("openai", require("./openai"));
+
+// Phase 5: registering the AI layer also registers the read-only tools
+// (backend/ai/tools/), so the tool-calling loop always has declarations.
+// Required here — once — so the durable worker, controllers, and tests
+// share one registry instance.
+require("./tools");
 
 // Resolve the authenticated user's active, enabled provider
 // configuration (Phase 3). Returns a lean doc whose apiKey remains

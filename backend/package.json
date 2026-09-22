@@ -7,7 +7,7 @@
     "start": "node server.js",
     "dev": "nodemon server.js",
     "seed": "node utils/seedData.js",
-    "test": "node test/ai-provider.test.js && node test/conversation-api.test.js && node test/petgpt-provider-conversation.test.js && node test/petgpt-omniroute.test.js && node test/provider-config.test.js && node test/petgpt-provider-config-omniroute.test.js && node test/petgpt-jobs.test.js && node test/petgpt-jobs-omniroute.test.js"
+    "test": "node test/ai-provider.test.js && node test/conversation-api.test.js && node test/petgpt-provider-conversation.test.js && node test/petgpt-omniroute.test.js && node test/provider-config.test.js && node test/petgpt-provider-config-omniroute.test.js && node test/petgpt-jobs.test.js && node test/petgpt-jobs-omniroute.test.js && node test/petgpt-tools.test.js && node test/petgpt-jobs-tools.test.js && node test/petgpt-tools-omniroute.test.js"
   },
   "dependencies": {
     "express": "^4.19.2",
