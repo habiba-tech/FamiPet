@@ -18,15 +18,19 @@ const {
 
 const name = "google";
 
-async function generate({ system, question, petContext, history = [] }) {
-  const apiKey = AI_CONFIG.gemini.apiKey;
+async function generate({ system, question, petContext, history = [], config = {} }) {
+  // config (Phase 3): a user-owned provider configuration resolved by
+  // backend/ai — { apiKey, model }. When absent the adapter falls back
+  // to the system-level environment configuration.
+  const apiKey = config.apiKey || AI_CONFIG.gemini.apiKey;
   if (!apiKey) {
     throw new AiProviderError(AI_ERROR_CODES.CONFIG, "no GEMINI_API_KEY configured");
   }
 
+  const model = config.model || AI_CONFIG.gemini.model;
   const startedAt = Date.now();
   const url =
-    `https://generativelanguage.googleapis.com/v1beta/models/${AI_CONFIG.gemini.model}:generateContent` +
+    `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent` +
     `?key=${encodeURIComponent(apiKey)}`;
 
   const response = await fetchWithTimeout(

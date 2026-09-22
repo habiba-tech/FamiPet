@@ -18,4 +18,7 @@ router.post("/advice", protect, getPetAdvice);
 // Persistent conversations (Phase 2), mounted under /api/ai/conversations
 router.use("/conversations", require("./conversation.routes"));
 
+// User-owned provider/API-key configuration (Phase 3)
+router.use("/providers", require("./provider.routes"));
+
 module.exports = router;

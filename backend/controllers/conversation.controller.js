@@ -21,7 +21,7 @@ const mongoose = require("mongoose");
 const Conversation = require("../models/Conversation");
 const Message = require("../models/Message");
 const { AI_CONFIG, outOfScopeResponse } = require("../config/ai");
-const { generatePetGPTResponse } = require("../ai");
+const { generatePetGPTResponse, resolveActiveProviderConfig } = require("../ai");
 const { fallbackAnswer, loadPetContext } = require("./ai.controller");
 
 const DEFAULT_TITLE = "New conversation";
@@ -162,7 +162,10 @@ exports.addMessage = async (req, res) => {
       console.log(`PetGPT: out-of-scope question blocked for user ${req.user._id}.`);
       answer = scope;
     } else {
-      const generated = await generatePetGPTResponse(content, petContext, history);
+      // Phase 3: resolve the authenticated user's active, enabled provider
+      // configuration (owner-scoped). null -> system env configuration.
+      const providerConfig = await resolveActiveProviderConfig(req.user._id);
+      const generated = await generatePetGPTResponse(content, petContext, history, providerConfig);
       // Provider failure -> existing fallback behaviour; the persisted
       // assistant message is whatever the user actually saw. No fabricated
       // "provider success" is ever stored.

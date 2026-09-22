@@ -49,6 +49,10 @@ function getProvider(name) {
   return provider;
 }
 
+function getProviderNames() {
+  return Array.from(providers.keys());
+}
+
 function getActiveProvider() {
   return getProvider(AI_CONFIG.provider);
 }
@@ -96,6 +100,7 @@ module.exports = {
   AiProviderError,
   register,
   getProvider,
+  getProviderNames,
   getActiveProvider,
   fetchWithTimeout,
   parseJson,

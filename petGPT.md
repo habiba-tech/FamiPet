@@ -90,13 +90,17 @@ Exchange flow behind `POST /api/ai/conversations/:conversationId/messages`:
 
 | File | Role |
 |---|---|
-| `backend/routes/ai.routes.js` | Mounts `/ask`, `/advice` (both behind `protect`) and `/conversations` (Phase 2 sub-router) |
+| `backend/routes/ai.routes.js` | Mounts `/ask`, `/advice` (both behind `protect`), `/conversations` (Phase 2 sub-router) and `/providers` (Phase 3 sub-router) |
 | `backend/routes/conversation.routes.js` | **Phase 2** — conversation CRUD + message routes, all behind `protect` |
+| `backend/routes/provider.routes.js` | **Phase 3** — provider-config CRUD + test routes, all behind `protect` |
 | `backend/controllers/ai.controller.js` | `askPetGPT` (legacy single-turn), `getPetAdvice`, `fallbackAnswer`, `loadPetContext` (shared with the conversation controller); provider calls delegated to `backend/ai` |
-| `backend/controllers/conversation.controller.js` | **Phase 2** — create/list/get/clear conversations, add message + Persist→Generate→Persist flow |
+| `backend/controllers/conversation.controller.js` | **Phase 2** — create/list/get/clear conversations, add message + Persist→Generate→Persist flow; **Phase 3** — resolves the user's active provider config before generating |
+| `backend/controllers/provider.controller.js` | **Phase 3** — provider-config CRUD + test (owner-scoped, encrypted keys, safe responses) |
 | `backend/models/Conversation.js` | **Phase 2** — conversation doc (`owner`, `title`, `lastMessageAt`, `lastMessagePreview`, timestamps) |
 | `backend/models/Message.js` | **Phase 2** — message doc (`conversation`, `role: user\|assistant\|system`, `content`, timestamps) |
-| `backend/ai/index.js` | **Provider layer entry (Phase 1):** registers `google`+`openai` adapters, selects the active one, `generatePetGPTResponse()` with normalized outcome logging (`ok`/`failed (<code>); using fallback`) |
+| `backend/models/AiProvider.js` | **Phase 3** — user-owned provider configuration doc (`owner`, `provider`, `name`, `baseUrl`, `model`, `apiKeyEnc` [AES-256-GCM ciphertext], `enabled`, `active`, timestamps) |
+| `backend/utils/cipher.js` | **Phase 3** — AES-256-GCM encrypt/decrypt for stored API keys; key derived from `PETGPT_ENCRYPTION_KEY`; fails closed |
+| `backend/ai/index.js` | **Provider layer entry (Phase 1):** registers `google`+`openai` adapters, selects the active one, `generatePetGPTResponse()` with normalized outcome logging (`ok`/`failed (<code>); using fallback`). **Phase 3:** `resolveActiveProviderConfig()`, `buildProviderRequest()` (decrypts stored keys only at request time), optional per-user config passed to adapters |
 | `backend/ai/provider.js` | **Provider contract/interface (Phase 1):** `AiProviderError` + `AI_ERROR_CODES` (`config|timeout|http|malformed|unknown`), adapter registry, `fetchWithTimeout` (AbortController), `parseJson`, `userPetsText` prompt assembly |
 | `backend/ai/gemini.js` | **Google/Gemini adapter (Phase 1)** — name `"google"`; same endpoint/body/config as pre-Phase-0 `callGemini`; `GEMINI_API_KEY` + `PETGPT_MODEL` |
 | `backend/ai/openai.js` | **OpenAI-compatible adapter (Phase 1)** — name `"openai"`; chat-completions dialect, no SDK, no vendor hard-coding (OmniRoute/proxies/local endpoints all work) |
@@ -109,6 +113,8 @@ Exchange flow behind `POST /api/ai/conversations/:conversationId/messages`:
 | `backend/test/conversation-api.test.js` (new, npm `test`) | **Phase 2 assert-based API checks** over real local Mongo: auth gate, create/list/get, ownership isolation, validation, persistence, clear-chat, legacy `/ask` backward compat, no-secrets-in-messages |
 | `backend/test/petgpt-provider-conversation.test.js` (new, npm `test`) | **Phase 2 mock-provider checks:** persist→generate→persist flow, history reuse + cap, provider-failure fallback (no fake success), durability from DB |
 | `backend/test/petgpt-omniroute.test.js` (new, npm `test`) | **Phase 2 real OpenAI-compatible E2E** through the local OmniRoute container; SKIPS when `PETGPT_OPENAI_API_KEY` is unset |
+| `backend/test/provider-config.test.js` (new, npm `test`) | **Phase 3 assert-based checks** over real local Mongo + a mock OpenAI-compatible endpoint: encryption round-trip/wrong-key/missing-key fail-safe, CRUD, validation, ownership isolation, active selection, disabled behavior, test endpoint (no persistence), conversation uses configured provider, disable/delete → env fallback, legacy `/ask` intact, no-secret leakage in messages/docs/logs |
+| `backend/test/petgpt-provider-config-omniroute.test.js` (new, npm `test`) | **Phase 3 real OpenAI-compatible E2E** through the local OmniRoute container using an encrypted user-owned configuration; disable/delete → deterministic system fallback; no-secret checks; SKIPS when unset |
 | `backend/models/HealthRecord.js`, `Vaccination.js`, `Reminder.js`, `Appointment.js`, `Veterinarian.js` | Adjacent data (currently **not** exposed to PetGPT) |
 | `backend/server.js` | Route mount `/api/ai`, middleware, error/404 handlers |
 | `frontend/js/petgpt.js` | Chat UI: `FamiPetAPI.post("/ai/ask", {question})`, error fallback to **its own** canned `getResponse()` |
@@ -198,14 +204,14 @@ Available in the DB but **not** used:
 
 ## 12. Architecture Roadmap (design intent)
 
-Implementations: A ✅ (Phase 1), B ✅ (Phase 2). C/D/E-F design, not implemented.
+Implementations: A ✅ (Phase 1), B ✅ (Phase 2), provider configuration ✅ (Phase 3). C/D/E-F design, not implemented.
 
 ### A. Provider abstraction
 - PetGPT must NOT be architecturally tied to Google/Gemini, nor to OmniRoute.
 - ✅ **Implemented (Phase 1):** `backend/ai/` provider layer — `provider.js` (contract: `provider.generate({system, question, petContext}) → {text, latencyMs}`; `AiProviderError` + `AI_ERROR_CODES` `config|timeout|http|malformed|unknown`; `register/getProvider/getActiveProvider` registry; `fetchWithTimeout`, `parseJson`, `userPetsText`), `gemini.js` (name `"google"`, default), `openai.js` (name `"openai"`, chat-completions dialect, no SDK), `index.js` (registration + `generatePetGPTResponse()` with normalized logging and `null`-on-failure fallback signal). The controller no longer embeds vendor details.
 - Additive providers implement the same contract and `register()` their name; selection stays env-driven via `AI_CONFIG.provider`.
 - OpenAI-compatible APIs are the initial compatibility target (chat completions shape). OmniRoute is only one possible provider implementation/configuration, never a hard dependency.
-- Users should eventually configure their own compatible provider/API key (Phase 2).
+- Users configure their own compatible provider/API key via the Phase 3 provider-configuration API (`/api/ai/providers`).
 - Provider-specific details stay isolated behind the provider layer; the controller/policy code never embeds vendor knowledge.
 
 ### B. Conversation architecture ✅ implemented (Phase 2)
@@ -257,8 +263,8 @@ Ordering rationale: (1) a stable provider interface must exist before anything c
   Provider layer (`backend/ai/`): chat-completions-shaped `provider.generate(...)` contract, normalized error codes (`config|timeout|http|malformed|unknown`), adapter registry, Google/Gemini adapter (default, preserves `GEMINI_API_KEY`), OpenAI-compatible adapter (no SDK, no vendor hard-coding), service entry with normalized outcome logging and `null`-on-failure fallback. Dead `config/gemini.js` removed; single `AI_CONFIG`. Verified by assert-based `npm test` + e2e.
 - **Phase 2 — Persistent conversations/messages** ✅ implemented
   Implement §B: `Conversation`/`Message` models, ownership-scoped CRUD, conversation-aware message flow (new `/api/ai/conversations` API; legacy `/api/ai/ask` untouched), history fetch + provider context reuse with a bounded cap.
-- **Phase 3 — Provider/API-key/model configuration** (not started)
-  Per-user or per-instance provider + model + API key configuration; manage secrets; provider selection honored by the provider layer.
+- **Phase 3 — Provider/API-key/model configuration** ✅ implemented
+  Per-user provider + model + API key configuration (encrypted); owner-scoped CRUD + test API; active-provider resolution honored by the provider layer with system-env fallback. See §17.
 - **Phase 4 — Durable AI generations + recovery**
   Implement §C: generation records with status transition, persisted result as source of truth, replay/recovery path, cleanup/retention.
 - **Phase 5 — Rich pet context**
@@ -427,3 +433,136 @@ unauthenticated (401), invalid conversation id (400), conversation not found (40
 - No frontend file changes; no React-migration worktree/file changes.
 
 Commit: see Phase 2 commit on `feature/petgpt-enhancement`.
+
+---
+
+## 17. Phase 3 — Provider / API-Key / Model Configuration
+
+Status: **✅ implemented & verified** (2026-09-22). Backend-only; no frontend changes; React-migration worktree untouched; no streaming; no tool calling; no durable background generation (Phase 4).
+
+### Goal
+
+Make PetGPT provider configuration explicit and extensible:
+
+```text
+Gemini
+OpenAI-compatible provider
+      └── OmniRoute can be one configuration
+      └── Any compatible provider can be another configuration
+```
+
+Provider-specific implementation stays inside the Phase 1 provider layer (`backend/ai/`). OmniRoute appears only through environment configuration at test time (`PETGPT_OPENAI_BASE_URL=…`, `PETGPT_OPENAI_API_KEY=…`, `PETGPT_OPENAI_MODEL=…`) — never hard-coded, no SDK, no OmniRoute-specific logic.
+
+### Provider configuration architecture
+
+- **`backend/models/AiProvider.js`** — one doc per user-owned provider configuration. Fields (nothing extra): `owner` (ObjectId→User, required, never client-supplied), `provider` (registry key: `google` / `openai`), `name` (display name, defaults to provider type), `baseUrl` (endpoint root, OpenAI-compatible only), `model`, `apiKeyEnc` (AES-256-GCM ciphertext — **never plaintext**), `enabled`, `active`, `timestamps`. Index `{ owner: 1, active: 1 }`.
+- **`backend/utils/cipher.js`** — `encryptSecret`/`decryptSecret`: AES-256-GCM; the 32-byte key is `sha256(PETGPT_ENCRYPTION_KEY)`; stored shape `iv:authTag:ciphertext` (base64). Fails closed: no env key → encrypt/decrypt throw before any plaintext is written or returned.
+- The **provider registry stays generic**: `getProviderNames()` returns the registered adapter names, so any adapter that `register()`s itself becomes a valid configuration type automatically. The CRUD layer validates against the registry rather than a hard-coded list.
+- **`backend/ai/index.js`** — new Phase-3 surface:
+  - `resolveActiveProviderConfig(userId)` → the user's `{owner, active:true, enabled:true}` config (lean, key still encrypted) or `null`.
+  - `buildProviderRequest(configDoc)` → `{ adapter, config: { apiKey, model, baseUrl? } }`, decrypting the stored key **here and only here**, immediately before a real provider request.
+  - `generatePetGPTResponse(question, petContext, history, providerConfig)` — optional 4th arg; when absent the legacy system-env behavior is unchanged; when present the named adapter runs with the decrypted stored credentials.
+- Adapters (`gemini.js`, `openai.js`) accept an optional `config` object that overrides the env snapshot; ignoring it is not an option for OpenAI-compatible providers that need a user-supplied base URL/model/key.
+
+### Ownership / scope rules
+
+- Every provider-config operation resolves the document via `{ _id, owner: req.user._id }`. Foreign or unknown ids → 404 (identical to "not found", no existence leak).
+- A user can never read, modify, delete, test/use, or select another user's provider configuration or API key. Client-supplied `owner` fields in bodies are ignored (the doc always belongs to `req.user._id`).
+- Provider resolution is strictly owner-scoped: `resolveActiveProviderConfig(req.user._id)` — no cross-user fallback, ever.
+- "Do not silently fall back to another user's provider": there is no code path that can reference another user's provider. Either the authenticated user's active provider is used, or the system-level env configuration is.
+
+### Encryption strategy
+
+- Stored API keys are encrypted at the application layer with AES-256-GCM using a server-side secret: **`PETGPT_ENCRYPTION_KEY`** (any string; a SHA-256 of it derives the 32-byte key). Required environment variable, documented in `backend/.env.example`.
+- Never hard-coded; never in git. `backend/.gitignore` already excludes `.env`.
+- Decryption happens only inside `buildProviderRequest`, immediately before an actual provider request (conversation flow or the `/test` endpoint).
+- Security invariants (asserted by tests):
+  - stored value is ciphertext, never plaintext;
+  - plaintext never appears in API responses, logs, error messages, persisted chat messages, or database queries;
+  - missing/wrong encryption configuration fails safely (create → 500 without storing anything; request-time decrypt failure → normalized fallback, no fabricated success, no crash);
+  - the `/test` endpoint decrypts for the request only and never returns the secret.
+- Decision note: application-level AES-256-GCM with an env-derived key was chosen because it is the documented Phase-3 requirement and introduces no new dependency (Node `crypto`). If this instance ever needs key rotation/HSM/KMS, swap `utils/cipher.js` internals only — the provider layer and storage format are sealed by that one module.
+
+### API contracts (all behind `protect`; mounted `/api/ai/providers`)
+
+| Method + path | Request | Success | Errors |
+|---|---|---|---|
+| `GET /api/ai/providers` | — | `200 { success, providers: [{ id, provider, name, baseUrl, model, enabled, active, configured, createdAt, updatedAt }] }` | 401 |
+| `POST /api/ai/providers` | `{ provider, name?, baseUrl?, model, apiKey, enabled?, active? }` | `201 { success, provider: <safe> }` | 400 validation; 500 encrypt/storage failure (generic); 401 |
+| `PATCH /api/ai/providers/:id` | partial `{ provider?, name?, baseUrl?, model?, apiKey?, enabled?, active? }` | `200 { success, provider: <safe> }` | 400 invalid id / validation; 404 not found/not owned; 500 (generic); 401 |
+| `DELETE /api/ai/providers/:id` | — | `200 { success, message }` | 400 invalid id; 404 not found/not owned; 401 |
+| `POST /api/ai/providers/:id/test` | — | `200 { success, ok: true, provider, model, latencyMs }` or `200 { success, ok: false, provider, error: { code, status? } }` | 400 invalid id; 404 not found/not owned; 401 |
+
+Validation: provider type must be registered (unsupported → 400); `model` required; `baseUrl` required for `openai` and must be a valid `http(s)` URL (trailing slash normalized away); `apiKey` required on create and must be non-empty on update; unknown provider types rejected; nothing obviously invalid is stored. No external provider call on CRUD — only `/test` does that.
+
+Safe response mask `configured: boolean` (true when a key is stored). Responses **never** expose the API key, ciphertext, encryption key, or auth headers.
+
+Active selection: `PATCH { active: true }` (or create) designates the active provider and deactivates the owner's other configurations (database-verified single-active invariant). The first configuration created for an owner auto-activates.
+
+### Active-provider resolution / precedence
+
+```text
+authenticated user
+      ↓
+active provider configuration (owner-scoped: { owner: userId, active: true, enabled: true })
+      ↓
+provider registry (adapter registered under config.provider)
+      ↓
+Gemini / OpenAI-compatible adapter (decrypted stored credentials)
+```
+
+1. If the authenticated user has an **enabled, active** provider configuration → that adapter + the decrypted stored credentials are used for the exchange.
+2. Otherwise (none configured, disabled, deleted) → the **system-level environment configuration** (`AI_CONFIG`, `PETGPT_PROVIDER` + `GEMINI_API_KEY`/`PETGPT_OPENAI_*`) is used, preserving Phase 0/1 behavior.
+3. There is no cross-user fallback step. The resolution is deterministic (single active doc per owner; system env as the base case).
+
+Legacy `POST /api/ai/ask` **never** resolves user provider configurations — it has no conversation/user-provider context and keeps its existing system-config behavior (verified by test with a stored active provider present).
+
+### PetGPT integration
+
+The persistent-conversation flow (Phase 2) now resolves the provider configuration after the scope gate:
+
+```text
+auth
+ ↓
+conversation ownership
+ ↓
+persist user message
+ ↓
+load bounded history + pet context
+ ↓
+scope gate
+ ↓
+resolve provider configuration (owner-scoped)   ← Phase 3
+ ↓
+provider adapter (decrypt stored key at call time)
+ ↓
+persist assistant response
+```
+
+Provider credentials never live on `Conversation`/`Message` documents. Provider failure still falls back to canned answers (persisted as-is, no fabricated success). `clear/delete` behavior and the scope gate are unchanged.
+
+### OmniRoute testing setup
+
+Same local container as Phase 2 (`catlium-omniroute`, `127.0.0.1:20128`). Phase 3 store an encrypted provider configuration pointing at it (`name`, `baseUrl`, `model`, `apiKey` sourced from env) and verify:
+
+- the configured (encrypted-key) provider produces a real reply that is persisted;
+- follow-up conversations reuse history through the configured provider;
+- disabling and then deleting the configured provider deterministically falls back to the system configuration (google-without-key → canned answer);
+- the API key is absent from persisted messages, provider docs, and all captured logs.
+
+Reachability check: `POST /api/ai/providers/:id/test` against the stored config or the OmniRoute suite; both skip cleanly when `PETGPT_OPENAI_API_KEY` is unset or the container is down. Verify path with `PETGPT_OPENAI_BASE_URL=http://localhost:20128/v1 PETGPT_OPENAI_API_KEY=<key> PETGPT_OPENAI_MODEL=auto/best-fast npm test`.
+
+### Phase 3 verification (2026-09-22, real local Mongo + local OmniRoute)
+
+- `node --check` on all touched backend files → pass.
+- `npm test` (default env, no key): **17 + 15 + 5 + 19 checks pass**, the two OmniRoute suites skip cleanly.
+- With `PETGPT_OPENAI_API_KEY` set: **Phase-2 OmniRoute E2E 5/5** and **Phase-3 configured-provider OmniRoute E2E 6/6** pass against the live container — total **67 checks**.
+- Encryption: round-trip AES-256-GCM, stored value is ciphertext (not plaintext), wrong key and missing key both fail safely at the util level and at request time; plaintext never appears in responses, logs, error messages, or persisted messages (asserted).
+- Ownership isolation: cross-user read/update/delete/test all 404; list never exposes another user's provider; resolution never crosses owners.
+- Active-provider selection determinism verified (single active per owner; auto-active first config; PATCH deactivates siblings).
+- Disabled/deleted provider → system env fallback verified in both the mock and real OmniRoute suites.
+- Legacy `/api/ai/ask` intact (system-config behavior preserved with a stored active provider present).
+- No plaintext API keys persisted anywhere (Mongo docs checked) and none in logs or API responses (asserted by the suites).
+- No frontend file changes; no React-migration worktree/file changes.
+
+Commit: see Phase 3 commit on `feature/petgpt-enhancement`.

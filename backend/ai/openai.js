@@ -18,8 +18,11 @@ const {
 
 const name = "openai";
 
-async function generate({ system, question, petContext, history = [] }) {
-  const { baseUrl, apiKey, model } = AI_CONFIG.openai;
+async function generate({ system, question, petContext, history = [], config = {} }) {
+  // config (Phase 3): a user-owned provider configuration resolved by
+  // backend/ai — { baseUrl, apiKey, model }. When absent the adapter
+  // falls back to the system-level environment configuration.
+  const { baseUrl, apiKey, model } = config.baseUrl ? config : AI_CONFIG.openai;
 
   if (!baseUrl || !apiKey) {
     throw new AiProviderError(
