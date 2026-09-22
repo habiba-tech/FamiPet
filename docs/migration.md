@@ -726,6 +726,53 @@ lint (`oxlint`) + `tsc -b && vite build` pass. Live-API + ownership-isolation
 - **Completion criteria:** appointment lifecycle parity.
 - **Rollback/safety:** isolated.
 
+  Implemented (commit + push under Phase 12):
+  `src/pages/app/appointments/{AppointmentsPage,AppointmentFormModal,RescheduleModal,
+  AppointmentDetailsModal}.tsx` + `appointmentsBase.ts`
+  (+ `src/api/appointments.ts` typed CRUD — `Appointment` widened so `pet` is the
+  populated object (list) or a plain id string (create response);
+  `DashboardSections.tsx` narrowed its two uses accordingly) +
+  `src/api/veterinarians.ts` (`/veterinarians` list, public — same call the Vanilla
+  page made). Route `/app/appointments` now renders `AppointmentsPage` (was
+  `PageStub`); `appointments.css` scoped under `.appointments-page` and imported in
+  `global.css`; Icon added `calendar-plus`/`calendar-xmark`/`chevron-left`/
+  `chevron-right`/`clock-rotate-left`/`user-doctor`. UI: top-bar (search +
+  notification bell/badge + "Book New Appointment"), 4 real stat cards (upcoming /
+  completed / cancelled / total), upcoming list (reschedule + more), history list
+  (View Details modal), month calendar with dot + data-derived legend, quick
+  actions (Find a Vet / Vet Services / Pet Health Records / Set Reminder), banner,
+  plus loading/empty/error states with Retry. Accepted deltas
+  (AGENTS §5 — no fabricated data; Vanilla `appointments.js` hard-coded data
+  dropped where it has no backend source):
+  (1) Stats are real (Vanilla hard-coded 2/8/1/11). Upcoming = `pending` +
+  `confirmed` (sorted date/time), history = completed/cancelled/no-show.
+  (2) Calendar starts at the current month (Vanilla hard-coded Aug 2026) and the
+  legend is derived from real appointments (Vanilla hard-coded "Bruno - Checkup" /
+  "Luna - Vaccination"); day dots use the blue `has-blue` class Vanilla applied,
+  vaccination days get the pink dot.
+  (3) Notifications are real: the bell loads `/notifications` with an unread badge,
+  panel, mark-all-read, and click-outside close (same pattern as `/app/health`).
+  Vanilla rendered a bell with no handler and only in-memory fake items via
+  `addNotification()`.
+  (4) View Details opens a details modal instead of `alert()` chained text;
+  success uses the `appointment-message` toast instead of `alert()`; booking
+  validates date/time first, then pet, then vet (Vanilla order), and creates a
+  real backend Notification ("Your appointment is booked for …").
+  (5) "Set Reminder" navigates to `/app/reminders` (Phase 14 stub) instead of the
+  Vanilla fake notification + alert. Cancel keeps `window.confirm`
+  (HealthPage parity); "Vet Services" keeps the "Vet finder will be available
+  soon." toast.
+  Verified live (backend running, seeded demo user `user@example.com`):
+  `npm run lint` (only pre-existing AuthContext/VerifyEmailPage warnings) +
+  `tsc -b && vite build` pass. Backend flow exercised against real DB: login →
+  `GET /pets` + `GET /veterinarians` (active vets) → `POST /appointments`
+  (booked, real notification created) → appears in `GET /appointments` →
+  `PUT` date/time (reflected) → `DELETE` (status `cancelled`); validation
+  (`400` missing fields) and not-found (`404`) paths verified. Test records and
+  the notification they created were removed from the DB afterward, restoring
+  the prior data state. Browser-automation passes of Phases 10/11 were not rerun
+  for this phase.
+
 ### Phase 13 — Veterinarians
 - **Objective:** vet data layer shared by Appointments (dropdown) and PetGPT (find-a-vet
   modal) — no dedicated old page exists; preserve consumption points only.
