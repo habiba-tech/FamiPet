@@ -187,7 +187,7 @@ tree verified.
 | 9     | Pet management                 | [x]    | `38c6aa9`  |
 | 10    | Health                         | [x]    | `17fc630`    |
 | 11    | Vaccinations                   | [x]    | `3d10701`  |
-| 12    | Appointments                   | [ ]    | —            |
+| 12    | Appointments                   | [x]    | `6876e43`  |
 | 13    | Veterinarians                  | [ ]    | —            |
 | 14    | Reminders                      | [ ]    | —            |
 | 15    | Notifications                  | [ ]    | —            |
