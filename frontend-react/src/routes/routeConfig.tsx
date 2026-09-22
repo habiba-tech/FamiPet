@@ -21,6 +21,7 @@ import { LostFoundPage } from '../pages/app/lostFound/LostFoundPage'
 import { AdoptionPage } from '../pages/app/adoption/AdoptionPage'
 import { BreedsPage } from '../pages/app/breeds/BreedsPage'
 import { BreedDetailsPage } from '../pages/app/breedDetails/BreedDetailsPage'
+import { SettingsPage } from '../pages/app/settings/SettingsPage'
 import { RedirectIfAuthed, RequireAdmin, RequireAuth } from './guards'
 
 // Route table follows migration.md §4 (Page Organization) — a 1:1 mirror of
@@ -72,7 +73,7 @@ export const routes: RouteObject[] = [
       { path: 'breeds', element: <BreedsPage /> },
       { path: 'breeds/:id', element: <BreedDetailsPage /> },
       { path: 'pet-id', element: <PetIdPage /> },
-      { path: 'settings', element: <PageStub title="Settings" /> },
+      { path: 'settings', element: <SettingsPage /> },
     ],
   },
 

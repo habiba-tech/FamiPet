@@ -17,6 +17,7 @@
 @import './lostFound.css';
 @import './adoption.css';
 @import './breeds.css';
+@import './settings.css';
 
 /* =========================================================
    GLOBAL DESIGN TOKENS — mirrors docs/design.md §1.1

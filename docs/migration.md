@@ -195,7 +195,7 @@ tree verified.
 | 17    | Favorites                      | [x]    | `d7a6f10`    |
 | 18    | Adoption                       | [x]    | `70293d0`    |
 | 19    | Pet Breeds                     | [x]    | `526f78e`    |
-| 20    | Settings                       | [ ]    | —            |
+| 20    | Settings                       | [x]    | pending      |
 | 21    | Admin panel                    | [ ]    | —            |
 | 22    | AI / PetGPT (redesign)         | [ ]    | —            |
 | 23    | API integration layer          | [ ]    | —            |
@@ -221,7 +221,7 @@ execution changed the order:
 | 17 Favorites              | §17 Favorites         |
 | 18 Adoption               | §18 Adoption          |
 | 19 Pet Breeds             | (new — breeds + breeds/:id)               |
-| 20 Settings               | (new — settings `PageStub`) |
+| 20 Settings               | (new — settings `SettingsPage`) |
 | 21 Admin panel            | §21 Admin panel       |
 | 22 AI / PetGPT (redesign) | §20 AI/PetGPT, deferred + renumbered |
 
@@ -1299,6 +1299,52 @@ Implemented (commit + push under Phase 19):
 - **Verification:** profile persists after reload; avatar upload; password change E2E.
 - **Completion criteria:** settings parity with real backend data.
 - **Rollback/safety:** isolated page.
+
+Implemented (commit + push under Phase 20, real backend only — no fake data):
+  `src/api/settings.ts` typed `updateProfile`/`changePassword`/`uploadAvatar` (+
+  `ProfilePayload`/`ProfileResponse`/`AvatarResponse`) and a full
+  `src/pages/app/settings/SettingsPage.tsx` (route `/app/settings` — replaced the
+  `PageStub`) + scoped `src/styles/settings.css` (imported in `global.css`,
+  `.settings-page` / `.settings-layout` etc. + `:root/_dark-theme`), reusing
+  `useTheme` (real dark-mode toggle), `Icon` (new `globe/save/sliders-horizontal`
+  keys; `info`→`circle-help`), `client.ts` typed API, `getMyPets`,
+  `getNotifications`/`markAllNotificationsRead` (bell panel with unread badge),
+  `getAppointments` (scheduled count, `appointments.my` parity) — all real
+  `/notifications`/`/pets/my`/`/appointments`/`/auth/me` backend data.
+  Landing on `/app/settings` hydrates from `GET /auth/me` + `GET /pets/my`
+  (network-verified), sidebar/pets thousandths parity preserved, email readonly
+  (not an updatable backend field — documented deviation), avatar flow: real
+  multi-part `POST /users/avatar` upload (multer jpeg/png/webp ≤5MB, multer
+  `sizeLimit` mapped) with client preview + "change" retry + "Remove photo" →
+  placeholder (never persisted); only real uploaded/server avatars are saved.
+  Password change wired to real `PUT /auth/change-password` with min-6
+  validation + backend error verbatim ("Current password is incorrect.") + green
+  "Password updated successfully." + cleared fields; dark-mode toggle applies
+  `_dark-theme` body class + `rgb(23,21,35)` page bg / card `/rgb(33,30,48)`
+  (real theme context, not a disabled "Coming soon" like Vanilla); "Your Pets"
+  card renders real `/pets/my` (breed/age from real backend populate, broken
+  remote-image fallback to species-local SVG via `petImage`); "Manage Pets" →
+  `/app/mypet`, back → `/app/dashboard`. Breach/empty/error+retry/loading
+  states; `@390px` single-column grid with `gridTemplateColumns: none` and zero
+  horizontal overflow.
+  Verified headless (CDP against real Vite + real backend on seeded munge):
+  login → `/app/settings` shows real name/email/phone/member-since (real date) /
+  `1 Pet` / breed `Labrador Retriever` / `3 yrs`; Save profile → `PUT
+  /auth/profile` 200 + green "Profile saved." + name/phone persisted after
+  reload (real backend); avatar preview blob → `POST /users/avatar` (real
+  `/uploads/...` URL on frontend AND `GET /auth/me`); password: wrong current →
+  inline "Current password is incorrect." (no green), correct → success + REAL
+  login with new password, then password restored; dark toggle applies
+  `_dark-theme` + real `rgb(23,21,35)` bg / `rgb(33,30,48)` card and reverses;
+  bell panel opens with real unread count + items / empty state; 390px → no
+  horizontal overflow + single column. Seed profile fields (name/phone/city/
+  avatar) + password restored to seed `Demo User`/`user123` afterwards (no
+  residue). Deviations vs Vanilla, flagged in `SettingsPage` header comment:
+  email not editable (read-only — backend rejects it), "Danger Zone / Delete
+  account" section intentionally omitted (no self-delete backend endpoint;
+  Vanilla only wiped localStorage), notifications stored as real backend
+  notifications (not Vanilla's `annSetting_*` localStorage-only prefs) — theme via
+  real `useTheme` rather than a disabled Vanilla toggle. Completion criteria met.
 
 ### Phase 21 — Admin panel
 - **Objective:** all 6 admin pages (stats, users, pets, adoptions, community, lost-found)
