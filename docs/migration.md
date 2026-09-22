@@ -192,7 +192,7 @@ tree verified.
 | 14    | Reminders                      | [x]    | —            |
 | 15    | Notifications                  | [x]    | Phases 10–14 |
 | 16    | Community                      | [x]    | —            |
-| 17    | Favorites                      | [ ]    | —            |
+| 17    | Favorites                      | [x]    | —            |
 | 18    | Adoption                       | [ ]    | —            |
 | 19    | Lost & Found                   | [x]    | —            |
 | 20    | AI/PetGPT                      | [ ]    | —            |
@@ -1010,6 +1010,56 @@ lint (`oxlint`) + `tsc -b && vite build` pass. Live-API + ownership-isolation
 - **Verification:** toggle adds/removes; state survives reload; multi-user isolation.
 - **Completion criteria:** favorite parity on all existing entry points.
 - **Rollback/safety:** component-only.
+
+  Implemented (commit + push under Phase 17):
+  `components/shared/FavoriteButton.tsx` + `hooks/useFavorites.ts` +
+  `src/api/favorites.ts` (typed `POST /users/favorites/:petId` → `{ success,
+  favorites, isFavorite }`, added during Phase 8 and used here) — the doc's
+  Phase 17 target structure. `FavoriteButton` is presentational (takes `petId`,
+  `name`, `liked`, `onToggle`) so every button on a surface shares the single
+  favorite set a page's `useFavorites()` fetches; `useFavorites` loads the
+  initial liked ids from `GET /auth/me` (`user.favorites`) and toggles
+  optimistically with rollback on failure (dashboard-data.js + dashboard.js
+  `setFavoriteState` parity). The dashboard's inline favorites were extracted
+  onto these: `DashboardPage` now sources `favIds` + `toggle` from the hook (the
+  `favIds` field left `DashboardData`, the `getMe()` favorites call dropped),
+  and `PetsSection` renders `<FavoriteButton>` instead of the hand-rolled heart.
+  Behavior is byte-identical to before the extraction (same `/auth/me` initial
+  state, same optimistic toggle, same `.favorite-button.liked` CSS — the dark
+  `.liked` fill rules were already scoped under `.dashboard-page` in Phase 8).
+  Accepted deltas (AGENTS §5 — no fabricated data or invented entry points):
+  (1) Entry points = the dashboard pet list only, matching exactly where the
+  Vanilla site renders a `.favorite-button` today. The phase objective names
+  adoption cards too, but the adoption page is Phase 18 (not yet migrated, still
+  `PageStub`) and the Vanilla **my pet** page has never had a favorite button —
+  so `FavoriteButton`/`useFavorites` are the reusable pieces Phase 18's adoption
+  cards will consume; nothing was added to surfaces that lack hearts in Vanilla
+  ("heart behavior exactly where present today; no new entry points").
+  (2) API surface: only the endpoints the Vanilla UI actually calls are wired —
+  `POST /users/favorites/:petId` (toggle) + `GET /auth/me` (initial state). The
+  `GET/POST /favorites` + `DELETE /favorites/:id` routes (Favorite-collection
+  model) exist in the backend but the old site never calls them and the two
+  stores are kept in sync server-side (`user.controller.toggleFavorite`); wiring
+  unused endpoints would be speculative. If a favorites page is ever required
+  (it is explicitly out of scope — no new nav), `GET /favorites` is the data
+  source to add then.
+  Verified live (backend running; mongod up; DB seeded — `user@example.com` /
+  `user123`): `npm run lint` (only the pre-existing AuthContext/VerifyEmailPage
+  warnings) + `tsc -b && vite build` pass. Backend flow against the real DB:
+  login → `POST /users/favorites/:petId` → `{ isFavorite:true, favorites:[pet] }`
+  → reflected in `GET /auth/me` → toggle again → removed from both → invalid pet
+  id → `400 "Invalid pet ID."` → no token → `401 "Access denied. No token
+  provided."`. Multi-user isolation (AGENTS §14): a throwaway user created
+  directly in Mongo (register needs email verification and SMTP is absent)
+  favorited the demo user's pet — **demo user's favorites stayed empty**, and the
+  throwaway user's own list carried the pet; the throwaway user was deleted and
+  the demo user's favorites left empty (test toggles reverted) afterward. Headless
+  Chrome (CDP) against the Vite dev server with the real backend: login →
+  dashboard renders 1 `.favorite-button` with `aria-label "Favorite Max"` (pet
+  name) → click → `.liked` applied (filled heart) → reload → still liked →
+  click → unliked → reload → gone; dark mode renders the hearts; 390px mobile
+  viewport: 0 horizontal overflow (overflow=0px). All test toggles reverted, so
+  the demo user's favorites are back to `[]`.
 
 ### Phase 18 — Adoption
 - **Objective:** adoption gallery (search, filters, counters) + apply flow; admin

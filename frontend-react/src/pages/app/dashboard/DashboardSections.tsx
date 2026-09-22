@@ -11,6 +11,7 @@ import type { AppNotification } from '../../../api/notifications'
 import type { Pet } from '../../../api/pets'
 import type { Reminder } from '../../../api/reminders'
 import { ageText, breedName, fmtDate, fmtTime, petImage } from '../../../lib/formatters'
+import { FavoriteButton } from '../../../components/shared/FavoriteButton'
 import { Icon } from '../../../components/shared/Icon'
 
 export interface ActivityItem {
@@ -114,18 +115,7 @@ export function PetsSection({
               <article className="pet-card" key={pet._id}>
                 <div className="pet-image-wrapper">
                   <img src={petImage(pet)} alt={pet.name} />
-                  <button
-                    type="button"
-                    className={`favorite-button${liked ? ' liked' : ''}`}
-                    aria-label={`Favorite ${pet.name}`}
-                    onClick={(e) => {
-                      e.preventDefault()
-                      e.stopPropagation()
-                      onToggleFavorite(String(pet._id), liked)
-                    }}
-                  >
-                    <Icon name="heart" />
-                  </button>
+                  <FavoriteButton petId={String(pet._id)} name={pet.name} liked={liked} onToggle={onToggleFavorite} />
                 </div>
                 <div className="pet-info">
                   <h3>{pet.name}</h3>

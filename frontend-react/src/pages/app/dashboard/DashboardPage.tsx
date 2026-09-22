@@ -12,12 +12,11 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { getAppointments, type Appointment } from '../../../api/appointments'
 import { getMyAdoptions, type Adoption } from '../../../api/adoptions'
-import { getMe } from '../../../api/auth'
-import { toggleFavorite } from '../../../api/favorites'
 import { getNotifications, type AppNotification } from '../../../api/notifications'
 import { getMyPets, type Pet } from '../../../api/pets'
 import { getReminders, type Reminder } from '../../../api/reminders'
 import { useAuth } from '../../../hooks/useAuth'
+import { useFavorites } from '../../../hooks/useFavorites'
 import { useTheme } from '../../../hooks/useTheme'
 import { fmtDate } from '../../../lib/formatters'
 import { Icon } from '../../../components/shared/Icon'
@@ -38,7 +37,6 @@ interface DashboardData {
   reminders: Reminder[] | null
   adoptions: Adoption[] | null
   notes: AppNotification[] | null
-  favIds: Set<string>
 }
 
 const INITIAL: DashboardData = {
@@ -47,12 +45,12 @@ const INITIAL: DashboardData = {
   reminders: null,
   adoptions: null,
   notes: null,
-  favIds: new Set(),
 }
 
 export function DashboardPage() {
   const { user } = useAuth()
   const { setDark, setLight } = useTheme()
+  const { favIds, toggle: toggleFav } = useFavorites()
   const [data, setData] = useState<DashboardData>(INITIAL)
   const [panelOpen, setPanelOpen] = useState(false)
 
@@ -83,14 +81,6 @@ export function DashboardPage() {
     getNotifications()
       .then((r) => merge({ notes: r.notifications || [] }))
       .catch((e) => warn('Dashboard notifications:', e))
-    getMe()
-      .then((r) => {
-        const favs = (r.user?.favorites as Array<{ _id?: string } | string> | undefined) || []
-        merge({
-          favIds: new Set(favs.map((f) => String(typeof f === 'string' ? f : f._id ?? '')).filter(Boolean)),
-        })
-      })
-      .catch((e) => warn('Dashboard favorites:', e))
 
     return () => {
       cancelled = true
@@ -170,25 +160,6 @@ export function DashboardPage() {
     })
   }
 
-  const toggleFav = async (petId: string, previouslyLiked: boolean) => {
-    const flip = (d: DashboardData, liked: boolean) => {
-      const next = new Set(d.favIds)
-      if (liked) next.add(petId)
-      else next.delete(petId)
-      return { ...d, favIds: next }
-    }
-    setData((d) => flip(d, !previouslyLiked))
-    try {
-      const res = await toggleFavorite(petId)
-      if (typeof res.isFavorite === 'boolean') {
-        const liked = res.isFavorite
-        setData((d) => flip(d, liked))
-      }
-    } catch {
-      setData((d) => flip(d, previouslyLiked))
-    }
-  }
-
   const firstName = (user?.name || '').trim().split(/\s+/)[0] || ''
   const greeting = firstName ? `Good morning, ${firstName}! 🌸` : 'Good morning! 🌸'
   const unreadCount = (data.notes || []).filter((n) => !n.isRead).length
@@ -250,7 +221,7 @@ export function DashboardPage() {
         </div>
 
         <div className="dashboard-grid">
-          <PetsSection pets={data.pets} favIds={data.favIds} onToggleFavorite={toggleFav} />
+          <PetsSection pets={data.pets} favIds={favIds} onToggleFavorite={toggleFav} />
           <AppointmentSection appointment={upcoming[0] || null} loading={data.appointments === null} />
           <ActivitySection items={activityItems} />
           <RemindersSection reminders={data.reminders} />
