@@ -194,7 +194,7 @@ tree verified.
 | 16    | Lost & Found                   | [x]    | `d637cd9`    |
 | 17    | Favorites                      | [x]    | `d7a6f10`    |
 | 18    | Adoption                       | [x]    | `70293d0`    |
-| 19    | Pet Breeds                     | [ ]    | —            |
+| 19    | Pet Breeds                     | [x]    | —            |
 | 20    | Settings                       | [ ]    | —            |
 | 21    | Admin panel                    | [ ]    | —            |
 | 22    | AI / PetGPT (redesign)         | [ ]    | —            |
@@ -220,7 +220,7 @@ execution changed the order:
 | 16 Lost & Found           | §19 Lost & Found      |
 | 17 Favorites              | §17 Favorites         |
 | 18 Adoption               | §18 Adoption          |
-| 19 Pet Breeds             | (new — breeds + breeds/:id `PageStub`s) |
+| 19 Pet Breeds             | (new — breeds + breeds/:id)               |
 | 20 Settings               | (new — settings `PageStub`) |
 | 21 Admin panel            | §21 Admin panel       |
 | 22 AI / PetGPT (redesign) | §20 AI/PetGPT, deferred + renumbered |
@@ -1235,6 +1235,56 @@ Implemented (commit + push under Phase 18):
 - **Verification:** grid + search + species filter from real `/breeds`; detail page by id.
 - **Completion criteria:** breed browse parity, real data only.
 - **Rollback/safety:** isolated pages.
+
+Implemented (commit + push under Phase 19):
+  `src/api/breeds.ts` typed `Breed` + `BreedsResponse` + `getBreeds()` (GET
+  `/breeds`) and `getBreed()` (GET `/breeds/:id`), and the pages from scratch at
+  `src/pages/app/breeds/*` + `src/pages/app/breedDetails/*`: `breedsBase.ts`
+  (species tab keys, `speciesLabel`, `breedImage` with per-species local
+  fallbacks cat/bird/dog, `breedSearchText` name+origin), `BreedCard` (photo
+  with onerror fallback, name/subtitle, expand-collapse details with
+  single-expanded-at-a-time and "View/Hide Details" button, "Open Full Page"
+  Link), `BreedsPage` (notification bell + panel from real `/notifications`,
+  toolbar search, species filter tabs All/Dogs/Cats/Birds/Others with counters,
+  grid, loading / empty / error + retry / clear-filters states), and
+  `BreedDetailsPage` (hero photo + name, info tiles weight/height/lifespan/temp
+  `ruler`/`face-smile`/`person-running` icons, description, derived display
+  "origins/care/personality" info sections, "About/X for dogs/cats/Birds"
+  sections by species, temp tags grid, "View all breeds" back link, and mapped
+  states: no id → "No breed selected", HTTP 400 → "Could not load breed" +
+  backend message "Invalid breed ID.", 404 → "Breed not found").
+  Routed in `routeConfig.tsx` (`/app/breeds`, `/app/breeds/:id` — both replace
+  the previous `PageStub`s), icons `face-smile`/`person-running`/`ruler`/
+  `up-right-from-square` added to `src/components/shared/Icon.tsx`, CSS ported
+  to `src/styles/breeds.css` (page-scoped + `body.dark-theme` pattern, accent
+  `#011426`, responsive 1200/992/600 breakpoints + 390px single-column grid,
+  `:focus-visible` outlines, accessible labels) wired via `global.css`.
+  Accepted deltas (AGENTS §5 — no fabricated data, backend is truth):
+  (1) backend `GET /breeds` supports `?species=` / `?search=`, but the UI does
+  client-side filtering instead to keep live browser interactions instant on the
+  tiny 4-breed seed corpus (documented in `BreedsPage.tsx`);
+  (2) the species filter offers only the non-empty tabs (Dogs/Cats) plus Birds +
+  Others which render a real empty state because no such breeds are seeded —
+  no fabricated content (AGENTS §11);
+  (3) breed-detail info sections are derived from the real breed fields the
+  backend returns (description/temperament/coat/colors/height/weight/lifespan),
+  spelled out in plain English rather than Vanilla's misleading "Productive
+  breed/Athletic breed" copy;
+  (4) bell/notifications reuse the real `/notifications` API like sibling
+  phases (no hardcoded badge).
+  Verified live (backend + mongod up; DB seeded — `user@example.com`/`user123`):
+  `npm run lint` (only the pre-existing AuthContext/VerifyEmailPage warnings) +
+  `tsc -b && vite build` pass. Headless Chrome (CDP) on the Vite dev server +
+  real backend: `/app/breeds` renders the 4 real seeded breeds (Golden
+  Retriever, Persian Cat, Labrador Retriever, Siamese Cat) with real `GET
+  /breeds` network hits; Dogs/Cats tabs → 2 each, Birds → empty state, All → 4;
+  search "scot" → Golden Retriever, miss → empty-state + clear-filters restores;
+  expand works one card at a time; "Open Full Page" → details for Labrador
+  Retriever (tiles, info sections, temp tags, real `GET /breeds/:id` hit); back
+  link → `/app/breeds`; invalid id → "Could not load breed" + "Invalid breed
+  ID.", unknown id → "Breed not found"; notification panel opens with real
+  items; dark mode bg rgb(23,21,35) both pages; 390px viewport → 0px horizontal
+  overflow + single-column grid on both pages.
 
 ### Phase 20 — Settings
 - **Objective:** profile edit (name/phone/location/avatar), theme, change password.

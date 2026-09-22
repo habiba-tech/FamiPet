@@ -1,0 +1,971 @@
+/* =========================================================
+   PHASE 19 — PET BREEDS + BREED DETAILS
+   Port of frontend/pages/breeds.html + breed-details.html (inline
+   `<style>` blocks) into scoped sheets, following the migration
+   pattern of adoption.css / lostFound.css: page scoped under
+   `.breeds-page`/`.breed-details-page`, dark-mode + responsive
+   rules scoped the same way.
+   ========================================================= */
+
+body:has(.breeds-page) {
+    background: var(--background);
+}
+
+body:has(.breeds-page) .main-content,
+body:has(.breed-details-page) .main-content {
+    background: var(--background);
+    padding: 30px 38px 45px;
+    overflow-y: auto;
+    overflow-x: hidden;
+}
+
+/* =========================================================
+   PAGE HEADER (shared — pattern of lostFound.css)
+   ========================================================= */
+
+.breeds-page .page-header,
+.breed-details-page .page-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 25px;
+    margin-bottom: 28px;
+}
+
+.breeds-page .header-title,
+.breed-details-page .header-title {
+    min-width: 0;
+}
+
+.breeds-page .header-title h1,
+.breed-details-page .header-title h1 {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 0;
+    font-size: 32px;
+    line-height: 1.15;
+    letter-spacing: -0.8px;
+    color: var(--text-dark);
+}
+
+.breeds-page .title-paw,
+.breed-details-page .title-paw {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 19px;
+    color: #ff5c8a;
+    transform: rotate(-12deg);
+}
+
+.breeds-page .header-title p,
+.breed-details-page .header-title p {
+    margin: 7px 0 0;
+    color: var(--text-light);
+    font-size: 13px;
+}
+
+.breeds-page .header-actions,
+.breed-details-page .header-actions {
+    display: flex;
+    align-items: center;
+    gap: 11px;
+}
+
+/* =========================================================
+   NOTIFICATION BELL (pattern of health/adoption pages)
+   ========================================================= */
+
+.breeds-page .notification-wrapper,
+.breed-details-page .notification-wrapper {
+    position: relative;
+}
+
+.breeds-page .notification-btn,
+.breed-details-page .notification-btn {
+    position: relative;
+    width: 42px;
+    height: 42px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    background: #fff;
+    border: 1px solid var(--border);
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: 0.25s ease;
+}
+
+.breeds-page .notification-btn:hover,
+.breed-details-page .notification-btn:hover {
+    color: #ff5c8a;
+    border-color: #ffd2de;
+    transform: translateY(-2px);
+}
+
+.breeds-page .notification-btn .badge,
+.breed-details-page .notification-btn .badge {
+    position: absolute;
+    top: 3px;
+    right: 3px;
+    width: 16px;
+    height: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    background: #e53935;
+    color: white;
+    font-size: 0.58rem;
+    font-weight: 700;
+}
+
+.breeds-page .notification-panel,
+.breed-details-page .notification-panel {
+    position: absolute;
+    top: calc(100% + 0.7rem);
+    right: 0;
+    width: 330px;
+    background: #fff;
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    box-shadow: 0 18px 45px rgba(93, 42, 55, 0.14);
+    padding: 0.8rem;
+    z-index: 100;
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(-6px);
+    transition: 0.2s ease;
+}
+
+.breeds-page .notification-panel.open,
+.breed-details-page .notification-panel.open {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0);
+}
+
+.breeds-page .notification-panel-header,
+.breed-details-page .notification-panel-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.8rem;
+    padding: 0.35rem 0.35rem 0.7rem;
+    border-bottom: 1px solid #eef2f0;
+}
+
+.breeds-page .notification-panel-header strong,
+.breed-details-page .notification-panel-header strong {
+    display: block;
+    color: var(--text-dark);
+    font-size: 0.78rem;
+}
+
+.breeds-page .notification-panel-header span,
+.breed-details-page .notification-panel-header span {
+    display: block;
+    margin-top: 0.15rem;
+    color: var(--text-light);
+    font-size: 0.6rem;
+}
+
+.breeds-page .notification-panel-header button,
+.breed-details-page .notification-panel-header button {
+    border: none;
+    background: transparent;
+    color: #c9184a;
+    font-family: inherit;
+    font-size: 0.6rem;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.breeds-page .notification-list,
+.breed-details-page .notification-list {
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+.breeds-page .notification-item,
+.breed-details-page .notification-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.65rem;
+    padding: 0.75rem 0.35rem;
+    border-bottom: 1px solid #f0f3f2;
+}
+
+.breeds-page .notification-item:last-child,
+.breed-details-page .notification-item:last-child {
+    border-bottom: none;
+}
+
+.breeds-page .notification-dot,
+.breed-details-page .notification-dot {
+    width: 8px;
+    height: 8px;
+    flex: 0 0 8px;
+    margin-top: 0.35rem;
+    border-radius: 50%;
+    background: #e53935;
+}
+
+.breeds-page .notification-item.read .notification-dot,
+.breed-details-page .notification-item.read .notification-dot {
+    background: #d9e2df;
+}
+
+.breeds-page .notification-item strong,
+.breed-details-page .notification-item strong {
+    display: block;
+    color: var(--text-dark);
+    font-size: 0.66rem;
+}
+
+.breeds-page .notification-item p,
+.breed-details-page .notification-item p {
+    margin-top: 0.18rem;
+    color: var(--text-muted);
+    font-size: 0.58rem;
+    line-height: 1.45;
+}
+
+.breeds-page .notification-empty,
+.breed-details-page .notification-empty {
+    padding: 1rem 0.4rem;
+    text-align: center;
+    color: var(--text-muted);
+    font-size: 0.65rem;
+}
+
+/* =========================================================
+   SEARCH BOX (shared)
+   ========================================================= */
+
+.breeds-page .search-box,
+.breed-details-page .search-box {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    padding: 0.7rem 1rem;
+    background: #fff;
+    border: 1px solid var(--border);
+    border-radius: 50px;
+    box-shadow: 0 3px 12px rgba(244, 63, 94, 0.03);
+    transition: 0.25s ease;
+}
+
+.breeds-page .search-box:focus-within,
+.breed-details-page .search-box:focus-within {
+    border-color: #ffb7c9;
+    box-shadow: 0 0 0 4px rgba(255, 92, 138, 0.09);
+}
+
+.breeds-page .search-box i,
+.breed-details-page .search-box i {
+    color: var(--text-light);
+}
+
+.breeds-page .search-box input,
+.breed-details-page .search-box input {
+    width: 100%;
+    border: none;
+    outline: none;
+    font-family: inherit;
+    font-size: 0.82rem;
+    color: var(--text-dark);
+    background: transparent;
+}
+
+.breeds-page .search-box input::placeholder,
+.breed-details-page .search-box input::placeholder {
+    color: var(--text-light);
+}
+
+/* =========================================================
+   TOOLBAR + FILTER TABS (port of breeds.html <style>)
+   ========================================================= */
+
+.breeds-page .breeds-panel {
+    background: #fff;
+    border-radius: 20px;
+    border: 1px solid #f1eff5;
+    box-shadow: 0 4px 14px rgba(244, 63, 94, 0.06);
+    padding: 1.3rem;
+}
+
+.breeds-page .breeds-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.9rem;
+    margin: 0 0 1.2rem;
+}
+
+.breeds-page .breeds-toolbar .search-box {
+    flex: 1;
+    min-width: 220px;
+}
+
+.breeds-page .breed-filter-tabs {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.breeds-page .breed-filter-tabs .tab-btn {
+    padding: 0.55rem 1.1rem;
+    border-radius: 50px;
+    border: 1px solid #ffe0e7;
+    background: #fff;
+    color: #64748b;
+    font-weight: 600;
+    font-size: 0.82rem;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.breeds-page .breed-filter-tabs .tab-btn.active,
+.breeds-page .breed-filter-tabs .tab-btn:hover {
+    background: #ff5c8a;
+    border-color: #ff5c8a;
+    color: #fff;
+}
+
+/* =========================================================
+   BREEDS GRID + CARD (port of breeds.html <style>)
+   ========================================================= */
+
+.breeds-page .breeds-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    gap: 1.1rem;
+}
+
+.breeds-page .breed-card {
+    background: #fff;
+    border-radius: 18px;
+    border: 1px solid #f1eff5;
+    overflow: hidden;
+    box-shadow: 0 4px 14px rgba(244, 63, 94, 0.06);
+    transition: transform 0.2s, box-shadow 0.2s;
+    cursor: pointer;
+}
+
+.breeds-page .breed-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 10px 24px rgba(244, 63, 94, 0.12);
+}
+
+.breeds-page .breed-card-img {
+    height: 150px;
+    background: #fff6f7;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+}
+
+.breeds-page .breed-card-img img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.breeds-page .breed-card-body {
+    padding: 1rem 1.1rem 1.15rem;
+}
+
+.breeds-page .breed-card-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.breeds-page .breed-card-top h3 {
+    margin: 0;
+    font-size: 1rem;
+    color: #1e293b;
+}
+
+.breeds-page .species-pill,
+.breed-details-page .species-pill {
+    font-size: 0.7rem;
+    font-weight: 700;
+    background: #ffe9ef;
+    color: #ff5c8a;
+    padding: 0.25rem 0.7rem;
+    border-radius: 50px;
+    text-transform: capitalize;
+    white-space: nowrap;
+}
+
+.breeds-page .breed-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem 1rem;
+    margin-top: 0.8rem;
+    font-size: 0.78rem;
+    color: #64748b;
+}
+
+.breeds-page .breed-meta span {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+}
+
+.breeds-page .breed-meta span i {
+    color: #ff5c8a;
+    font-size: 0.85em;
+}
+
+.breeds-page .breed-desc {
+    margin-top: 0.7rem;
+    font-size: 0.8rem;
+    color: #8a96a8;
+    line-height: 1.5;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.breeds-page .breed-card-detail {
+    display: none;
+    margin-top: 1rem;
+    padding-top: 1rem;
+    border-top: 1px dashed #f1eff5;
+}
+
+.breeds-page .breed-card.expanded .breed-card-detail {
+    display: block;
+    animation: breedFade 0.22s ease;
+}
+
+@keyframes breedFade {
+    from {
+        opacity: 0;
+        transform: translateY(-4px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.breeds-page .breed-detail-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.55rem;
+}
+
+.breeds-page .breed-info-row {
+    background: #fff6f7;
+    border: 1px solid #ffe0e7;
+    border-radius: 12px;
+    padding: 0.6rem 0.75rem;
+}
+
+.breeds-page .breed-info-row strong {
+    display: block;
+    font-size: 0.66rem;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    color: #ff5c8a;
+    margin-bottom: 0.2rem;
+}
+
+.breeds-page .breed-info-row span {
+    font-size: 0.82rem;
+    color: #1e293b;
+    line-height: 1.5;
+}
+
+.breeds-page .breed-info-row.full {
+    grid-column: 1 / -1;
+    margin-top: 0.55rem;
+}
+
+.breeds-page .breed-info-block {
+    margin-top: 0.75rem;
+}
+
+.breeds-page .breed-info-block h4 {
+    margin: 0 0 0.35rem;
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    color: #ff5c8a;
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+}
+
+.breeds-page .breed-tag,
+.breed-details-page .breed-tag {
+    display: inline-block;
+    background: #fff0f5;
+    color: #c9184a;
+    border: 1px solid #ffc2d1;
+    border-radius: 999px;
+    padding: 4px 11px;
+    font-size: 0.75rem;
+    margin: 3px 5px 3px 0;
+}
+
+.breeds-page .breed-toggle-btn {
+    width: 100%;
+    margin-top: 0.9rem;
+    border: none;
+    background: #fff0f5;
+    color: #c9184a;
+    font-size: 0.82rem;
+    font-weight: 700;
+    padding: 0.55rem;
+    border-radius: 12px;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.45rem;
+    transition: background 0.2s, color 0.2s;
+}
+
+.breeds-page .breed-toggle-btn:hover,
+.breeds-page .breed-card.expanded .breed-toggle-btn {
+    background: #ff5c8a;
+    color: #fff;
+}
+
+.breeds-page .breed-toggle-btn i {
+    transition: transform 0.2s;
+}
+
+.breeds-page .breed-toggle-btn .hide-label {
+    display: none;
+}
+
+.breeds-page .breed-card.expanded .breed-toggle-btn .show-label {
+    display: none;
+}
+
+.breeds-page .breed-card.expanded .breed-toggle-btn .hide-label {
+    display: inline;
+}
+
+.breeds-page .breed-card.expanded .breed-toggle-btn i {
+    transform: rotate(180deg);
+}
+
+.breeds-page .breed-full-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    margin-top: 0.85rem;
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: #ff5c8a;
+    text-decoration: none;
+}
+
+.breeds-page .breed-full-link:hover {
+    color: #c9184a;
+}
+
+/* =========================================================
+   STATES (loading / empty / error)
+   ========================================================= */
+
+.breeds-page .breeds-state,
+.breed-details-page .breeds-state {
+    text-align: center;
+    padding: 60px 20px;
+    background: #fff;
+    border-radius: 20px;
+    color: #8a96a8;
+    grid-column: 1 / -1;
+}
+
+.breeds-page .breeds-state i,
+.breed-details-page .breeds-state i {
+    font-size: 40px;
+    color: #ff4d6d;
+    margin-bottom: 12px;
+}
+
+.breeds-page .breeds-state h3,
+.breed-details-page .breeds-state h3 {
+    margin: 0;
+    color: #1e293b;
+}
+
+.breeds-page .retry-btn {
+    margin-top: 14px;
+    padding: 0.55rem 1.3rem;
+    border: none;
+    border-radius: 50px;
+    background: #ff5c8a;
+    color: #fff;
+    font-weight: 700;
+    font-size: 0.82rem;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.breeds-page .retry-btn:hover {
+    background: #c9184a;
+}
+
+/* =========================================================
+   BREED DETAILS PAGE (port of breed-details.html <style>)
+   ========================================================= */
+
+.breed-details-page .breed-detail-wrap {
+    max-width: 860px;
+    margin: 0 auto;
+}
+
+.breed-details-page .back-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: #ff5c8a;
+    font-weight: 600;
+    font-size: 0.9rem;
+    text-decoration: none;
+    margin-bottom: 1.1rem;
+    transition: color 0.2s;
+    cursor: pointer;
+}
+
+.breed-details-page .back-link:hover {
+    color: #c9184a;
+}
+
+.breed-details-page .breed-detail-hero {
+    display: flex;
+    gap: 1.6rem;
+    align-items: center;
+    flex-wrap: wrap;
+    background: #fff;
+    border-radius: 20px;
+    border: 1px solid #f1eff5;
+    box-shadow: 0 4px 14px rgba(244, 63, 94, 0.06);
+    padding: 1.6rem;
+    margin-bottom: 1.3rem;
+}
+
+.breed-details-page .breed-detail-hero img {
+    width: 150px;
+    height: 150px;
+    object-fit: cover;
+    border-radius: 18px;
+    flex-shrink: 0;
+    background: #fff6f7;
+}
+
+.breed-details-page .breed-detail-hero h2 {
+    margin: 0 0 8px;
+    font-size: 1.7rem;
+    color: #1e293b;
+}
+
+.breed-details-page .breed-detail-hero .species-pill {
+    font-size: 0.78rem;
+    padding: 0.35rem 0.8rem;
+}
+
+.breed-details-page .detail-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1.1rem;
+    margin-bottom: 1.3rem;
+}
+
+.breed-details-page .detail-tile {
+    background: #fff;
+    border-radius: 16px;
+    border: 1px solid #f1eff5;
+    padding: 1.05rem 1.15rem;
+    box-shadow: 0 4px 14px rgba(244, 63, 94, 0.06);
+}
+
+.breed-details-page .detail-tile .tile-icon {
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    background: #ffe9ef;
+    color: #ff5c8a;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 0.6rem;
+    font-size: 1rem;
+}
+
+.breed-details-page .detail-tile strong {
+    display: block;
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    color: #8a96a8;
+    margin-bottom: 0.3rem;
+}
+
+.breed-details-page .detail-tile span {
+    font-size: 0.95rem;
+    color: #1e293b;
+    line-height: 1.5;
+}
+
+.breed-details-page .breed-section {
+    background: #fff;
+    border-radius: 16px;
+    border: 1px solid #f1eff5;
+    padding: 1.3rem 1.4rem;
+    margin-bottom: 1.1rem;
+    box-shadow: 0 4px 14px rgba(244, 63, 94, 0.06);
+}
+
+.breed-details-page .breed-section h3 {
+    margin: 0 0 0.6rem;
+    font-size: 0.82rem;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    color: #ff5c8a;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.breed-details-page .breed-section p {
+    margin: 0;
+    font-size: 0.95rem;
+    color: #374151;
+    line-height: 1.7;
+}
+
+.breed-details-page .breed-tag {
+    padding: 5px 14px;
+    font-size: 0.83rem;
+    margin: 4px 7px 4px 0;
+}
+
+/* =========================================================
+   RESPONSIVE (pattern of adoption.css / lostFound.css)
+   ========================================================= */
+
+@media (max-width: 1200px) {
+    body:has(.breeds-page) .main-content,
+    body:has(.breed-details-page) .main-content {
+        padding: 1.75rem 2rem 3rem;
+    }
+
+    .breeds-page .breeds-grid {
+        grid-template-columns: repeat(3, 1fr);
+    }
+
+    .breeds-page .page-header,
+    .breed-details-page .page-header {
+        align-items: flex-start;
+    }
+}
+
+@media (max-width: 992px) {
+    body:has(.breeds-page) .main-content,
+    body:has(.breed-details-page) .main-content {
+        padding: 1.5rem 1.5rem 3rem;
+    }
+
+    .breeds-page .breeds-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .breeds-page .page-header,
+    .breed-details-page .page-header {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .breeds-page .header-actions,
+    .breed-details-page .header-actions {
+        width: 100%;
+    }
+}
+
+@media (max-width: 600px) {
+    body:has(.breeds-page) .main-content,
+    body:has(.breed-details-page) .main-content {
+        padding: 1rem;
+    }
+
+    .breeds-page .breeds-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .breeds-page .breeds-panel {
+        padding: 1rem;
+    }
+
+    .breeds-page .breeds-toolbar {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .breeds-page .breeds-toolbar .search-box {
+        width: 100%;
+    }
+
+    .breeds-page .breed-filter-tabs {
+        width: 100%;
+    }
+
+    .breeds-page .breed-filter-tabs .tab-btn {
+        flex: 1;
+        text-align: center;
+    }
+
+    .breeds-page .notification-panel,
+    .breed-details-page .notification-panel {
+        width: 280px;
+        right: 0;
+    }
+
+    .breeds-page .breed-detail-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .breed-details-page .breed-detail-hero {
+        flex-direction: column;
+        text-align: center;
+        padding: 1.2rem;
+    }
+
+    .breed-details-page .breed-detail-hero h2 {
+        font-size: 1.4rem;
+    }
+
+    .breed-details-page .detail-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* =========================================================
+   DARK MODE (scoped — pattern of adoption.css / lostFound.css)
+   ========================================================= */
+
+body.dark-theme:has(.breeds-page) .main-content,
+body.dark-theme:has(.breed-details-page) .main-content,
+body.dark-theme .breeds-page,
+body.dark-theme .breed-details-page {
+    background: #171523 !important;
+    color: #f5f2ff;
+}
+
+body.dark-theme .breeds-page .header-title h1,
+body.dark-theme .breed-details-page .header-title h1,
+body.dark-theme .breeds-page .breed-card-top h3,
+body.dark-theme .breeds-page .breed-info-row span,
+body.dark-theme .breeds-page .breeds-state h3,
+body.dark-theme .breed-details-page .breeds-state h3,
+body.dark-theme .breeds-page .notification-panel-header strong,
+body.dark-theme .breeds-page .notification-item strong,
+body.dark-theme .breed-details-page .notification-panel-header strong,
+body.dark-theme .breed-details-page .notification-item strong,
+body.dark-theme .breed-details-page .breed-detail-hero h2,
+body.dark-theme .breed-details-page .detail-tile span,
+body.dark-theme .breed-details-page .breed-section p {
+    color: #f5f2ff !important;
+}
+
+body.dark-theme .breeds-page .header-title p,
+body.dark-theme .breed-details-page .header-title p,
+body.dark-theme .breeds-page .breed-meta,
+body.dark-theme .breeds-page .breed-desc,
+body.dark-theme .breeds-page .breeds-state,
+body.dark-theme .breed-details-page .breeds-state,
+body.dark-theme .breed-details-page .detail-tile strong,
+body.dark-theme .breeds-page .notification-item p,
+body.dark-theme .breeds-page .notification-empty,
+body.dark-theme .breed-details-page .notification-item p,
+body.dark-theme .breed-details-page .notification-empty {
+    color: #b7b0c9;
+}
+
+body.dark-theme .breeds-page .search-box,
+body.dark-theme .breed-details-page .search-box,
+body.dark-theme .breeds-page .notification-btn,
+body.dark-theme .breed-details-page .notification-btn,
+body.dark-theme .breeds-page .notification-panel,
+body.dark-theme .breed-details-page .notification-panel,
+body.dark-theme .breeds-page .breeds-panel,
+body.dark-theme .breeds-page .breed-card,
+body.dark-theme .breeds-page .breed-info-row,
+body.dark-theme .breeds-page .species-pill,
+body.dark-theme .breed-details-page .species-pill,
+body.dark-theme .breeds-page .breeds-state,
+body.dark-theme .breed-details-page .breeds-state,
+body.dark-theme .breed-details-page .breed-detail-hero,
+body.dark-theme .breed-details-page .detail-tile,
+body.dark-theme .breed-details-page .breed-section {
+    background: #211e30 !important;
+    border-color: #332e45 !important;
+}
+
+body.dark-theme .breeds-page .breed-filter-tabs .tab-btn {
+    background: #211e30;
+    border-color: #332e45;
+    color: #b7b0c9;
+}
+
+body.dark-theme .breeds-page .breed-filter-tabs .tab-btn.active,
+body.dark-theme .breeds-page .breed-filter-tabs .tab-btn:hover {
+    background: #ff5c8a;
+    border-color: #ff5c8a;
+    color: #fff;
+}
+
+body.dark-theme .breeds-page .breed-card-img,
+body.dark-theme .breed-details-page .breed-detail-hero img {
+    background: #1b1828;
+}
+
+body.dark-theme .breeds-page .search-box input,
+body.dark-theme .breed-details-page .search-box input {
+    color: #f5f2ff;
+    background: transparent;
+}
+
+body.dark-theme .breeds-page .breed-toggle-btn,
+body.dark-theme .breeds-page .breed-tag,
+body.dark-theme .breed-details-page .breed-tag {
+    background: #332e45;
+    border-color: #453d5c;
+    color: #f8859c;
+}
+
+body.dark-theme .breeds-page .breed-card.expanded .breed-toggle-btn,
+body.dark-theme .breeds-page .breed-toggle-btn:hover {
+    background: #ff5c8a;
+    border-color: #ff5c8a;
+    color: #fff;
+}
+
+/* =========================================================
+   ACCESSIBILITY
+   ========================================================= */
+
+.breeds-page .tab-btn:focus-visible,
+.breeds-page .notification-btn:focus-visible,
+.breeds-page .retry-btn:focus-visible,
+.breeds-page .breed-toggle-btn:focus-visible,
+.breeds-page .breed-full-link:focus-visible,
+.breed-details-page .back-link:focus-visible,
+.breed-details-page .notification-btn:focus-visible {
+    outline: 3px solid rgba(255, 77, 109, 0.25);
+    outline-offset: 3px;
+}
