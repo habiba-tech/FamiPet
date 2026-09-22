@@ -2283,3 +2283,114 @@ body.dark-theme .mypet-page .pet-details-title p,
 body.dark-theme .mypet-page .pet-details-name p {
     color: #8a96a8 !important;
 }
+
+/* Vanilla's dark mode never recoloured these control surfaces, so they
+   stayed paper-white on the dark mypet page. Recolour them to match the
+   dark-surface language used everywhere else in the app. */
+body.dark-theme .mypet-page .tab-btn {
+    background: #211e30 !important;
+    border-color: #332e45 !important;
+    color: #b7b0c9 !important;
+}
+
+body.dark-theme .mypet-page .tab-btn:hover {
+    background: #2a2640 !important;
+}
+
+body.dark-theme .mypet-page .tab-btn.tab-active {
+    background: #2a2440 !important;
+    border-color: rgba(255, 92, 138, 0.45) !important;
+    color: #ff7ca4 !important;
+}
+
+body.dark-theme .mypet-page .pink-icon { background: rgba(255, 92, 138, 0.15) !important; }
+body.dark-theme .mypet-page .green-icon { background: rgba(16, 185, 129, 0.15) !important; }
+body.dark-theme .mypet-page .purple-icon { background: rgba(139, 92, 246, 0.15) !important; }
+body.dark-theme .mypet-page .blue-icon { background: rgba(59, 130, 246, 0.15) !important; }
+
+body.dark-theme .mypet-page .btn-outline-pink {
+    background: #211e30 !important;
+    border-color: rgba(255, 92, 138, 0.45) !important;
+    color: #ff7ca4 !important;
+}
+
+body.dark-theme .mypet-page .btn-outline-pink:hover {
+    background: #2a2640 !important;
+}
+
+body.dark-theme .mypet-page .add-pet-dashed-card {
+    background: #211e30 !important;
+    border-color: #332e45 !important;
+}
+
+body.dark-theme .mypet-page .add-pet-dashed-card:hover {
+    border-color: rgba(255, 92, 138, 0.5) !important;
+}
+
+body.dark-theme .mypet-page .paw-badge {
+    background: rgba(255, 92, 138, 0.15) !important;
+}
+
+/* UI polish pass — Vanilla's global dark pivot left these surfaces white;
+   give them dark equivalents so filter tabs, stat chips, the outline button
+   and the dashed add-pet card read correctly on #211e30 cards. */
+body.dark-theme .mypet-page .tab-btn {
+    background: #211e30 !important;
+    border-color: #332e45 !important;
+    color: #b7b0c9 !important;
+}
+
+body.dark-theme .mypet-page .tab-btn:hover {
+    background: #2a2640 !important;
+    color: #ff7ca4 !important;
+    transform: translateY(-2px);
+}
+
+body.dark-theme .mypet-page .tab-btn.active {
+    background: rgba(255, 77, 109, 0.16) !important;
+    color: #ff7ca4 !important;
+    border-color: rgba(255, 92, 138, 0.4) !important;
+}
+
+body.dark-theme .mypet-page .pink-icon {
+    background: rgba(255, 77, 109, 0.16) !important;
+}
+
+body.dark-theme .mypet-page .green-icon {
+    background: rgba(39, 174, 96, 0.16) !important;
+}
+
+body.dark-theme .mypet-page .purple-icon {
+    background: rgba(155, 120, 255, 0.16) !important;
+}
+
+body.dark-theme .mypet-page .blue-icon {
+    background: rgba(70, 131, 255, 0.16) !important;
+}
+
+body.dark-theme .mypet-page .btn-outline-pink {
+    background: #211e30 !important;
+    border-color: rgba(255, 92, 138, 0.45) !important;
+    color: #ff7ca4 !important;
+}
+
+body.dark-theme .mypet-page .btn-outline-pink:hover {
+    background: rgba(255, 77, 109, 0.16) !important;
+}
+
+body.dark-theme .mypet-page .add-pet-dashed-card {
+    background: #1c1928 !important;
+    border-color: rgba(255, 92, 138, 0.35) !important;
+}
+
+body.dark-theme .mypet-page .add-pet-dashed-card:hover {
+    border-color: rgba(255, 92, 138, 0.6) !important;
+}
+
+body.dark-theme .mypet-page .add-pet-dashed-card h4 {
+    color: #f5f2ff !important;
+}
+
+body.dark-theme .mypet-page .add-pet-dashed-card p {
+    color: #b7b0c9 !important;
+}

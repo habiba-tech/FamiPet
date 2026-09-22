@@ -205,14 +205,14 @@ body {
   box-shadow: 0 4px 14px rgba(244, 63, 94, 0.06);
 }
 
-.stats-grid {
+.admin-wrap .stats-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
   gap: 1rem;
   margin-bottom: 1.4rem;
 }
 
-.stat-card {
+.admin-wrap .stat-card {
   background: #fff;
   border: 1px solid #f1eff5;
   border-radius: 18px;
@@ -223,7 +223,7 @@ body {
   box-shadow: 0 4px 14px rgba(244, 63, 94, 0.06);
 }
 
-.stat-icon {
+.admin-wrap .stat-icon {
   width: 46px;
   height: 46px;
   border-radius: 14px;
@@ -234,19 +234,19 @@ body {
   color: #fff;
 }
 
-.stat-icon.pink { background: #ff5c8a; }
-.stat-icon.green { background: #10b981; }
-.stat-icon.lavender { background: #8b7cf6; }
-.stat-icon.amber { background: #f59e0b; }
-.stat-icon.cyan { background: #06b6d4; }
+.admin-wrap .stat-icon.pink { background: #ff5c8a; }
+.admin-wrap .stat-icon.green { background: #10b981; }
+.admin-wrap .stat-icon.lavender { background: #8b7cf6; }
+.admin-wrap .stat-icon.amber { background: #f59e0b; }
+.admin-wrap .stat-icon.cyan { background: #06b6d4; }
 
-.stat-card h4 {
+.admin-wrap .stat-card h4 {
   font-size: 0.78rem;
   color: #8a96a8;
   font-weight: 600;
 }
 
-.stat-card .stat-val {
+.admin-wrap .stat-card .stat-val {
   font-size: 1.5rem;
   font-weight: 800;
   color: #1e293b;
@@ -287,7 +287,7 @@ body {
   border-bottom: none;
 }
 
-.pill {
+.admin-wrap .pill {
   display: inline-block;
   padding: 0.25rem 0.7rem;
   border-radius: 50px;
@@ -296,11 +296,11 @@ body {
   text-transform: capitalize;
 }
 
-.pill.green { background: #e1f7eb; color: #059669; }
-.pill.amber { background: #fef3c7; color: #d97706; }
-.pill.red { background: #ffe4e6; color: #e11d48; }
-.pill.lavender { background: #ece8ff; color: #6d5ae0; }
-.pill.gray { background: #f1f5f9; color: #64748b; }
+.admin-wrap .pill.green { background: #e1f7eb; color: #059669; }
+.admin-wrap .pill.amber { background: #fef3c7; color: #d97706; }
+.admin-wrap .pill.red { background: #ffe4e6; color: #e11d48; }
+.admin-wrap .pill.lavender { background: #ece8ff; color: #6d5ae0; }
+.admin-wrap .pill.gray { background: #f1f5f9; color: #64748b; }
 
 .admin-btn-sm {
   border: none;
@@ -314,11 +314,11 @@ body {
 
 .admin-btn-sm:hover { opacity: 0.85; }
 
-.btn-block { background: #fef3c7; color: #d97706; }
-.btn-unblock { background: #e1f7eb; color: #059669; }
-.btn-danger { background: #ffe4e6; color: #e11d48; }
-.btn-approve { background: #e1f7eb; color: #059669; }
-.btn-reject { background: #ffe4e6; color: #e11d48; }
+.admin-wrap .btn-block { background: #fef3c7; color: #d97706; }
+.admin-wrap .btn-unblock { background: #e1f7eb; color: #059669; }
+.admin-wrap .btn-danger { background: #ffe4e6; color: #e11d48; }
+.admin-wrap .btn-approve { background: #e1f7eb; color: #059669; }
+.admin-wrap .btn-reject { background: #ffe4e6; color: #e11d48; }
 
 .admin-empty {
   text-align: center;

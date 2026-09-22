@@ -382,4 +382,89 @@
 
     box-shadow:0 15px 35px rgba(255,92,138,.45);
 
+}
+
+
+/*==========================================
+            RESPONSIVE (UI polish
+          pass — Vanilla had no footer
+          media queries; the 4-column link
+          grid overflowed small screens)
+==========================================*/
+
+@media (max-width: 900px){
+
+    .footer-top{
+
+        grid-template-columns:1fr;
+
+        gap:45px;
+
+    }
+
+
+    .footer-links{
+
+        grid-template-columns:repeat(2,1fr);
+
+        gap:35px;
+
+    }
+
+}
+
+
+@media (max-width: 600px){
+
+    .footer{
+
+        padding:55px 0 25px;
+
+    }
+
+
+    .footer-top{
+
+        gap:35px;
+
+        padding-bottom:40px;
+
+    }
+
+
+    .footer-links{
+
+        grid-template-columns:1fr;
+
+        gap:26px;
+
+        padding:40px 0;
+
+    }
+
+
+    .newsletter form{
+
+        align-items:stretch;
+
+        flex-direction:column;
+
+        border-radius:24px;
+
+    }
+
+
+    .newsletter button{
+
+        margin:0 6px 6px;
+
+    }
+
+
+    .newsletter input{
+
+        padding:16px 20px;
+
+    }
+
 }     

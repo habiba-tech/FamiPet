@@ -1152,3 +1152,47 @@ body.sidebar-collapsed #sidebar-container .sidebar-brand .brand-logo img {
         display: none !important;
     }
 }
+
+/* Mobile draw open/close controls. React shell renders these in AppLayout;
+   Vanilla kept them in responsive.css §TABLET / PHONE SIDEBAR. */
+@media (max-width: 850px) {
+    .mobile-sidebar-toggle {
+        position: fixed;
+        top: 14px;
+        left: 14px;
+        z-index: 1101;
+        width: 44px;
+        height: 44px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 12px;
+        background: #fff;
+        border: 1px solid #eee3e8;
+        box-shadow: 0 6px 20px rgba(36, 29, 45, 0.1);
+        color: #33415c;
+        font-size: 19px;
+        cursor: pointer;
+    }
+
+    body.dark-theme .mobile-sidebar-toggle {
+        background: #211e30;
+        border-color: #332e45;
+        color: #f5f2ff;
+    }
+
+    .mobile-sidebar-overlay {
+        position: fixed;
+        inset: 0;
+        z-index: 999;
+        background: rgba(25, 20, 28, 0.3);
+        opacity: 0;
+        visibility: hidden;
+        transition: opacity 0.2s ease, visibility 0.2s ease;
+    }
+
+    body.sidebar-open .mobile-sidebar-overlay {
+        opacity: 1;
+        visibility: visible;
+    }
+}

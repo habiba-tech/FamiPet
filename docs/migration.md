@@ -208,6 +208,40 @@ tree verified.
 Status legend: `[ ]` not started · `[~]` in progress · `[x]` completed and pushed ·
 `[-]` intentionally skipped · `[!]` blocked/problem.
 
+### Stabilization note (2026-09-22, migrated pages only)
+
+Post-migration UI/UX stabilization pass — **does not start Phase 10** (Health is still
+`[ ]` above). Scope: frontend-react surfaces that were already migrated (Phases 1–9:
+landing/footer, auth, dashboard, my pet, pet ID).
+
+* **Pet ID: no raw data.** The ID card labels rows (Pet ID / Pet Name / Species /
+  Breed / Owner) with a live QR PNG. Verified in the rebuilt bundle: no `[object
+  Object]`, raw JSON, or stringified object dump renders anywhere on any page
+  (headless text scan across dashboard / my pet / pet ID / login / landing in both
+  themes). Print + PNG download (`a[download]`) and pet switching work.
+* **Theme-relative surfaces.** Vanilla's dark mode left these paper-white on dark:
+  mypet `tab-btn`, `stat-icon` chips, `btn-outline-pink`, `add-pet-dashed-card`;
+  the pet ID `paw-badge`. They now use the dark-surface language (#211e30/#332e45)
+  + tinted rgba chips, matching the rest of the app. Dashboard already had zero
+  white surfaces in dark.
+* **Dashboard.** Layout verified clean at 1440/768/390: no horizontal overflow,
+  4-track `stats-grid`, stats render from real stats dataament (no fake numbers).
+* **Responsive.** `footer.css` previously had zero media queries and overflowed at
+  390px (newsletter form + 4-column link grid). Added responsive rules: footer-top
+  stacks ≤900px, footer-links 2-col ≤700px/1-col ≤480px, newsletter form wraps on
+  phones. Sidebar mobile draw-toggle/overlay were unstyled per-reboot (fixed
+  toggle/overlay) and are now styled at ≤850px with a dark variant — the mobile
+  sidebar can actually be opened again.
+* **Other migrated pages / fixes.** Admin tables/stats/buttons were globally generic
+  CSS classes that leaked onto the dashboard `stats-grid`/`stat-card`/`stat-icon`;
+  admin.css generic selectors are now scoped under `.admin-wrap`.
+* **Intentional fixed-white surfaces (kept):** the QR code image itself (must stay
+  light to scan), and the printable `.id-card` (light gradient + #25304a body) —
+  both document-styled for printing, not theme surfaces.
+* **Verification:** `npm run lint` (only pre-existing set-state-in-effect warnings in
+  AuthContext.tsx/VerifyEmailPage.tsx), `tsc -b && vite build` clean, headless
+  overflow/whites audit clean at 390/768/1440 in light+dark.
+
 ---
 
 ## 2. Proposed React Project Structure
