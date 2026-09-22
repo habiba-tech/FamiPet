@@ -25,6 +25,22 @@ const Reminder = require("../../models/Reminder");
 
 const REMINDER_TYPES = ["feeding", "medicine", "vaccination", "grooming", "appointment", "exercise", "custom"];
 const REMINDER_FREQUENCIES = ["once", "daily", "weekly", "monthly"];
+const TITLE_MAX = 100;
+const DESCRIPTION_MAX = 500;
+
+// Strict YYYY-MM-DD with a real calendar date ("2026-02-30" is invalid). The
+// schema layer only checks "string"; the loose `new Date()` parser accepts
+// e.g. "01/31/2026", so model-generated dates are validated deterministically.
+function isValidCalendarDate(s) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(s)) return false;
+  const [y, m, d] = s.split("-").map(Number);
+  const dt = new Date(Date.UTC(y, m - 1, d));
+  return dt.getUTCFullYear() === y && dt.getUTCMonth() === m - 1 && dt.getUTCDate() === d;
+}
+
+function isValidTime(s) {
+  return /^([01]\d|2[0-3]):[0-5]\d$/.test(s);
+}
 
 function normalizeCreatedReminder(r) {
   return {
@@ -83,12 +99,17 @@ function registerMutationTools() {
       if (typeof args.title !== "string" || !args.title.trim()) {
         throw new ToolError(TOOL_ERRORS.ARGS, 'Argument "title" must be a non-empty string.');
       }
-      if (typeof args.time !== "string" || !args.time.trim()) {
-        throw new ToolError(TOOL_ERRORS.ARGS, 'Argument "time" must be a non-empty string.');
+      if (args.title.trim().length > TITLE_MAX) {
+        throw new ToolError(TOOL_ERRORS.ARGS, `Argument "title" must be at most ${TITLE_MAX} characters.`);
       }
-      const date = new Date(args.date);
-      if (Number.isNaN(date.getTime())) {
-        throw new ToolError(TOOL_ERRORS.ARGS, 'Argument "date" must be a valid YYYY-MM-DD date.');
+      if (typeof args.time !== "string" || !isValidTime(args.time)) {
+        throw new ToolError(TOOL_ERRORS.ARGS, 'Argument "time" must be a valid HH:MM time (00:00-23:59).');
+      }
+      if (!isValidCalendarDate(String(args.date))) {
+        throw new ToolError(TOOL_ERRORS.ARGS, 'Argument "date" must be a valid calendar date in YYYY-MM-DD format.');
+      }
+      if (args.description !== undefined && String(args.description).length > DESCRIPTION_MAX) {
+        throw new ToolError(TOOL_ERRORS.ARGS, `Argument "description" must be at most ${DESCRIPTION_MAX} characters.`);
       }
 
       if (!userId) {
@@ -100,7 +121,7 @@ function registerMutationTools() {
         title: String(args.title).trim(),
         type: args.type,
         description: args.description ? String(args.description).trim() : "",
-        date,
+        date: String(args.date),
         time: String(args.time).trim(),
         frequency: args.frequency || "once",
       });

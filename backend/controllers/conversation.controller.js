@@ -36,6 +36,7 @@ const { AI_CONFIG, outOfScopeResponse } = require("../config/ai");
 const { publicMessage, updateConversationMetadata } = require("../ai/context");
 const { publicJob } = require("./job.controller");
 const { enforceGenerationQuota } = require("../ai/quota");
+const MutationEffect = require("../models/MutationEffect");
 
 const DEFAULT_TITLE = "New conversation";
 const IDEMPOTENCY_KEY_MAX = 200;
@@ -296,8 +297,15 @@ exports.clearConversation = async (req, res) => {
     const conversation = await Conversation.findOne({ _id: conversationId, owner: req.user._id });
     if (!conversation) return notFound(res);
 
+    // Phase 7: also purge the mutation-idempotency ledger rows whose jobs are
+    // deleted with the conversation — a re-keyed/recreated exchange must be
+    // allowed to run again, and stale rows would otherwise accumulate forever.
+    const jobs = await GenerationJob.find({ conversation: conversationId }, { _id: 1 }).lean();
     await Message.deleteMany({ conversation: conversationId });
     await GenerationJob.deleteMany({ conversation: conversationId });
+    if (jobs.length) {
+      await MutationEffect.deleteMany({ owner: req.user._id, job: { $in: jobs.map((j) => j._id) } });
+    }
     await Conversation.deleteOne({ _id: conversationId, owner: req.user._id });
 
     console.log(`PetGPT: conversation ${conversationId} cleared for user ${req.user._id}.`);

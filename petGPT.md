@@ -788,3 +788,46 @@ Status: **✅ implemented & verified** (2026-09-22). Backend-only. Provider-neut
 Commit: Phase 6 on `feature/petgpt-enhancement`.
 
 Commit: this phase on `feature/petgpt-enhancement` (backend `ai/` tooling, worker integration, tests, config/docs).
+
+## 21. Phase 7 — Production Readiness & Security Hardening
+
+Status: **✅ implemented & verified** (2026-09-22). Backend-only. Provider-neutral (mock-verified). No frontend/React worktree changes; no streaming; no new AI features; no new queue system; no Phase 8. A security/reliability audit of the Phase 5/6 PetGPT backend, followed by targeted fixes — no design rework, everything below is a guard or a documented limitation.
+
+### Audit — sound by design (unchanged)
+
+- **Authorization is owner-scoped end to end**: every PetGPT route sits behind `protect`, and every controller scopes reads/writes to `req.user._id` (`AiProvider.findOne({ _id, owner })`, `FindOneAndDelete({ _id, owner })`, `GenerationJob.aggregate` on `owner`, etc.).
+- **No existence oracle**: foreign ids, unknown-but-valid ids, and ids owned by another user all fail identically (same 404 message) on conversations, jobs, and provider configs; provider configs have no single-GET route at all (any `GET /providers/:id` is a plain route 404).
+- **Provider isolation**: each user's provider config is private — created/read/updated/deleted/tested only by its owner; the `/test` endpoint persists nothing.
+- **Prompt-injection resistant by construction**: tool authorization is **code-only**. The model/user text can never authorize an operation — `authorize()` resolves ownership server-side, and unregistered tool names (e.g. `delete_all_pets`) are refused by the registry before any code path exists. Repeated phases tested this and it holds under injected instructions.
+- **Secret hygiene**: normalized `AiProviderError` codes never carry secrets; `safeProvider()` never serializes `apiKeyEnc`; provider requests/logs/persisted docs carry no keys (scan-verified).
+
+### Audit — gaps found and fixed
+
+| Gap | Fix |
+|-----|-----|
+| `/api/ai` body parsed by the 50 MB global limit before validation | `server.js` mounts `express.json({ limit: "32kb" })` + `express.urlencoded({ limit: "32kb" })` on `/api/ai` **before** the app-wide 50 MB parser; oversize → 413 (body-parser's second parser skips already-parsed requests via `req._body`) |
+| Provider `name`/`model`/`apiKey` unbounded | `provider.controller.js` caps: `NAME_MAX=100`, `MODEL_MAX=200`, `API_KEY_MAX=500` → deterministic 400 |
+| Tool args unbounded; loose date parsing (`new Date("01/31/2026")` passed Mongo's "string" check) | `mutation-tools.js` adds `TITLE_MAX=100`, `DESCRIPTION_MAX=500`, strict `isValidCalendarDate()` (regex + real calendar rollback, rejects `2026-02-30`), strict `isValidTime()` (00:00–23:59); `date` passed through as `String` |
+| "One active provider per owner" only controller-enforced | `AiProvider` partial unique index `{ owner: 1 }` filtered `{ active: true }` (named `one_active_provider_per_owner`); `createActiveConfig()`/update-promote retry once on E11000 after re-deactivating siblings — concurrent double-promote fails instead of yielding two active configs |
+| `clearConversation` left orphaned `MutationEffect` rows | deletes `{ owner, job: { $in: jobIds } }` alongside messages/jobs |
+| No graceful shutdown | `server.js` SIGINT/SIGTERM → `server.close()` → `stopWorker()` → `mongoose.disconnect()` → exit(0); 10 s no-op timer unref'd as a failsafe |
+| `server.log`/`server.err` tracked in git | `.gitignore` + untracked |
+
+### Remaining limitations (documented, not fixed this phase)
+
+- **Quota is a soft limit under true concurrency**: `enforceGenerationQuota` does a read-then-count race free of transaction; a fully concurrent burst can briefly exceed `max` (self-corrects each window), but the invariants that MUST hold are enforced and tested: only `202`/`429`, never `500`, every `202` persists exactly one job + one user message, every `429` creates nothing.
+- **Single in-process worker** (one claim at a time) with reaper-based crash recovery; jobs are claimed `startedAt`-stamped and the reaper re-queues/fails stalls by `attemptCount` (`PETGPT_MAX_JOB_ATTEMPTS=2`), no backoff.
+- **Multi-worker duplicate window**: a reaper can re-enqueue a job another worker still holds; the mutation ledger bounds that to at most one *claimed-safe* mutation, but the ledger's `findOne→create` itself can race across processes, and a crash between `Reminder.create` and the ledger insert can leave a retryable duplicate. Both are real only with >1 worker process; moving the ledger insert before the mutation (or a transaction with a replica set) is the upgrade path.
+
+### Config & env
+
+No new env vars — the 32 KB `/api/ai` body bound is hardcoded in `server.js`; `.env.example` unchanged.
+
+### Verification (2026-09-22)
+
+- `node --check` all touched files → pass.
+- **`petgpt-security.test.js` 12/12** (local Mongo + mode-switchable mock provider on :4119): cross-user conversation/job/provider access identical to unknown ids (no oracle); malformed/empty/oversized inputs deterministic 400, foreign idempotency-key reuse 409; oversized `/api/ai` body → 413 before parsing; provider-config bounds 400; strict tool date/time/length validation; **retried same-job mutation replays its recorded result** (one reminder, one ledger row — sequential exactly-once); HTTP 500 / non-JSON / empty-text / malformed-tool-call failures land the job `failed` with generic errors and no fabricated message; prompt-injection attempts refused by backend code (foreign-pet read, unregistered tool, foreign-pet mutation — all `ok:false`, nothing written); quota sequential 202/202/429 with no orphans + concurrent burst never 500/no drift; atomic claim + reaper (exhausted → failed, retryable → re-enqueued); clearConversation purges ledger rows; secret scan across persisted docs, API responses, provider requests, and logs clean.
+- Regression suites re-run green: provider-config 19/19, petgpt-mutation-tools 10/10.
+- Full `npm test` chain exit 0 (2 consecutive runs) — all 14 suites (OmniRoute suites skip cleanly without the container).
+
+Commit: Phase 7 on `feature/petgpt-enhancement`.

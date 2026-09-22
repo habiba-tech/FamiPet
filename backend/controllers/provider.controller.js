@@ -18,6 +18,14 @@ const { buildSystemPrompt } = require("../config/ai");
 const { encryptSecret } = require("../utils/cipher");
 const { buildProviderRequest, getProviderNames } = require("../ai");
 
+// Field caps (Phase 7): provider configuration values are echoed to remote
+// providers and stored in MongoDB, so oversized values are rejected
+// deterministically (400) instead of persisting. Keys max out well below any
+// real provider token length.
+const NAME_MAX = 100;
+const MODEL_MAX = 200;
+const API_KEY_MAX = 500;
+
 // Safe response shape — never exposes apiKeyEnc or anything derivable
 // from it beyond the configured boolean mask.
 function safeProvider(p) {
@@ -41,6 +49,32 @@ function notFound(res) {
 
 function invalidId(res) {
   return res.status(400).json({ success: false, message: "Invalid provider configuration ID." });
+}
+
+function isDuplicateKey(error) {
+  return !!(error && error.code === 11000);
+}
+
+// Deactivate every provider config but (optionally) one. Enforces the
+// "at most one active provider per owner" invariant BEFORE writing, so a
+// create/promote lands in a clean state; the unique { owner } where
+// active:true index (model) backstops concurrent writers.
+async function deactivateOthers(ownerId, exceptId) {
+  const filter = { owner: ownerId };
+  if (exceptId) filter._id = { $ne: exceptId };
+  await AiProvider.updateMany(filter, { $set: { active: false } });
+}
+
+// Create an active config, retrying once if a concurrent promotion won the
+// race (E11000 on the partial unique index). Deterministic, never a 500.
+async function createActiveConfig(ownerId, fields) {
+  try {
+    return await AiProvider.create(fields);
+  } catch (error) {
+    if (!isDuplicateKey(error)) throw error;
+    await deactivateOthers(ownerId);
+    return AiProvider.create(fields);
+  }
 }
 
 function cfgError(message) {
@@ -77,6 +111,8 @@ function validatePayload(body) {
   const name = String(body.name || "").trim() || provider;
   const model = String(body.model || "").trim();
   if (!model) throw cfgError("model is required.");
+  if (name.length > NAME_MAX) throw cfgError(`name must be at most ${NAME_MAX} characters.`);
+  if (model.length > MODEL_MAX) throw cfgError(`model must be at most ${MODEL_MAX} characters.`);
 
   let baseUrl = "";
   if (provider === "openai") {
@@ -85,6 +121,9 @@ function validatePayload(body) {
   }
 
   const apiKey = body.apiKey === undefined ? undefined : String(body.apiKey || "").trim();
+  if (apiKey && apiKey.length > API_KEY_MAX) {
+    throw cfgError(`apiKey must be at most ${API_KEY_MAX} characters.`);
+  }
 
   const enabled = body.enabled === undefined ? true : Boolean(body.enabled);
   const active = body.active === undefined ? false : Boolean(body.active);
@@ -116,11 +155,8 @@ exports.createProvider = async (req, res) => {
       const existing = await AiProvider.exists({ owner: req.user._id });
       if (!existing) active = true;
     }
-    if (active) {
-      await AiProvider.updateMany({ owner: req.user._id }, { $set: { active: false } });
-    }
 
-    const provider = await AiProvider.create({
+    const fields = {
       owner: req.user._id,
       provider: data.provider,
       name: data.name,
@@ -129,7 +165,15 @@ exports.createProvider = async (req, res) => {
       apiKeyEnc: encryptSecret(data.apiKey),
       enabled: data.enabled,
       active,
-    });
+    };
+
+    let provider;
+    if (active) {
+      await deactivateOthers(req.user._id);
+      provider = await createActiveConfig(req.user._id, fields);
+    } else {
+      provider = await AiProvider.create(fields);
+    }
     res.status(201).json({ success: true, provider: safeProvider(provider) });
   } catch (error) {
     if (error && error.validation) {
@@ -164,9 +208,9 @@ exports.updateProvider = async (req, res) => {
       if (!data.apiKey) throw cfgError("apiKey must not be empty.");
       doc.apiKeyEnc = encryptSecret(data.apiKey);
     }
-    if (data.active && !doc.active) {
-      await AiProvider.updateMany({ owner: req.user._id, _id: { $ne: doc._id } }, { $set: { active: false } });
-    }
+
+    // Promote-to-active: detect BEFORE mutating doc.active.
+    const promoting = data.active && !doc.active;
 
     doc.provider = data.provider;
     doc.name = data.name;
@@ -174,7 +218,21 @@ exports.updateProvider = async (req, res) => {
     doc.model = data.model;
     doc.enabled = data.enabled;
     doc.active = data.active;
-    await doc.save();
+
+    if (promoting) {
+      // Clearing the siblings, then save. If a concurrent promote won the
+      // race (E11000 on the partial unique index), clear again and retry once.
+      await deactivateOthers(req.user._id, doc._id);
+      try {
+        await doc.save();
+      } catch (error) {
+        if (!isDuplicateKey(error)) throw error;
+        await deactivateOthers(req.user._id, doc._id);
+        await doc.save();
+      }
+    } else {
+      await doc.save();
+    }
 
     res.json({ success: true, provider: safeProvider(doc) });
   } catch (error) {
