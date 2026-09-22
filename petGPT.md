@@ -831,3 +831,146 @@ No new env vars — the 32 KB `/api/ai` body bound is hardcoded in `server.js`; 
 - Full `npm test` chain exit 0 (2 consecutive runs) — all 14 suites (OmniRoute suites skip cleanly without the container).
 
 Commit: Phase 7 on `feature/petgpt-enhancement`.
+
+---
+
+## 22. Frontend Integration Guide
+
+Status: documentation only. Describes the **implemented** backend (`feature/petgpt-enhancement`, Phase 2–7) — routes, response shapes, and behavior are taken from the code, not planned features. Provider-neutral by design: the frontend never talks to a provider, never configures one, and never assumes which one is active. The backend resolves providers, capabilities, pet context, and ownership.
+
+### 22.1 Authentication
+
+- Every PetGPT route sits behind `protect` (`backend/middleware/auth.js`): `POST /api/ai/ask`, `POST /api/ai/advice`, `/api/ai/conversations*`, `/api/ai/providers*`, and `GET /api/ai/jobs/:id`.
+- Authenticate by sending `Authorization: Bearer <jwt>` on every PetGPT request. No/wrong header → `401 { success:false, message:"Access denied. No token provided." }`; invalid/expired token → `401 "Invalid or expired token."`; unknown user → `401 "User not found."`; blocked account → `403 { success:false, message:"Your account has been blocked." }`.
+- The vanilla frontend already does this: `FamiPetAPI.request()` in `frontend/js/api.js` attaches the Bearer token from `localStorage` (`famipetToken`) on every call, JSON-encodes bodies, and on 401 logs out and redirects to `login.html`. Reuse exactly that wrapper for PetGPT calls — do not build a second auth path.
+- **Ownership is never client-negotiated.** The backend derives the owner exclusively from `req.user._id`; client-supplied `owner`/`userId`/`conversationsOwner` body fields are ignored. Foreign and unknown ids fail identically (`404 … not found or not owned by you.`) — there is no existence oracle, so treat 404 as "not yours or gone", never as proof the record exists.
+
+### 22.2 Conversation lifecycle
+
+All endpoints under `/api/ai` (auth required). Response shapes match `publicConversation`/`publicMessage`/`publicJob` in the code.
+
+| Operation | Endpoint | Success response |
+|---|---|---|
+| Create / start new conversation | `POST /api/ai/conversations` `{ title? }` | `201 { success, conversation: { id, title, lastMessageAt, lastMessagePreview, createdAt, updatedAt } }` |
+| List conversations | `GET /api/ai/conversations` | `200 { success, conversations: [...] }` — sorted by `lastMessageAt` desc server-side |
+| Get conversation + messages | `GET /api/ai/conversations/:conversationId` | `200 { success, conversation, messages: [...] }` — chronological; each message `{ id, role, content, createdAt, toolCalls? }` |
+| Send a message | `POST /api/ai/conversations/:conversationId/messages` `{ content, idempotencyKey? }` | in-scope → `202 { success, conversationId, userMessage, job }`; out-of-scope → `200 { success, scopeHandled:true, conversationId, userMessage, assistantMessage }` |
+| Clear / delete conversation | `DELETE /api/ai/conversations/:conversationId` | `200 { success, message:"Conversation cleared." }` |
+
+- **Persistence:** conversations and messages are Mongo-backed (`Conversation`, `Message` models). Page refresh, route navigation, focus loss, or reconnect changes lose nothing — reload `GET /api/ai/conversations/:conversationId` (or the list) to re-read server state. There is no client-only chat state.
+- `role` ∈ `user|assistant|system`, assigned by the backend; the client only renders it. `toolCalls` appears on assistant messages that ran tools: `[{ name, arguments?, ok, error? }]`, bounded at 20, metadata only.
+- Sending a message normally returns `202 Accepted` — keep the `job` object, render the `userMessage`, and watch for the assistant reply via §22.3. **There is no `assistantMessage` and no top-level `jobId` field in a `202`** — the job id lives at `job.id`.
+- Clearly unrelated ("out-of-scope") requests skip the provider entirely: `200 { scopeHandled:true, …, assistantMessage }` with a persisted canned answer you can render immediately. No job is created, not quota-charged.
+- `content` (and conversation `title`) max length: `PETGPT_MAX_QUESTION_LENGTH`, default 2000 → `400 "Message is too long. Maximum length is N characters."`
+
+### 22.3 Durable generation flow (202 + job polling)
+
+The implemented API is async-by-acceptance; generation outlives the HTTP request and runs in a background worker.
+
+1. **Send** — `POST …/messages { content }` → `202 { success, conversationId, userMessage, job }`.
+2. **Receive job info** — persist `job.id` (and optionally `{ idempotencyKey }`) from the `202`. `job.status` starts `queued`.
+3. **Poll** — `GET /api/ai/jobs/:jobId` until `job.status` becomes `completed` or `failed` (see §22.4/§22.9).
+4. **Completed** — the response includes `assistantMessage: { id, role:"assistant", content, createdAt, toolCalls? }`. Render it; stop polling.
+5. **Failed** — there is no assistant message (`assistantMessage: null`); surface `job.error` (§22.7) and let the user retry by sending a new message (a new message = a new job).
+6. **Browser refresh / navigation is not cancellation.** The job keeps running server-side. On remount, resume polling a stored in-flight `job.id`, or re-fetch the conversation — the persisted user message shows immediately and the assistant message appears when the job completes.
+
+The persisted `GenerationJob` + `Message` are the source of truth; nothing relies on the HTTP request staying alive.
+
+### 22.4 Job states
+
+`job.status` ∈ `queued | processing | completed | failed`. `publicJob` shape: `{ id, status, provider, model, attemptCount, conversationId, userMessageId, assistantMessageId, error, createdAt, updatedAt, startedAt, completedAt, failedAt }`.
+
+- **queued** — created with the user message; the worker has not claimed it yet.
+- **processing** — claimed (`startedAt` set; `attemptCount` incremented) and generating: provider call plus any tool rounds.
+- **completed** — assistant message persisted; `assistantMessageId` set; read it from the job GET.
+- **failed** — `error: { code, message }`, `failedAt` set. No fabricated fallback assistant message is ever written inside a conversation.
+- `provider`/`model` are observability labels (`"env"` or the user's stored configuration name, `null` until the worker resolves). Do not route UI on them.
+- Attempts are bounded (`PETGPT_MAX_JOB_ATTEMPTS`, default 2) with no backoff; terminal states never revert.
+
+### 22.5 Tool-call behavior
+
+Tools execute **server-side** inside the worker, only for providers that declare tool-calling capability. There is no browser-facing tool API.
+
+- **The frontend must never execute tools itself** and **must never treat model text as proof that an action happened.** Only the backend calls tools and verifies writes.
+- **Mutation results come from the backend.** The authoritative record of an action is the persisted `assistantMessage` produced by the worker after the backend write succeeded — not the model's prose.
+- `assistantMessage.toolCalls` (`[{ name, arguments?, ok, error? }]`, max 20) is a bounded audit trace you may render for transparency (e.g. a small "✓ Reminder created" note), but never use it to claim an action beyond what the backend persisted (`ok:false` rows mean the tool failed).
+- Currently implemented mutations (the **only** mutations — no deletes, edits, bookings, or other writes exist):
+  - `create_reminder { petId, title, type, description?, date:YYYY-MM-DD, time:HH:MM, frequency? }` — creates a reminder on the authenticated user's own pet; success reports the normalized created reminder (`{ id, title, type, …, isCompleted }`).
+  - `complete_reminder { reminderId }` — marks the user's own reminder `isCompleted:true` and reports it.
+  - Invalid/foreign ids fail indistinguishably: `"Pet not found or not owned by you."` / `"Reminder not found or not owned by you."`.
+- **Confirmation behavior (per the backend):** the system prompt instructs the model to tell the user exactly what it will do and **wait for the user's explicit confirmation before calling a mutation tool**; it calls the tool only after the user confirms, then reports precisely what the tool returned. There is **no confirmation API endpoint** — confirmation is a text-level exchange driven by the backend prompt. The frontend's job is to render that exchange faithfully: announcement → user confirms in the next message → assistant reports the verified result.
+
+### 22.6 Pet-aware responses
+
+- Pet context is resolved **by the backend** from the authenticated user's own records (bounded: max 5 pets, bounded per-type results). The client never supplies pet context.
+- Send the user's request/conversation context only through the documented API (`content` body field); history truncation (default 20 prior messages) and data injection happen server-side.
+- **Do not send or trust manually constructed ownership identifiers as authorization.** The JWT is the authorization; ids you echo back are just locators. Ownership is always derived from the token server-side.
+
+### 22.7 Errors
+
+Actual statuses/bodies from the code:
+
+| Status | When | Response body |
+|---|---|---|
+| 401 | missing/malformed/invalid/expired token; unknown user | `{ success:false, message:"Access denied. No token provided." }` / `"Invalid or expired token."` / `"User not found."` |
+| 403 | blocked account | `{ success:false, message:"Your account has been blocked." }` |
+| 400 | validation | `{ success:false, message }` — `"Message content is required."`, `"Message is too long. Maximum length is N characters."`, `"Invalid conversation ID."`, `"Valid pet ID is required."`, `"idempotencyKey must not be empty."`, `"idempotencyKey is too long. Maximum length is 200 characters."`, `"Title is too long. …"` |
+| 404 | unknown or not-owned (indistinguishable) | `"Conversation not found or not owned by you."` / `"Job not found or not owned by you."` / `"Pet not found or not owned by you."` |
+| 409 | idempotency key reused on a different conversation | `{ success:false, message:"Idempotency key was already used for a different conversation." }` |
+| 429 | per-user generation quota exceeded | `{ success:false, message:"Rate limit exceeded. Please try again later." }` |
+| 413 | `/api/ai` body over the 32 KB bound (Phase 7) | `{ success:false, message: err.message }` — e.g. `"request entity too large"` |
+| 500 | internal | `{ success:false, message:"Something went wrong." }` (conversation/job APIs never leak internals). Dev note: legacy `POST /api/ai/ask` returns `{ success:false, message: error.message }` — build new chat UI on the conversation/job shapes instead |
+| job `failed` | provider/generation failure | `job.error = { code, message }` — `provider` (`"AI generation failed. Please try again."`), `timeout` (`"The generation attempt timed out."`), `conversation`, `message`, or `internal` (`"Something went wrong."`) |
+
+The quota is a fixed-window per-user cap on durable generations (default 30/minute; `PETGPT_RATE_LIMIT_MAX` over `PETGPT_RATE_LIMIT_WINDOW_MS` = 60000). A `429` carries no retry measurement — show the message and back off.
+
+### 22.8 Loading / UX states
+
+- **Sending** — disable the composer while the `POST` is pending (avoid double-submit). For retries, send an `{ idempotencyKey }` (unique per logical submission, ≤200 chars, scoped per user) so a re-sent turn reuses the same job instead of duplicating.
+- **Queued / processing** — render the `userMessage` from the `202` with an activity state driven by job polling (§22.9).
+- **Completed** — render `assistantMessage.content`; clear the activity state; stop polling.
+- **Failed** — keep the user message, show a non-technical message from `job.error` (e.g. "The pet assistant ran into a problem. Please try again."), and offer a retry via a new message. Never fabricate an answer client-side.
+- **Retrying** — an idempotent resubmission returns `200 { success, reused:true, conversationId, userMessage, job }` for **any** job state including `failed` (code reuses the existing job). Resync to that job, do not create a duplicate turn; to genuinely regenerate after a failure, the user sends a new message.
+- **Refresh while a generation is active** — re-fetch the conversation/job; persisted state reconciles (user message present, assistant message appears on completion). Refresh is non-cancellation; nothing restarts client-side.
+- **Empty conversation** — a fresh conversation has no messages; the title derives from the first user message and the list preview updates on the first exchange.
+- **Cleared conversation** — after `DELETE` the conversation and all its messages/jobs are hard-deleted; it vanishes from the list and any later get/send returns 404. Remove it from UI state immediately.
+- **There is no streaming.** Do not implement or expect incremental/token rendering — the reply arrives whole when the job completes.
+
+### 22.9 Polling
+
+- After a `202`, poll `GET /api/ai/jobs/:jobId` until `job.status` is `completed` or `failed`, then stop.
+- The backend defines **no interval** — pick a client-friendly cadence (e.g. every 1–2s while `queued`/`processing`, with a calm "still working…" state for long generations, and a sanity cap). Do not keep polling terminal states.
+- Terminal states never revert: `completed` guarantees the persisted `assistantMessage`, `failed` guarantees none was written.
+- On refresh/remount, if you still hold an in-flight `job.id`, resume polling before re-listing so spinners stay consistent and no request is re-sent.
+
+### 22.10 Security rules
+
+- **Never expose provider API keys.** Keys live only in backend env config or encrypted per-user docs; API responses expose only `configured: boolean`. The browser never needs a key.
+- **Never call providers directly from the browser.** All provider traffic is backend → provider. The frontend only ever calls `/api/ai/*` on the backend.
+- **Never execute PetGPT tools from the browser.** Tools are backend-internal; no browser-facing tool endpoint exists.
+- **Never treat assistant text as an authorization signal.** Text is untrusted; only the backend's persisted records and verified writes are evidence that an action happened.
+- **The backend remains the source of truth for actions and ownership.** The client renders, polls, and retries; it never decides who owns what or whether an action succeeded.
+
+### 22.11 Current limitations
+
+- **No streaming** — replies are delivered whole when the `202` job `.completed`; no SSE/websocket deltas exist.
+- **Mutation scope is limited** — exactly two mutation tools (`create_reminder`, `complete_reminder`); no deletes, edits, bookings, or other writes exist to call.
+- **Soft quota** — the per-user generation cap is a read-then-count check; a truly concurrent burst can briefly exceed the window (self-correcting). The API guarantees only `202`/`429` — never a broken job.
+- **Multi-worker exactly-once limitation** — exactly-once is guaranteed within a single app instance; with multiple worker processes a reaper could re-enqueue a job another worker still holds, and the mutation ledger's `findOne→create` can race (or a crash between the record write and the ledger insert can leave a retryable duplicate). Single-instance deployments are exactly-once; the ledger bounds duplicates where it applies.
+- **Advanced retry backoff not implemented** — attempts are bounded with no exponential backoff; failures stay terminal after the cap.
+- **Provider capability varies** — tool calling runs only when the active provider declares it; the client must not assume any provider executes tools.
+- **Scope gate is a keyword heuristic** — borderline off-scope requests may still reach the provider.
+- **Legacy `POST /api/ai/ask` is stateless** — only conversations persist history.
+
+### 22.12 Frontend implementation checklist
+
+- [ ] **API client** — extend/reuse the existing `FamiPetAPI` wrapper (Bearer token from `localStorage`, JSON bodies, 401 → login redirect) for all `/api/ai/*` calls.
+- [ ] **Conversation list** — `GET /api/ai/conversations` → render `title`, `lastMessagePreview`, `lastMessageAt`, server-sorted `lastMessageAt` desc.
+- [ ] **Conversation view** — `GET /api/ai/conversations/:id` → render chronological `messages` (render `role`/`content`; treat `toolCalls` as informational metadata).
+- [ ] **Composer** — `POST /api/ai/conversations/:id/messages { content }`; disable while pending; optional `idempotencyKey` for dedup; handle `400`/`404`/`409`/`429` per §22.7.
+- [ ] **Job polling** — on `202`, keep `job.id`, poll `GET /api/ai/jobs/:id` per §22.9 until `completed`/`failed`.
+- [ ] **Loading / error states** — sending / queued / processing / completed / failed per §22.8; never synthesize assistant text.
+- [ ] **Mutation result handling** — render assistant replies as authoritative; show `toolCalls` as an audit trace; never run tools or claim actions the backend didn't persist.
+- [ ] **Refresh / reconnect** — re-fetch conversation/job on remount; resume polling a stored in-flight `job.id`; treat refresh as non-cancellation.
+- [ ] **Clear conversation** — `DELETE /api/ai/conversations/:id` → update list + clear local state; handle 404 as already-cleared.
+- [ ] **Security** — no keys, no provider calls, no tool execution, no ownership ids sent as authorization (§22.10).
