@@ -1,16 +1,19 @@
 const mongoose = require("mongoose");
 const Pet = require("../models/Pet");
+const { AI_CONFIG, buildSystemPrompt, outOfScopeResponse } = require("../config/ai");
 
-const GEMINI_MODEL = "gemini-1.5-flash";
-
+// Google/Gemini adapter. The only provider implemented today.
+// Phase 1 extracts this behind the provider interface defined in
+// config/ai.js so the controller never embeds provider details.
 async function callGemini(question, petContext) {
   const apiKey = process.env.GEMINI_API_KEY;
-  if (!apiKey) return null;
+  if (!apiKey) {
+    // Deliberately non-fatal: the caller falls back to static answers.
+    console.warn("PetGPT: no GEMINI_API_KEY configured; using fallback answers.");
+    return null;
+  }
 
-  const system =
-    "You are PetGPT, a friendly pet-care assistant inside the FamiPet app. " +
-    "Answer clearly and helpfully in 2-4 sentences. Focus on pet health, care, " +
-    "nutrition, behavior, and veterinary advice.";
+  const system = buildSystemPrompt();
 
   const userPets =
     petContext && petContext.length
@@ -20,11 +23,12 @@ async function callGemini(question, petContext) {
       : "";
 
   const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), 25000);
+  const timer = setTimeout(() => controller.abort(), AI_CONFIG.timeoutMs);
+  const startedAt = Date.now();
 
   try {
     const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${encodeURIComponent(apiKey)}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/${AI_CONFIG.model}:generateContent?key=${encodeURIComponent(apiKey)}`,
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -36,7 +40,10 @@ async function callGemini(question, petContext) {
       }
     );
 
-    if (!response.ok) return null;
+    if (!response.ok) {
+      console.error(`PetGPT: Gemini HTTP ${response.status} after ${Date.now() - startedAt}ms; using fallback.`);
+      return null;
+    }
 
     const data = await response.json();
     const text = (data && data.candidates && data.candidates[0] && data.candidates[0].content &&
@@ -44,8 +51,16 @@ async function callGemini(question, petContext) {
       ? data.candidates[0].content.parts.map((p) => p.text).filter(Boolean).join(" ").trim()
       : "";
 
-    return text || null;
+    if (!text) {
+      console.warn(`PetGPT: Gemini returned no text after ${Date.now() - startedAt}ms; using fallback.`);
+      return null;
+    }
+
+    console.log(`PetGPT: Gemini ok after ${Date.now() - startedAt}ms (${text.length} chars).`);
+    return text;
   } catch (error) {
+    // Includes AbortController timeouts.
+    console.error(`PetGPT: Gemini request failed after ${Date.now() - startedAt}ms; using fallback:`, error.message);
     return null;
   } finally {
     clearTimeout(timer);
@@ -73,13 +88,27 @@ function fallbackAnswer(question) {
 
 exports.askPetGPT = async (req, res) => {
   try {
-    const { question } = req.body;
+    const raw = req.body && req.body.question;
+    const question = String(raw === undefined || raw === null ? "" : raw).trim();
 
-    if (!question || !question.trim()) {
+    if (!question) {
       return res.status(400).json({
         success: false,
         message: "Question is required.",
       });
+    }
+
+    if (question.length > AI_CONFIG.maxQuestionLength) {
+      return res.status(400).json({
+        success: false,
+        message: `Question is too long. Maximum length is ${AI_CONFIG.maxQuestionLength} characters.`,
+      });
+    }
+
+    const scope = outOfScopeResponse(question);
+    if (scope) {
+      console.log(`PetGPT: out-of-scope question blocked for user ${req.user._id}.`);
+      return res.json({ success: true, question, answer: scope });
     }
 
     let petContext = [];
