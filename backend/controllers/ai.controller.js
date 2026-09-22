@@ -1,71 +1,7 @@
 const mongoose = require("mongoose");
 const Pet = require("../models/Pet");
-const { AI_CONFIG, buildSystemPrompt, outOfScopeResponse } = require("../config/ai");
-
-// Google/Gemini adapter. The only provider implemented today.
-// Phase 1 extracts this behind the provider interface defined in
-// config/ai.js so the controller never embeds provider details.
-async function callGemini(question, petContext) {
-  const apiKey = process.env.GEMINI_API_KEY;
-  if (!apiKey) {
-    // Deliberately non-fatal: the caller falls back to static answers.
-    console.warn("PetGPT: no GEMINI_API_KEY configured; using fallback answers.");
-    return null;
-  }
-
-  const system = buildSystemPrompt();
-
-  const userPets =
-    petContext && petContext.length
-      ? "The user's pets: " +
-        petContext.map((p) => `${p.name} (${p.species}${p.breed ? ", " + p.breed : ""})`).join("; ") +
-        ". "
-      : "";
-
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), AI_CONFIG.timeoutMs);
-  const startedAt = Date.now();
-
-  try {
-    const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/${AI_CONFIG.model}:generateContent?key=${encodeURIComponent(apiKey)}`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        signal: controller.signal,
-        body: JSON.stringify({
-          systemInstruction: { parts: [{ text: system }] },
-          contents: [{ parts: [{ text: userPets + "User asks: " + question }] }],
-        }),
-      }
-    );
-
-    if (!response.ok) {
-      console.error(`PetGPT: Gemini HTTP ${response.status} after ${Date.now() - startedAt}ms; using fallback.`);
-      return null;
-    }
-
-    const data = await response.json();
-    const text = (data && data.candidates && data.candidates[0] && data.candidates[0].content &&
-      data.candidates[0].content.parts)
-      ? data.candidates[0].content.parts.map((p) => p.text).filter(Boolean).join(" ").trim()
-      : "";
-
-    if (!text) {
-      console.warn(`PetGPT: Gemini returned no text after ${Date.now() - startedAt}ms; using fallback.`);
-      return null;
-    }
-
-    console.log(`PetGPT: Gemini ok after ${Date.now() - startedAt}ms (${text.length} chars).`);
-    return text;
-  } catch (error) {
-    // Includes AbortController timeouts.
-    console.error(`PetGPT: Gemini request failed after ${Date.now() - startedAt}ms; using fallback:`, error.message);
-    return null;
-  } finally {
-    clearTimeout(timer);
-  }
-}
+const { AI_CONFIG, outOfScopeResponse } = require("../config/ai");
+const { generatePetGPTResponse } = require("../ai");
 
 function fallbackAnswer(question) {
   const q = question.toLowerCase();
@@ -128,7 +64,7 @@ exports.askPetGPT = async (req, res) => {
       petContext = [];
     }
 
-    let answer = await callGemini(question, petContext);
+    let answer = await generatePetGPTResponse(question, petContext);
     if (!answer) answer = fallbackAnswer(question);
 
     res.json({ success: true, question, answer });

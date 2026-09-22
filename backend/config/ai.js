@@ -1,21 +1,37 @@
 // =========================================================
 // PetGPT core configuration and product rules
 // ---------------------------------------------------------
-// The seam between the AI controller and whatever provider
-// is configured. Nothing in this module depends on a vendor
-// (Google/Gemini today; OmniRoute or any OpenAI-compatible
-// endpoint later). Provider-specific HTTP details belong in
-// the controller's callGemini adapter today and move behind
-// a provider interface in Phase 1.
+// The seam between the AI controller and the provider layer
+// (backend/ai/) and between that layer and vendors. Nothing
+// here depends on a specific vendor. Configuration is
+// environment-driven; per-user provider/key management is a
+// Phase 2 concern and builds on the shape below.
 // =========================================================
 
 const AI_CONFIG = Object.freeze({
-  // Which provider is active. Only "google" is implemented.
-  // Phase 1 adds an OpenAI-compatible adapter (incl. OmniRoute).
+  // Active provider: "google" (default, keeps existing deployments
+  // working) or "openai" (any OpenAI-compatible endpoint incl.
+  // OmniRoute, proxies, local servers).
   provider: process.env.PETGPT_PROVIDER || "google",
-  model: process.env.PETGPT_MODEL || "gemini-1.5-flash",
+
+  // Applies to every provider.
   timeoutMs: Number(process.env.PETGPT_TIMEOUT_MS) || 25000,
   maxQuestionLength: Number(process.env.PETGPT_MAX_QUESTION_LENGTH) || 2000,
+
+  // Google/Gemini adapter settings.
+  gemini: Object.freeze({
+    apiKey: process.env.GEMINI_API_KEY,
+    model: process.env.PETGPT_MODEL || "gemini-1.5-flash",
+  }),
+
+  // OpenAI-compatible adapter settings. baseUrl must point at the
+  // /chat/completions root (no trailing slash; adapter appends
+  // /chat/completions). No OmniRoute/OpenAI hard-coding.
+  openai: Object.freeze({
+    baseUrl: String(process.env.PETGPT_OPENAI_BASE_URL || "").trim().replace(/\/+$/, ""),
+    apiKey: process.env.PETGPT_OPENAI_API_KEY,
+    model: process.env.PETGPT_OPENAI_MODEL || "",
+  }),
 });
 
 // =========================================================
