@@ -17,13 +17,13 @@ This is an **implementation migration, not a redesign**:
   assets, images, logos, static resources, and API behavior — as they are today.
 - `docs/design.md` and the current `frontend/` are the source of truth. Do not "fix"
   design inconsistencies during migration; carry them over faithfully and record accepted
-  deltas (design.md §8.1–§8.11) in the Phase 25 visual-regression report.
+  deltas (design.md §8.1–§8.11) in the Phase 26 visual-regression report.
 - Incremental and independently verifiable. Each phase is additive, runs beside the old
   frontend, and can be reverted individually.
 - Backend (`backend/`, Express + MongoDB) stays untouched. CORS already accepts any
   `localhost`/`127.0.0.1`/private-range origin (server.js `isDevOrigin`), so Vite (5173)
   and Nginx proxies work without backend changes.
-- The old vanilla frontend is **not deleted** until Phase 28, after full verification.
+- The old vanilla frontend is **not deleted** until Phase 29, after full verification.
 
 ### Ground-truth fast-refs (usable during every phase)
 
@@ -189,31 +189,44 @@ tree verified.
 | 11    | Vaccinations                   | [x]    | `3d10701`  |
 | 12    | Appointments                   | [x]    | `6876e43`  |
 | 13    | Veterinarians                  | [x]    | `721f03f`  |
-| 14    | Reminders                      | [x]    | —            |
-| 15    | Notifications                  | [x]    | Phases 10–14 |
-| 16    | Community                      | [x]    | —            |
-| 17    | Favorites                      | [x]    | —            |
-| 18    | Adoption                       | [ ]    | —            |
-| 19    | Lost & Found                   | [x]    | —            |
-| 20    | AI/PetGPT                      | [ ]    | —            |
+| 14    | Reminders                      | [x]    | `01f6564`    |
+| 15    | Community                      | [x]    | `5dd0fef`    |
+| 16    | Lost & Found                   | [x]    | `d637cd9`    |
+| 17    | Favorites                      | [x]    | `d7a6f10`    |
+| 18    | Adoption                       | [x]    | `70293d0`    |
+| 19    | Pet Breeds                     | [ ]    | —            |
+| 20    | Settings                       | [ ]    | —            |
 | 21    | Admin panel                    | [ ]    | —            |
-| 22    | API integration layer          | [ ]    | —            |
-| 23    | Auth/state management          | [ ]    | —            |
-| 24    | Responsive behavior            | [ ]    | —            |
-| 25    | Visual regression              | [ ]    | —            |
-| 26    | Functional regression          | [ ]    | —            |
-| 27    | Docker/Nginx integration       | [ ]    | —            |
-| 28    | Removal of old Vanilla frontend | [ ]    | —            |
+| 22    | AI / PetGPT (redesign)         | [ ]    | —            |
+| 23    | API integration layer          | [ ]    | —            |
+| 24    | Auth/state management          | [ ]    | —            |
+| 25    | UI/UX completion & stabilization| [ ]    | —            |
+| 26    | Visual regression              | [ ]    | —            |
+| 27    | Functional regression          | [ ]    | —            |
+| 28    | Docker/Nginx integration       | [ ]    | —            |
+| 29    | Removal of old Vanilla frontend | [ ]    | —            |
 
 Status legend: `[ ]` not started · `[~]` in progress · `[x]` completed and pushed ·
 `[-]` intentionally skipped · `[!]` blocked/problem.
 
-Renumbering note: the current roadmap executes **Community as Phase 15**, because the
-Notifications sprint (plan §15) was delivered incrementally inside Phases 10–14
-(shared `NotificationBell`/`NotificationPanel`, `useNotifications`, `api/notifications.ts`
-— consumed by Dashboard, Health, Appointments, and now Community), and **Lost & Found
-as Phase 16**. The phase sections below keep the original plan numbering (Notifications
-§15, Community §16, Lost & Found §19) for traceability.
+Numbering reconciliation: the **executed roadmap numbering** above is authoritative for
+current work. The original plan numbering (below, for traceability) differs only where
+execution changed the order:
+
+| Executed (roadmap, above) | Original plan section |
+| ------------------------- | --------------------- |
+| 10–14 (delivered inside)  | §15 Notifications (no standalone sprint — shared `NotificationBell`/`NotificationPanel`, `useNotifications`, `api/notifications.ts`, consumed by Dashboard, Health, Appointments, Community) |
+| 15 Community              | §16 Community         |
+| 16 Lost & Found           | §19 Lost & Found      |
+| 17 Favorites              | §17 Favorites         |
+| 18 Adoption               | §18 Adoption          |
+| 19 Pet Breeds             | (new — breeds + breeds/:id `PageStub`s) |
+| 20 Settings               | (new — settings `PageStub`) |
+| 21 Admin panel            | §21 Admin panel       |
+| 22 AI / PetGPT (redesign) | §20 AI/PetGPT, deferred + renumbered |
+
+The phase sections below keep the original plan number in a `(plan §N)` suffix for
+completed phases; the header number itself always matches the executed roadmap above.
 
 ### Stabilization note (2026-09-22, migrated pages only)
 
@@ -258,7 +271,7 @@ New self-contained project at repo root in `frontend-react/` (old `frontend/` un
 ```
 frontend-react/
 ├─ package.json  vite.config.ts  tsconfig*.json  index.html  tailwind.config.*
-├─ Dockerfile  nginx.conf                          (Phase 27)
+├─ Dockerfile  nginx.conf                          (Phase 28)
 ├─ public/
 │  └─ assets/{icons,logos,images/…}                (mirror of frontend/assets, Phase 3)
 └─ src/
@@ -311,7 +324,7 @@ Pages are organized by URL surface, mirroring the existing file inventory exactl
 
 Deep links (`/verify-email/:token`, `/reset-password/:token`) must remain reachable
 unauthenticated (email links) — handled by dev history fallback and Nginx `try_files`
-(Phase 27).
+(Phase 28).
 
 ## 5. API / Service Organization
 
@@ -541,8 +554,8 @@ numbered list matches the required scope; execution order note in §12.
   scoped to `body:has(.dashboard-page)` and `.dashboard-page .theme-btn` so landing/
   auth styles are untouched. lint + `tsc -b && vite build` pass. Live-API + dark-mode +
   responsive checks were NOT run here: this environment has no running MongoDB/backend
-  (`backend/.env` absent, no mongod) — verify against a running backend before the
-  Phase 25 visual regression.
+(`backend/.env` absent, no mongod) — verify against a running backend before the
+   Phase 26 visual regression.
 
 ### Phase 9 — Pet management (My Pets + Pet ID)
 - **Objective:** mypet grid + add/edit/delete pet, statuses, search, and Pet ID page
@@ -583,7 +596,7 @@ numbered list matches the required scope; execution order note in §12.
   Pet ID page exists in `pages/` — the authenticated `/app/pet-id` page (QR +
   ID card + PNG download via canvas/foreignObject, `window.print()` fallback)
   is the only surface, so "public pet-id resolution without auth" has no
-  Vanilla counterpart to port and is tracked as an open question for Phase 22.
+  Vanilla counterpart to port and is tracked as an open question for Phase 23.
   (6) CSS ported verbatim: `styles/mypet.css` scoped under `.mypet-page`
   (Vanilla loads one stylesheet a page; React loads all), `styles/petid.css`
   scoped under `.petid-page`, responsive + dark rules scoped likewise. Dark
@@ -594,7 +607,7 @@ numbered list matches the required scope; execution order note in §12.
 lint (`oxlint`) + `tsc -b && vite build` pass. Live-API + ownership-isolation
    E2E (`pets/:id` PUT/DELETE owner-only) were NOT run: this environment has no
    running MongoDB/backend — scheduled with the full-app start by the user;
-   re-verify before Phase 25.
+   re-verify before Phase 26.
 - **Polish (2026-09-21):** `fix(frontend-react): polish phase 09 icons theme and pet-id`:
   (7) Icons bundled: dropped the Font Awesome `<link>` + `unpkg lucide` `<script>`
   from `index.html` and `window.lucide.createIcons()` calls; added `lucide-react`
@@ -885,7 +898,7 @@ lint (`oxlint`) + `tsc -b && vite build` pass. Live-API + ownership-isolation
   re-run programmatically (CSS follows the verified appointments/health scoped
   pattern; dark-mode selectors mirror those files' verified blocks).
 
-### Phase 15 — Notifications
+### Notifications (plan §15; delivered inside Phases 10–14)
 - **Objective:** bell + dropdown panel + unread/read/read-all + badge, replace dashboard
   panel and health-page toasts-with-notification calls.
 - **Existing source files:** `css/dashboard.css` (`.notification-btn`, `.notification-panel`),
@@ -912,7 +925,7 @@ lint (`oxlint`) + `tsc -b && vite build` pass. Live-API + ownership-isolation
   renumbering note under Phase Status). See also the existing Phase 12 §3 delta:
   the bell loads real `/notifications` with an unread badge.
 
-### Phase 16 — Community
+### Phase 15 — Community (plan §16)
 - **Objective:** community feed (posts, image upload, like, comments, delete).
 - **Existing source files:** `pages/community.html`, `css/community.css`, `js/community.js`.
 - **Target React structure:** `src/pages/app/community/*`.
@@ -994,138 +1007,7 @@ lint (`oxlint`) + `tsc -b && vite build` pass. Live-API + ownership-isolation
   blocks mirror those files' verified selectors, and the notifications panel rules
   were ported from `appointments.css`).
 
-### Phase 17 — Favorites
-- **Objective:** favorite toggle on pet surfaces (dashboard pet list, adoption cards, my
-  pet) + persisted favorites list; no NEW page/nav (old site has no favorites page —
-  preserve parity).
-- **Existing source files:** `js/dashboard.js` (`/users/favorites/`), pet-card markup,
-  `backend/routes/favorite.routes.js`, `user.routes.js` (`/favorites/:petId`).
-- **Target React structure:** `components/shared/FavoriteButton`, `hooks/useFavorites.ts`,
-  `src/api/favorites.ts`.
-- **Reusable components:** `FavoriteButton`.
-- **API dependencies:** `GET /favorites`, `POST /favorites`, `DELETE /favorites/:id`,
-  `POST /users/favorites/:petId`.
-- **UI preservation requirements:** heart behavior exactly where present today; no new
-  entry points.
-- **Verification:** toggle adds/removes; state survives reload; multi-user isolation.
-- **Completion criteria:** favorite parity on all existing entry points.
-- **Rollback/safety:** component-only.
-
-  Implemented (commit + push under Phase 17):
-  `components/shared/FavoriteButton.tsx` + `hooks/useFavorites.ts` +
-  `src/api/favorites.ts` (typed `POST /users/favorites/:petId` → `{ success,
-  favorites, isFavorite }`, added during Phase 8 and used here) — the doc's
-  Phase 17 target structure. `FavoriteButton` is presentational (takes `petId`,
-  `name`, `liked`, `onToggle`) so every button on a surface shares the single
-  favorite set a page's `useFavorites()` fetches; `useFavorites` loads the
-  initial liked ids from `GET /auth/me` (`user.favorites`) and toggles
-  optimistically with rollback on failure (dashboard-data.js + dashboard.js
-  `setFavoriteState` parity). The dashboard's inline favorites were extracted
-  onto these: `DashboardPage` now sources `favIds` + `toggle` from the hook (the
-  `favIds` field left `DashboardData`, the `getMe()` favorites call dropped),
-  and `PetsSection` renders `<FavoriteButton>` instead of the hand-rolled heart.
-  Behavior is byte-identical to before the extraction (same `/auth/me` initial
-  state, same optimistic toggle, same `.favorite-button.liked` CSS — the dark
-  `.liked` fill rules were already scoped under `.dashboard-page` in Phase 8).
-  Accepted deltas (AGENTS §5 — no fabricated data or invented entry points):
-  (1) Entry points = the dashboard pet list only, matching exactly where the
-  Vanilla site renders a `.favorite-button` today. The phase objective names
-  adoption cards too, but the adoption page is Phase 18 (not yet migrated, still
-  `PageStub`) and the Vanilla **my pet** page has never had a favorite button —
-  so `FavoriteButton`/`useFavorites` are the reusable pieces Phase 18's adoption
-  cards will consume; nothing was added to surfaces that lack hearts in Vanilla
-  ("heart behavior exactly where present today; no new entry points").
-  (2) API surface: only the endpoints the Vanilla UI actually calls are wired —
-  `POST /users/favorites/:petId` (toggle) + `GET /auth/me` (initial state). The
-  `GET/POST /favorites` + `DELETE /favorites/:id` routes (Favorite-collection
-  model) exist in the backend but the old site never calls them and the two
-  stores are kept in sync server-side (`user.controller.toggleFavorite`); wiring
-  unused endpoints would be speculative. If a favorites page is ever required
-  (it is explicitly out of scope — no new nav), `GET /favorites` is the data
-  source to add then.
-  Verified live (backend running; mongod up; DB seeded — `user@example.com` /
-  `user123`): `npm run lint` (only the pre-existing AuthContext/VerifyEmailPage
-  warnings) + `tsc -b && vite build` pass. Backend flow against the real DB:
-  login → `POST /users/favorites/:petId` → `{ isFavorite:true, favorites:[pet] }`
-  → reflected in `GET /auth/me` → toggle again → removed from both → invalid pet
-  id → `400 "Invalid pet ID."` → no token → `401 "Access denied. No token
-  provided."`. Multi-user isolation (AGENTS §14): a throwaway user created
-  directly in Mongo (register needs email verification and SMTP is absent)
-  favorited the demo user's pet — **demo user's favorites stayed empty**, and the
-  throwaway user's own list carried the pet; the throwaway user was deleted and
-  the demo user's favorites left empty (test toggles reverted) afterward. Headless
-  Chrome (CDP) against the Vite dev server with the real backend: login →
-  dashboard renders 1 `.favorite-button` with `aria-label "Favorite Max"` (pet
-  name) → click → `.liked` applied (filled heart) → reload → still liked →
-  click → unliked → reload → gone; dark mode renders the hearts; 390px mobile
-  viewport: 0 horizontal overflow (overflow=0px). All test toggles reverted, so
-  the demo user's favorites are back to `[]`.
-
-### Phase 18 — Adoption
-- **Objective:** adoption gallery (search, filters, counters) + apply flow; admin
-  status/review untouched here.
-- **Existing source files:** `pages/adoption.html`, `css/adoption.css`, `js/adoption.js`.
-- **Target React structure:** `src/pages/app/adoption/*`.
-- **Reusable components:** `AdoptionCard`, `PetCounterBadge`, `FilterChips`, `SearchBar`,
-  `AdoptionModal`.
-- **API dependencies:** `/adoptions/my`, `POST /adoptions`, public pets (`/pets`),
-  favorites toggle.
-- **UI preservation requirements:** adoption palette (incl. hardcoded `#ff4d6d`/`#f43f5e`
-  etc.), hero art (`Hero-Page.png`, `Mainn-bg.png`), filter chips, counter badge.
-- **Verification:** gallery = real records; apply works; non-admin cannot hit admin
-  status endpoints (403 test).
-- **Completion criteria:** adoption browse/apply parity; backend rules enforced.
-- **Rollback/safety:** isolated.
-
-Implemented (commit + push under Phase 18):
-  `src/api/pets.ts` `getAvailablePets()` (GET `/pets?status=available`),
-  `src/api/adoptions.ts` typed `Adoption` + `AdoptionPayload` + `createAdoption()`
-  (POST `/adoptions`), and the doc's target components from scratch at
-  `src/pages/app/adoption/*`: `SearchBar` (`.search-box` with magnifying-glass),
-  `PetCounterBadge` (`.pet-counter-badge`, live per-category counts derived from
-  the loaded pets — not fabricated, AGENTS §5), `FilterChips` (`cat-all`/`cat-dogs`
-  /`cat-cats`/`cat-others` with counters, active state), `AdoptionCard` (media
-  image with onerror fallback, type badge, shared `FavoriteButton` from Phase 17,
-  gender icon `mars`/`venus`, `breed • age`, vaccinated badge, view-details btn),
-  and `AdoptionModal` (single component, stages details → apply → success; real
-  owner info box from the populated `owner`; inline form validation + backend
-  error surfacing; success shows the persisted record `_id` + status Pending) and
-  `AdoptionPage` (hero art `Hero-Page.png` + blue `#3b9df8` hero btn, notification
-  bell + panel from real `/notifications`, search/category/sort/newest-name-age,
-  loading / empty ("No Companions Found" + clear-filters) / error + retry states,
-  toast; routed in `routeConfig.tsx` line 62, wired into `global.css` via
-  `@import './adoption.css'`). CSS ported to `src/styles/adoption.css` with the
-  page-scoped + `body.dark-theme` pattern, responsive 1200/1100/992/600 breakpoints
-  and 390px single-column grid, `:focus-visible` outlines.
-  Accepted deltas (AGENTS §5 / §9 — no fabricated data, backend is truth):
-  (1) skipped "Add New Pet" + "Delete Pet" buttons — out of the phase objective,
-  My Pets owns pet CRUD and backend pet delete is owner-only;
-  (2) dropped the "Healthy" badge — backend `Pet` has no health field, Vanilla
-  hardcoded `healthy: true`; kept the real `vaccinated` badge;
-  (3) dropped Email + City from the apply form — the `Adoption` model persists
-  neither (name/phone/address/occupation/experienceWithPets/reasonOfAdoption);
-  (4) location rows omitted — `Pet` has no location field (Vanilla hardcoded "");
-  (5) sorts are newest (createdAt desc) / name (A-Z) / age (numeric asc) — Vanilla's
-  "age" select option actually fell through to its newest branch (bug), fixed;
-  (6) counters are live counts of the real loaded pets, not Vanilla's hardcoded 8;
-  (7) layout toggle + "Filters" modal button dropped — dead UI (no handlers in
-  Vanilla JS);
-  (8) detail modal uses neutral copy instead of Vanilla's hardcoded "healthy,
-  fully-vaccinated" claim (AGENTS §9).
-  Verified live (backend + mongod up; DB seeded — `user@example.com`/`user123`):
-  `npm run lint` (only the pre-existing AuthContext/VerifyEmailPage warnings) +
-  `tsc -b && vite build` pass. Headless Chrome (CDP) on the Vite dev server + real
-  backend: gallery renders the 3 real pets (Max dog 3y, Buddy dog 2y, Luna cat 1y)
-  with live counters (all=3, dogs=2, cats=1, others=0); dogs filter → Max+Buddy,
-  cats filter → Luna; search miss → empty state; clear-filters restores all 3;
-  sort by name A-Z → Buddy,Luna,Max; favorite toggles persist across reload, then
-  revert; detail modal → apply flow submits and success modal shows a real Mongo
-  `_id` + status Pending; `GET /adoptions/my` lists the record back (then deleted
-  via admin token to restore the demo state); duplicate-pending attempt surfaces
-  the backend message "You already have a pending adoption request for this pet."
-  inline; non-admin PUT and DELETE on `/adoptions/:id` → `403 "Access denied.
-  Admin only."`; dark mode applies (bg rgb(23,21,35)); 390px viewport → 0px
-  horizontal overflow + single-column grid; heart `aria-label "Favorite <name>"`.
+### Phase 16 — Lost & Found (plan §19)
 - **Objective:** report cards grid, filters, status badges, create/edit/delete (image
   upload).
 - **Existing source files:** `pages/lost-found.html`, `css/lost-found.css`, `js/lost-found.js`.
@@ -1205,20 +1087,167 @@ Implemented (commit + push under Phase 18):
   reminders/community scoped patterns and the notifications panel rules were ported
   from those verified files.
 
-### Phase 20 — AI / PetGPT
-- **Objective:** chat UI (bubbles, typing indicator, quick suggests, find-a-vet modal)
-  wired to the real AI backend.
-- **Existing source files:** `pages/petgpt.html`, `css/petgpt.css`, `js/petgpt.js`,
-  `js/appointments.js` (vet list).
-- **Target React structure:** `src/pages/app/petgpt/*`.
-- **Reusable components:** `ChatPanel`, `MessageBubble`(.user/.ai), `QuickSuggestionChips`,
-  `TypingIndicator`, `ChatInput`, `FindVetModal`.
-- **API dependencies:** `POST /ai/ask`, `POST /ai/advice`, `GET /veterinarians`.
-- **UI preservation requirements:** PetGPT palette (`#8d68d8`, `#65738e`), existing bubble
-  alignment/imgs, no fabricated canned answers — real API only (AGENTS §5).
-- **Verification:** ask → streamed/returned AI response renders; loading + error states;
-  vet modal populated.
-- **Completion criteria:** chat parity with genuine AI responses.
+### Phase 17 — Favorites (plan §17)
+- **Objective:** favorite toggle on pet surfaces (dashboard pet list, adoption cards, my
+  pet) + persisted favorites list; no NEW page/nav (old site has no favorites page —
+  preserve parity).
+- **Existing source files:** `js/dashboard.js` (`/users/favorites/`), pet-card markup,
+  `backend/routes/favorite.routes.js`, `user.routes.js` (`/favorites/:petId`).
+- **Target React structure:** `components/shared/FavoriteButton`, `hooks/useFavorites.ts`,
+  `src/api/favorites.ts`.
+- **Reusable components:** `FavoriteButton`.
+- **API dependencies:** `GET /favorites`, `POST /favorites`, `DELETE /favorites/:id`,
+  `POST /users/favorites/:petId`.
+- **UI preservation requirements:** heart behavior exactly where present today; no new
+  entry points.
+- **Verification:** toggle adds/removes; state survives reload; multi-user isolation.
+- **Completion criteria:** favorite parity on all existing entry points.
+- **Rollback/safety:** component-only.
+
+  Implemented (commit + push under Phase 17):
+  `components/shared/FavoriteButton.tsx` + `hooks/useFavorites.ts` +
+  `src/api/favorites.ts` (typed `POST /users/favorites/:petId` → `{ success,
+  favorites, isFavorite }`, added during Phase 8 and used here) — the doc's
+  Phase 17 target structure. `FavoriteButton` is presentational (takes `petId`,
+  `name`, `liked`, `onToggle`) so every button on a surface shares the single
+  favorite set a page's `useFavorites()` fetches; `useFavorites` loads the
+  initial liked ids from `GET /auth/me` (`user.favorites`) and toggles
+  optimistically with rollback on failure (dashboard-data.js + dashboard.js
+  `setFavoriteState` parity). The dashboard's inline favorites were extracted
+  onto these: `DashboardPage` now sources `favIds` + `toggle` from the hook (the
+  `favIds` field left `DashboardData`, the `getMe()` favorites call dropped),
+  and `PetsSection` renders `<FavoriteButton>` instead of the hand-rolled heart.
+  Behavior is byte-identical to before the extraction (same `/auth/me` initial
+  state, same optimistic toggle, same `.favorite-button.liked` CSS — the dark
+  `.liked` fill rules were already scoped under `.dashboard-page` in Phase 8).
+  Accepted deltas (AGENTS §5 — no fabricated data or invented entry points):
+  (1) Entry points = the dashboard pet list only, matching exactly where the
+  Vanilla site renders a `.favorite-button` today. The phase objective names
+  adoption cards too, but the adoption page is Phase 18 (not yet migrated, still
+  `PageStub`) and the Vanilla **my pet** page has never had a favorite button —
+  so `FavoriteButton`/`useFavorites` are the reusable pieces Phase 18's adoption
+  cards will consume; nothing was added to surfaces that lack hearts in Vanilla
+  ("heart behavior exactly where present today; no new entry points").
+  (2) API surface: only the endpoints the Vanilla UI actually calls are wired —
+  `POST /users/favorites/:petId` (toggle) + `GET /auth/me` (initial state). The
+  `GET/POST /favorites` + `DELETE /favorites/:id` routes (Favorite-collection
+  model) exist in the backend but the old site never calls them and the two
+  stores are kept in sync server-side (`user.controller.toggleFavorite`); wiring
+  unused endpoints would be speculative. If a favorites page is ever required
+  (it is explicitly out of scope — no new nav), `GET /favorites` is the data
+  source to add then.
+  Verified live (backend running; mongod up; DB seeded — `user@example.com` /
+  `user123`): `npm run lint` (only the pre-existing AuthContext/VerifyEmailPage
+  warnings) + `tsc -b && vite build` pass. Backend flow against the real DB:
+  login → `POST /users/favorites/:petId` → `{ isFavorite:true, favorites:[pet] }`
+  → reflected in `GET /auth/me` → toggle again → removed from both → invalid pet
+  id → `400 "Invalid pet ID."` → no token → `401 "Access denied. No token
+  provided."`. Multi-user isolation (AGENTS §14): a throwaway user created
+  directly in Mongo (register needs email verification and SMTP is absent)
+  favorited the demo user's pet — **demo user's favorites stayed empty**, and the
+  throwaway user's own list carried the pet; the throwaway user was deleted and
+  the demo user's favorites left empty (test toggles reverted) afterward. Headless
+  Chrome (CDP) against the Vite dev server with the real backend: login →
+  dashboard renders 1 `.favorite-button` with `aria-label "Favorite Max"` (pet
+  name) → click → `.liked` applied (filled heart) → reload → still liked →
+  click → unliked → reload → gone; dark mode renders the hearts; 390px mobile
+  viewport: 0 horizontal overflow (overflow=0px). All test toggles reverted, so
+  the demo user's favorites are back to `[]`.
+
+### Phase 18 — Adoption (plan §18)
+- **Objective:** adoption gallery (search, filters, counters) + apply flow; admin
+  status/review untouched here.
+- **Existing source files:** `pages/adoption.html`, `css/adoption.css`, `js/adoption.js`.
+- **Target React structure:** `src/pages/app/adoption/*`.
+- **Reusable components:** `AdoptionCard`, `PetCounterBadge`, `FilterChips`, `SearchBar`,
+  `AdoptionModal`.
+- **API dependencies:** `/adoptions/my`, `POST /adoptions`, public pets (`/pets`),
+  favorites toggle.
+- **UI preservation requirements:** adoption palette (incl. hardcoded `#ff4d6d`/`#f43f5e`
+  etc.), hero art (`Hero-Page.png`, `Mainn-bg.png`), filter chips, counter badge.
+- **Verification:** gallery = real records; apply works; non-admin cannot hit admin
+  status endpoints (403 test).
+- **Completion criteria:** adoption browse/apply parity; backend rules enforced.
+- **Rollback/safety:** isolated.
+
+Implemented (commit + push under Phase 18):
+  `src/api/pets.ts` `getAvailablePets()` (GET `/pets?status=available`),
+  `src/api/adoptions.ts` typed `Adoption` + `AdoptionPayload` + `createAdoption()`
+  (POST `/adoptions`), and the doc's target components from scratch at
+  `src/pages/app/adoption/*`: `SearchBar` (`.search-box` with magnifying-glass),
+  `PetCounterBadge` (`.pet-counter-badge`, live per-category counts derived from
+  the loaded pets — not fabricated, AGENTS §5), `FilterChips` (`cat-all`/`cat-dogs`
+  /`cat-cats`/`cat-others` with counters, active state), `AdoptionCard` (media
+  image with onerror fallback, type badge, shared `FavoriteButton` from Phase 17,
+  gender icon `mars`/`venus`, `breed • age`, vaccinated badge, view-details btn),
+  and `AdoptionModal` (single component, stages details → apply → success; real
+  owner info box from the populated `owner`; inline form validation + backend
+  error surfacing; success shows the persisted record `_id` + status Pending) and
+  `AdoptionPage` (hero art `Hero-Page.png` + blue `#3b9df8` hero btn, notification
+  bell + panel from real `/notifications`, search/category/sort/newest-name-age,
+  loading / empty ("No Companions Found" + clear-filters) / error + retry states,
+  toast; routed in `routeConfig.tsx` line 62, wired into `global.css` via
+  `@import './adoption.css'`). CSS ported to `src/styles/adoption.css` with the
+  page-scoped + `body.dark-theme` pattern, responsive 1200/1100/992/600 breakpoints
+  and 390px single-column grid, `:focus-visible` outlines.
+  Accepted deltas (AGENTS §5 / §9 — no fabricated data, backend is truth):
+  (1) skipped "Add New Pet" + "Delete Pet" buttons — out of the phase objective,
+  My Pets owns pet CRUD and backend pet delete is owner-only;
+  (2) dropped the "Healthy" badge — backend `Pet` has no health field, Vanilla
+  hardcoded `healthy: true`; kept the real `vaccinated` badge;
+  (3) dropped Email + City from the apply form — the `Adoption` model persists
+  neither (name/phone/address/occupation/experienceWithPets/reasonOfAdoption);
+  (4) location rows omitted — `Pet` has no location field (Vanilla hardcoded "");
+  (5) sorts are newest (createdAt desc) / name (A-Z) / age (numeric asc) — Vanilla's
+  "age" select option actually fell through to its newest branch (bug), fixed;
+  (6) counters are live counts of the real loaded pets, not Vanilla's hardcoded 8;
+  (7) layout toggle + "Filters" modal button dropped — dead UI (no handlers in
+  Vanilla JS);
+  (8) detail modal uses neutral copy instead of Vanilla's hardcoded "healthy,
+  fully-vaccinated" claim (AGENTS §9).
+  Verified live (backend + mongod up; DB seeded — `user@example.com`/`user123`):
+  `npm run lint` (only the pre-existing AuthContext/VerifyEmailPage warnings) +
+  `tsc -b && vite build` pass. Headless Chrome (CDP) on the Vite dev server + real
+  backend: gallery renders the 3 real pets (Max dog 3y, Buddy dog 2y, Luna cat 1y)
+  with live counters (all=3, dogs=2, cats=1, others=0); dogs filter → Max+Buddy,
+  cats filter → Luna; search miss → empty state; clear-filters restores all 3;
+  sort by name A-Z → Buddy,Luna,Max; favorite toggles persist across reload, then
+  revert; detail modal → apply flow submits and success modal shows a real Mongo
+  `_id` + status Pending; `GET /adoptions/my` lists the record back (then deleted
+  via admin token to restore the demo state); duplicate-pending attempt surfaces
+  the backend message "You already have a pending adoption request for this pet."
+  inline; non-admin PUT and DELETE on `/adoptions/:id` → `403 "Access denied.
+  Admin only."`; dark mode applies (bg rgb(23,21,35)); 390px viewport → 0px
+  horizontal overflow + single-column grid; heart `aria-label "Favorite <name>"`.
+
+### Phase 19 — Pet Breeds (+ Breed Details)
+- **Objective:** breeds gallery (cards grid, search, species filter tabs, expandable
+  breed details) + breed details page.
+- **Existing source files:** `pages/breeds.html`, `pages/breed-details.html`,
+  `js/breeds.js`, `js/breed-details.js`.
+- **Target React structure:** `src/pages/app/breeds/*`, `src/pages/app/breedDetails/*`
+  (routes `/app/breeds`, `/app/breeds/:id` — both current `PageStub`s).
+- **Reusable components:** `BreedCard`, `BreedTag`, `SearchBar`, `FilterTabs`,
+  `EmptyState`.
+- **API dependencies:** `GET /breeds`, `GET /breeds/:id` (public).
+- **UI preservation requirements:** breeds palette/grid, filter tabs, `breed-tag`,
+  breed-detail layout.
+- **Verification:** grid + search + species filter from real `/breeds`; detail page by id.
+- **Completion criteria:** breed browse parity, real data only.
+- **Rollback/safety:** isolated pages.
+
+### Phase 20 — Settings
+- **Objective:** profile edit (name/phone/location/avatar), theme, change password.
+- **Existing source files:** `pages/settings.html`, `css/settings.css`, `js/settings.js`.
+- **Target React structure:** `src/pages/app/settings/*` (route `/app/settings` —
+  current `PageStub`).
+- **Reusable components:** `ProfileForm`, `AvatarUpload`, `PasswordForm`, `Toast`.
+- **API dependencies:** `GET /auth/me`, `PUT /auth/profile`, `PUT /auth/change-password`,
+  `POST /users/avatar` (multer).
+- **UI preservation requirements:** settings card layout, avatar, theme toggle,
+  password-change flow (api.js `saveProfile`/`updatePassword` parity).
+- **Verification:** profile persists after reload; avatar upload; password change E2E.
+- **Completion criteria:** settings parity with real backend data.
 - **Rollback/safety:** isolated page.
 
 ### Phase 21 — Admin panel
@@ -1241,7 +1270,26 @@ Implemented (commit + push under Phase 18):
 - **Completion criteria:** full admin parity, authorization enforced.
 - **Rollback/safety:** admin routes isolated; destructive ops behind confirm + backend.
 
-### Phase 22 — API integration layer (formalization)
+### Phase 22 — AI / PetGPT (redesign)
+- **Objective:** redesigned React chat UI (bubbles, typing indicator, quick suggests,
+  find-a-vet modal) wired to the latest PetGPT backend endpoints on `main`
+  (`POST /api/ai/ask` → `askPetGPT`, `POST /api/ai/advice` → `getPetAdvice`) + real
+  vet listing (`GET /veterinarians`). Standalone dedicated phase — NOT part of
+  Phase 19/20 (breeds/settings ship first).
+- **Existing source files:** `pages/petgpt.html`, `css/petgpt.css`, `js/petgpt.js`,
+  `js/appointments.js` (vet list).
+- **Target React structure:** `src/pages/app/petgpt/*`.
+- **Reusable components:** `ChatPanel`, `MessageBubble`(.user/.ai), `QuickSuggestionChips`,
+  `TypingIndicator`, `ChatInput`, `FindVetModal`.
+- **API dependencies:** `POST /ai/ask`, `POST /ai/advice`, `GET /veterinarians`.
+- **UI preservation requirements:** PetGPT palette (`#8d68d8`, `#65738e`), existing bubble
+  alignment/imgs, no fabricated canned answers — real API only (AGENTS §5).
+- **Verification:** ask → streamed/returned AI response renders; loading + error states;
+  vet modal populated.
+- **Completion criteria:** chat parity with genuine AI responses.
+- **Rollback/safety:** isolated page.
+
+### Phase 23 — API integration layer (formalization)
 - **Objective:** consolidate the typed `src/api/` layer + `client.ts` + `lib/*` so ALL
   pages use one client (many phases above will have started with ad-hoc hooks; this
   removes drift). Reproduces `api.js` exactly.
@@ -1258,7 +1306,7 @@ Implemented (commit + push under Phase 18):
 - **Completion criteria:** single typed client; no helper drift.
 - **Rollback/safety:** infra beneath pages; pages still work via old helper until swap.
 
-### Phase 23 — Authentication / state management (consolidation)
+### Phase 24 — Authentication / state management (consolidation)
 - **Objective:** single AuthContext + ThemeContext implementation, storage-key constants,
   route-guard wiring end-to-end; document the fetch-based state approach (§6).
 - **Existing source files:** `js/theme.js`, `js/api.js`, `js/sidebar.js` (profile/
@@ -1273,24 +1321,27 @@ Implemented (commit + push under Phase 18):
 - **Completion criteria:** one auth/theme code path, guard matrix green.
 - **Rollback/safety:** centralized; old-site session keys make fallback seamless.
 
-### Phase 24 — Responsive behavior
-- **Objective:** grid/typography breakpoints parity across every page (Tailwind) —
-  1200 (auth), 1100 (app grids→1-col, stats→2-col), 992 (nav/menu + hamburger + sidebar
-  collapse), 768 (auth card radius 28px, role grid 1-col), ~480 (pet-card stacks);
-  `overflow-x:hidden` and `img max-width:100%` globals.
+### Phase 25 — UI/UX completion & stabilization
+- **Objective:** final UI/UX pass across all migrated pages — Landing page completion,
+  My Pets, and remaining migrated-page UI inconsistencies, responsive/mobile behavior,
+  light/dark parity, overflow/alignment/polish; grid/typography breakpoints parity
+  across every page (Tailwind) — 1200 (auth), 1100 (app grids→1-col, stats→2-col), 992
+  (nav/menu + hamburger + sidebar collapse), 768 (auth card radius 28px, role grid
+  1-col), ~480 (pet-card stacks); `overflow-x:hidden` and `img max-width:100%` globals.
 - **Existing source files:** `css/responsive.css` (universal overrides), `css/sidebar.css`
-  collapse, per-page grid rules.
+  collapse, per-page grid rules, plus design.md surfacing for any remaining page polish.
 - **Target React structure:** tokenized breakpoints in `tailwind.config`; per-page
   responsive classes.
 - **Reusable components:** responsive variants of grid components.
 - **API dependencies:** none.
 - **UI preservation requirements:** identical layout at 1280/1024/768/480 on key pages;
-  hamburger + sidebar collapse on mobile; grids collapse to 1-col parity.
+  hamburger + sidebar collapse on mobile; grids collapse to 1-col parity; no horizontal
+  overflow; dark mode surfaces correct.
 - **Verification:** full-page screenshots at the 4 widths, diff against old site.
 - **Completion criteria:** responsive parity across all pages at all breakpoints.
 - **Rollback/safety:** additive CSS; wander minimal.
 
-### Phase 25 — Visual regression
+### Phase 26 — Visual regression
 - **Objective:** scripted Playwright screenshot comparison: old site (5502) vs new
   (5173/build) for every page; document accepted deltas (e.g. FA glyph rendering, font
   loading timing) — values must NOT change.
@@ -1304,7 +1355,7 @@ Implemented (commit + push under Phase 18):
 - **Completion criteria:** visual parity audit signed off.
 - **Rollback/safety:** additive test infra; no prod impact.
 
-### Phase 26 — Functional regression
+### Phase 27 — Functional regression
 - **Objective:** Playwright E2E flows for every feature against the real backend +
   seeded DB; multi-user ownership tests (AGENTS §14).
 - **Existing source files:** old page + page-JS behavior as spec.
@@ -1318,7 +1369,7 @@ Implemented (commit + push under Phase 18):
 - **Completion criteria:** full functional sign-off matrix green.
 - **Rollback/safety:** E2E on dev DB; no change to old stack.
 
-### Phase 27 — Docker / Nginx integration
+### Phase 28 — Docker / Nginx integration
 - **Objective:** productionize the React app: multi-stage build (`node:*-alpine` build →
   `nginx:*-alpine` static), SPA `try_files … /index.html`, `/api` + `/uploads` proxied to
   the backend container; backend image unchanged.
@@ -1334,7 +1385,7 @@ Implemented (commit + push under Phase 18):
 - **Completion criteria:** one-command production stack, E2E green inside container.
 - **Rollback/safety:** new artifacts only; backend untouched.
 
-### Phase 28 — Removal of the old Vanilla frontend (ONLY after Phases 25+26 green)
+### Phase 29 — Removal of the old Vanilla frontend (ONLY after Phases 26+27 green)
 - **Objective:** remove `frontend/` vanilla files; repoint anything that referenced them
   to the React build; update docs.
 - **Existing source files:** all of `frontend/` (delete/move to archive), `backend/
@@ -1346,7 +1397,7 @@ Implemented (commit + push under Phase 18):
 - **UI preservation requirements:** post-removal smoke = full manual + automated pass on
   the production stack only.
 - **Verification:** old URLs redirect/equivalent; no page references dead `frontend/`
-  assets; full Phase 25+26 runs green after removal.
+  assets; full Phase 26+27 runs green after removal.
 - **Completion criteria:** vanilla frontend gone from live tree; git history retains it.
 - **Rollback/safety:** keep tag/commit boundary; restore `frontend/` from git on any
   regression; never do this phase early.
@@ -1357,17 +1408,17 @@ Implemented (commit + push under Phase 18):
 
 Phases 1–6 are the foundation chain (strict order). Phases 7–21 are feature pages and
 can run in **any order once 4–6 land**; the listed numbering matches the required scope
-(not a hard execution order). Phases 22/23 are *enabling infra*: although numbered late,
-their content should be bootstrapped starting Phase 4/7 and consolidated as Phase 22/23
-close-out (as written). Phase 24 depends on 7–21. Phases 25–26 depend on 24. Phase 27
-depends on 25/26. **Phase 28 depends on all — and only runs on explicit sign-off.**
+(not a hard execution order). Phases 23/24 are *enabling infra*: although numbered late,
+their content should be bootstrapped starting Phase 4/7 and consolidated as Phase 23/24
+close-out (as written). Phase 25 depends on 7–24. Phases 26–27 depend on 25. Phase 28
+depends on 26/27. **Phase 29 depends on all — and only runs on explicit sign-off.**
 
 Suggested parallel tracks: Track A (1→2→3→4→5→6), Track B (7, 8, 14, 15), Track C
-(9, 10, 11, 12, 13, 17), Track D (16, 18, 19, 20), Track E (21), then 22/23→24→25→26→27→28.
+(9, 10, 11, 12, 13, 17), Track D (16, 18, 19, 20), Track E (21), then 22→23/24→25→26→27→28→29.
 
 ## 13. Invariants during migration (do-not-break list)
 
-1. `frontend/` and `backend/` remain untouched except Phase 28's removal of `frontend/`.
+1. `frontend/` and `backend/` remain untouched except Phase 29's removal of `frontend/`.
 2. Backend routes, middleware, auth, ownership, admin rules unchanged (only exceptional,
    documented frontend-integration issues may touch it — none required per CORS/server.js
    analysis).
