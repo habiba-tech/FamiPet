@@ -1,18 +1,17 @@
 /* =========================================================
    FAMIPET - ADMIN PANEL STYLES
+   Scoped to `.admin-wrap` (the admin shell) so nothing leaks into
+   non-admin pages (the Vanilla file reset `*` and `body`, which bled
+   onto every page of the SPA). Tailwind's preflight already provides
+   the box-sizing/margin/padding reset.
    ========================================================= */
-
-* { box-sizing: border-box; margin: 0; padding: 0; }
-
-body {
-  font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
-  background: #fdf3f6;
-  color: #1e293b;
-}
 
 .admin-wrap {
   display: flex;
   min-height: 100vh;
+  font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+  background: #fdf3f6;
+  color: #1e293b;
 }
 
 /* ---------------- SIDEBAR ---------------- */
@@ -326,10 +325,48 @@ body {
   color: #8a96a8;
 }
 
+.admin-empty p {
+  margin-top: 0.4rem;
+}
+
 .admin-empty i {
   font-size: 2rem;
   color: #ffc2d3;
   margin-bottom: 0.6rem;
+}
+
+/* helpers used by the React admin pages (Vanilla equivalents were inline) */
+
+.recent-card {
+  margin-bottom: 1.4rem;
+}
+
+.admin-section-title {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin-bottom: 1rem;
+  color: #1e293b;
+}
+
+.admin-section-title i {
+  color: #ff5c8a;
+}
+
+.admin-muted {
+  font-size: 0.72rem;
+  color: #8a96a8;
+}
+
+.admin-protected {
+  font-size: 0.75rem;
+  color: #8a96a8;
+}
+
+.admin-reason {
+  max-width: 240px;
+  font-size: 0.78rem;
+  color: #64748b;
 }
 
 .admin-loading {
@@ -356,6 +393,67 @@ body {
 }
 
 .admin-toast i { color: #10b981; }
+
+.admin-toast.error i { color: #dc2626; }
+
+/* ---------------- DARK MODE ----------------
+   The Vanilla admin had no dark theme; the React app's theme context toggles
+   `body.dark-theme`, so admin surfaces mirror the app dark palette
+   (rgb(23,21,35) bg / rgb(33,30,48) cards, matching settings/dashboard). */
+
+body.dark-theme .admin-wrap {
+  background: #171523;
+  color: #f5f2ff;
+}
+
+body.dark-theme .admin-card,
+body.dark-theme .stat-card,
+body.dark-theme .admin-user-chip {
+  background: #211e30;
+  border-color: #332e45;
+  box-shadow: none;
+}
+
+body.dark-theme .admin-topbar h2,
+body.dark-theme .admin-section-title,
+body.dark-theme .admin-wrap .stat-card .stat-val,
+body.dark-theme .admin-user-chip strong,
+body.dark-theme .admin-table td,
+body.dark-theme .admin-table td strong,
+body.dark-theme .admin-empty,
+body.dark-theme .admin-loading {
+  color: #f5f2ff;
+}
+
+body.dark-theme .admin-topbar p,
+body.dark-theme .admin-wrap .admin-table th,
+body.dark-theme .admin-wrap .stat-card h4,
+body.dark-theme .admin-muted,
+body.dark-theme .admin-protected,
+body.dark-theme .admin-reason,
+body.dark-theme .admin-user-chip small {
+  color: #b7b0c9;
+}
+
+body.dark-theme .admin-table th,
+body.dark-theme .admin-table td {
+  border-color: #332e45;
+}
+
+body.dark-theme .admin-table tr:last-child td {
+  border-bottom: none;
+}
+
+body.dark-theme .admin-empty i {
+  color: #4a4461;
+}
+
+body.dark-theme .admin-toast {
+  background: #211e30;
+  border-color: #332e45;
+  color: #e8e6f0;
+  box-shadow: none;
+}
 
 @media (max-width: 768px) {
   .admin-wrap { flex-direction: column; }

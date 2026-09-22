@@ -3,7 +3,9 @@
 // creates one). Payload mirrors the Vanilla adoption.js adoption form; the
 // backend model stores no email/city so those form fields are not sent.
 
-import { apiGet, apiPost } from './client'
+import { apiGet, apiPost, apiPut } from './client'
+
+export type AdoptionStatus = 'Pending' | 'Approved' | 'Rejected'
 
 export interface Adoption {
   _id: string
@@ -16,6 +18,7 @@ export interface Adoption {
   experienceWithPets?: string
   reasonForAdoption?: string
   pet?: { name?: string } | null
+  user?: { _id?: string; name?: string; email?: string; phone?: string } | string
 }
 
 export interface AdoptionsResponse {
@@ -41,4 +44,17 @@ export function getMyAdoptions(): Promise<AdoptionsResponse> {
 
 export function createAdoption(payload: AdoptionPayload): Promise<{ success?: boolean; adoption?: Adoption }> {
   return apiPost('/adoptions', payload)
+}
+
+// Admin review endpoints (GET /adoptions + PUT /adoptions/:id are admin-only
+// on the backend — the Vanilla admin adoptions page calls exactly these).
+export function getAllAdoptions(): Promise<AdoptionsResponse> {
+  return apiGet<AdoptionsResponse>('/adoptions')
+}
+
+export function updateAdoptionStatus(
+  id: string,
+  status: AdoptionStatus,
+): Promise<{ success?: boolean; message?: string }> {
+  return apiPut<{ success?: boolean; message?: string }>(`/adoptions/${id}`, { status })
 }

@@ -23,6 +23,12 @@ import { BreedsPage } from '../pages/app/breeds/BreedsPage'
 import { BreedDetailsPage } from '../pages/app/breedDetails/BreedDetailsPage'
 import { SettingsPage } from '../pages/app/settings/SettingsPage'
 import { RedirectIfAuthed, RequireAdmin, RequireAuth } from './guards'
+import { AdminDashboardPage } from '../pages/admin/AdminDashboardPage'
+import { AdminUsersPage } from '../pages/admin/AdminUsersPage'
+import { AdminPetsPage } from '../pages/admin/AdminPetsPage'
+import { AdminAdoptionsPage } from '../pages/admin/AdminAdoptionsPage'
+import { AdminCommunityPage } from '../pages/admin/AdminCommunityPage'
+import { AdminLostFoundPage } from '../pages/admin/AdminLostFoundPage'
 
 // Route table follows migration.md §4 (Page Organization) — a 1:1 mirror of
 // the Vanilla page inventory. Stub pages are swapped for real page components
@@ -86,12 +92,12 @@ export const routes: RouteObject[] = [
       </RequireAdmin>
     ),
     children: [
-      { index: true, element: <PageStub title="Admin Dashboard" /> },
-      { path: 'users', element: <PageStub title="Admin Users" /> },
-      { path: 'pets', element: <PageStub title="Admin Pets" /> },
-      { path: 'adoptions', element: <PageStub title="Admin Adoptions" /> },
-      { path: 'community', element: <PageStub title="Admin Community" /> },
-      { path: 'lost-found', element: <PageStub title="Admin Lost & Found" /> },
+      { index: true, element: <AdminDashboardPage /> },
+      { path: 'users', element: <AdminUsersPage /> },
+      { path: 'pets', element: <AdminPetsPage /> },
+      { path: 'adoptions', element: <AdminAdoptionsPage /> },
+      { path: 'community', element: <AdminCommunityPage /> },
+      { path: 'lost-found', element: <AdminLostFoundPage /> },
     ],
   },
 
