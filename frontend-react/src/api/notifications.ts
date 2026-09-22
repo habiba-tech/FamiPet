@@ -1,7 +1,7 @@
 // Notifications API — backend contract from
 // backend/routes/notification.routes.js.
 
-import { apiGet } from './client'
+import { apiGet, apiPut } from './client'
 
 export interface AppNotification {
   _id: string
@@ -19,4 +19,8 @@ export interface NotificationsResponse {
 
 export function getNotifications(): Promise<NotificationsResponse> {
   return apiGet<NotificationsResponse>('/notifications')
+}
+
+export function markAllNotificationsRead(): Promise<{ success?: boolean; message?: string }> {
+  return apiPut<{ success?: boolean; message?: string }>('/notifications/read-all')
 }

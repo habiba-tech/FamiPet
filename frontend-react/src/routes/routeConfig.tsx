@@ -11,6 +11,7 @@ import { VerifyEmailPage } from '../pages/auth/VerifyEmailPage'
 import { PageStub } from '../pages/_stub/PageStub'
 import { NotFound } from '../pages/NotFound'
 import { DashboardPage } from '../pages/app/dashboard/DashboardPage'
+import { HealthPage } from '../pages/app/health/HealthPage'
 import { MyPetsPage } from '../pages/app/mypet/MyPetsPage'
 import { PetIdPage } from '../pages/app/petid/PetIdPage'
 import { RedirectIfAuthed, RequireAdmin, RequireAuth } from './guards'
@@ -55,7 +56,7 @@ export const routes: RouteObject[] = [
       { path: 'dashboard', element: <DashboardPage /> },
       { path: 'mypet', element: <MyPetsPage /> },
       { path: 'adoption', element: <PageStub title="Adoption" /> },
-      { path: 'health', element: <PageStub title="Health" /> },
+      { path: 'health', element: <HealthPage /> },
       { path: 'appointments', element: <PageStub title="Appointments" /> },
       { path: 'reminders', element: <PageStub title="Reminders" /> },
       { path: 'community', element: <PageStub title="Community" /> },
