@@ -195,8 +195,8 @@ tree verified.
 | 17    | Favorites                      | [x]    | `d7a6f10`    |
 | 18    | Adoption                       | [x]    | `70293d0`    |
 | 19    | Pet Breeds                     | [x]    | `526f78e`    |
-| 20    | Settings                       | [x]    | pending      |
-| 21    | Admin panel                    | [ ]    | —            |
+| 20    | Settings                       | [x]    | `ed4d6cb`   |
+| 21    | Admin panel                    | [x]    | `d18c336`   |
 | 22    | AI / PetGPT (redesign)         | [ ]    | —            |
 | 23    | API integration layer          | [ ]    | —            |
 | 24    | Auth/state management          | [ ]    | —            |
@@ -1365,6 +1365,47 @@ Implemented (commit + push under Phase 20, real backend only — no fake data):
   backend); block/delete/status transitions correct.
 - **Completion criteria:** full admin parity, authorization enforced.
 - **Rollback/safety:** admin routes isolated; destructive ops behind confirm + backend.
+
+**Implemented (commit + push under Phase 21, real backend only — no fake data):**
+
+- New `src/api/admin.ts` (typed dashboard/users/pets/lost-found/community admin
+  endpoints, all `protect` + `adminOnly`); `src/api/adoptions.ts` extended with
+  `getAllAdoptions()` / `updateAdoptionStatus()` and a richer `Adoption` type.
+- New `src/pages/admin/AdminTopbar.tsx` (shared topbar + `AdminTableEmpty` row
+  helper) and six pages: `AdminDashboardPage`, `AdminUsersPage`, `AdminPetsPage`,
+  `AdminAdoptionsPage`, `AdminCommunityPage`, `AdminLostFoundPage`. All reuse
+  `.admin-*` CSS classes, `window.confirm` for destructive actions, and a 3s
+  auto-dismiss `admin-toast` (green success / red error).
+- `src/routes/routeConfig.tsx` wired the six admin routes to the real pages
+  (guarded by the existing `RequireAdmin`).
+- `src/styles/admin.css` (a copy of the Vanilla `admin/css/admin.css`) was scoped
+  to `.admin-wrap`: removed the Vanilla `*` reset and `body { background, font,
+  color }` that leaked onto every SPA page (Tailwind preflight provides the
+  reset), moved background/font/color onto `.admin-wrap`, and added
+  `body.dark-theme .admin-wrap` overrides (app dark palette
+  `#171523`/`#211e30`/`#332e45`). Added `.admin-section-title`, `.admin-muted`,
+  `.admin-protected`, `.admin-reason`, and `.admin-toast.error`.
+- **Accepted deltas from the spec prose:**
+  - `docs/design.md §1.5` / the Phase 21 prose describe a dark slate admin sidebar
+    (`#1e293b`/`#0f172a`); the actual Vanilla `admin/css/admin.css` is the pink
+    gradient sidebar (`#ff5c8a`→`#f43f5e`) on `#fdf3f6`. The React port follows
+    the real file; the design prose is stale.
+  - No admin **vet CRUD** UI: the backend has admin-only veterinarian routes, but
+    no Vanilla admin UI exists and vet CRUD is not one of the six admin pages.
+    Not built (parity + YAGNI).
+  - No **delete** button on the adoptions page: the Vanilla admin UI has none
+    (Approve/Reject only, `PUT /adoptions/:id`); not added.
+- **Verification (real backend + MongoDB, Playwright/Chromium, all green):**
+  dashboard shows exact live stats `2|3|3|0|1|2`; users (block/unblock + pill +
+  toast, admin row "Protected"); pets (delete via confirm + toast + reload
+  removal); adoptions (approve → green `Approved` pill + `Reviewed` label,
+  backend adoption `Approved` and pet `adopted:true`); community
+  (publish/unpublish pill swap, delete); lost-found (resolve/reopen pill swap,
+  delete); non-admin receives backend 403 and the SPA redirects
+  `/app/admin`→`/app/dashboard` (anon→`/login`); dark-mode admin palette and
+  light default verified; 390px viewport stacks sidebar and scrolls tables
+  inside `.admin-table-wrap` with no horizontal overflow. `npm run lint`
+  (oxlint, zero new issues), `tsc -b`, and `vite build` all clean.
 
 ### Phase 22 — AI / PetGPT (redesign)
 - **Objective:** redesigned React chat UI (bubbles, typing indicator, quick suggests,
