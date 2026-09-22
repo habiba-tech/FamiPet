@@ -20,6 +20,7 @@ export interface Pet {
   adopted?: boolean
   status?: string
   views?: number
+  createdAt?: string
   owner?: { _id?: string; name?: string } | string | null
 }
 
@@ -50,6 +51,13 @@ export interface PetPayload {
 
 export function getMyPets(): Promise<PetsResponse> {
   return apiGet<PetsResponse>('/pets/my')
+}
+
+// Adoption gallery source — public endpoint, `status=available` only so the
+// React adoption page never renders pets that the backend has already marked
+// adopted/lost/inactive (Vanilla adoption.js fetched the same query).
+export function getAvailablePets(): Promise<PetsResponse> {
+  return apiGet<PetsResponse>('/pets?status=available')
 }
 
 export function createPet(payload: PetPayload): Promise<PetMutationResponse> {

@@ -1077,7 +1077,55 @@ lint (`oxlint`) + `tsc -b && vite build` pass. Live-API + ownership-isolation
 - **Completion criteria:** adoption browse/apply parity; backend rules enforced.
 - **Rollback/safety:** isolated.
 
-### Phase 19 — Lost & Found
+Implemented (commit + push under Phase 18):
+  `src/api/pets.ts` `getAvailablePets()` (GET `/pets?status=available`),
+  `src/api/adoptions.ts` typed `Adoption` + `AdoptionPayload` + `createAdoption()`
+  (POST `/adoptions`), and the doc's target components from scratch at
+  `src/pages/app/adoption/*`: `SearchBar` (`.search-box` with magnifying-glass),
+  `PetCounterBadge` (`.pet-counter-badge`, live per-category counts derived from
+  the loaded pets — not fabricated, AGENTS §5), `FilterChips` (`cat-all`/`cat-dogs`
+  /`cat-cats`/`cat-others` with counters, active state), `AdoptionCard` (media
+  image with onerror fallback, type badge, shared `FavoriteButton` from Phase 17,
+  gender icon `mars`/`venus`, `breed • age`, vaccinated badge, view-details btn),
+  and `AdoptionModal` (single component, stages details → apply → success; real
+  owner info box from the populated `owner`; inline form validation + backend
+  error surfacing; success shows the persisted record `_id` + status Pending) and
+  `AdoptionPage` (hero art `Hero-Page.png` + blue `#3b9df8` hero btn, notification
+  bell + panel from real `/notifications`, search/category/sort/newest-name-age,
+  loading / empty ("No Companions Found" + clear-filters) / error + retry states,
+  toast; routed in `routeConfig.tsx` line 62, wired into `global.css` via
+  `@import './adoption.css'`). CSS ported to `src/styles/adoption.css` with the
+  page-scoped + `body.dark-theme` pattern, responsive 1200/1100/992/600 breakpoints
+  and 390px single-column grid, `:focus-visible` outlines.
+  Accepted deltas (AGENTS §5 / §9 — no fabricated data, backend is truth):
+  (1) skipped "Add New Pet" + "Delete Pet" buttons — out of the phase objective,
+  My Pets owns pet CRUD and backend pet delete is owner-only;
+  (2) dropped the "Healthy" badge — backend `Pet` has no health field, Vanilla
+  hardcoded `healthy: true`; kept the real `vaccinated` badge;
+  (3) dropped Email + City from the apply form — the `Adoption` model persists
+  neither (name/phone/address/occupation/experienceWithPets/reasonOfAdoption);
+  (4) location rows omitted — `Pet` has no location field (Vanilla hardcoded "");
+  (5) sorts are newest (createdAt desc) / name (A-Z) / age (numeric asc) — Vanilla's
+  "age" select option actually fell through to its newest branch (bug), fixed;
+  (6) counters are live counts of the real loaded pets, not Vanilla's hardcoded 8;
+  (7) layout toggle + "Filters" modal button dropped — dead UI (no handlers in
+  Vanilla JS);
+  (8) detail modal uses neutral copy instead of Vanilla's hardcoded "healthy,
+  fully-vaccinated" claim (AGENTS §9).
+  Verified live (backend + mongod up; DB seeded — `user@example.com`/`user123`):
+  `npm run lint` (only the pre-existing AuthContext/VerifyEmailPage warnings) +
+  `tsc -b && vite build` pass. Headless Chrome (CDP) on the Vite dev server + real
+  backend: gallery renders the 3 real pets (Max dog 3y, Buddy dog 2y, Luna cat 1y)
+  with live counters (all=3, dogs=2, cats=1, others=0); dogs filter → Max+Buddy,
+  cats filter → Luna; search miss → empty state; clear-filters restores all 3;
+  sort by name A-Z → Buddy,Luna,Max; favorite toggles persist across reload, then
+  revert; detail modal → apply flow submits and success modal shows a real Mongo
+  `_id` + status Pending; `GET /adoptions/my` lists the record back (then deleted
+  via admin token to restore the demo state); duplicate-pending attempt surfaces
+  the backend message "You already have a pending adoption request for this pet."
+  inline; non-admin PUT and DELETE on `/adoptions/:id` → `403 "Access denied.
+  Admin only."`; dark mode applies (bg rgb(23,21,35)); 390px viewport → 0px
+  horizontal overflow + single-column grid; heart `aria-label "Favorite <name>"`.
 - **Objective:** report cards grid, filters, status badges, create/edit/delete (image
   upload).
 - **Existing source files:** `pages/lost-found.html`, `css/lost-found.css`, `js/lost-found.js`.

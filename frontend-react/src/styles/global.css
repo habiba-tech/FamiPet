@@ -15,6 +15,7 @@
 @import './reminders.css';
 @import './community.css';
 @import './lostFound.css';
+@import './adoption.css';
 
 /* =========================================================
    GLOBAL DESIGN TOKENS — mirrors docs/design.md §1.1

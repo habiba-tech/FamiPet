@@ -18,6 +18,7 @@ import { MyPetsPage } from '../pages/app/mypet/MyPetsPage'
 import { PetIdPage } from '../pages/app/petid/PetIdPage'
 import { RemindersPage } from '../pages/app/reminders/RemindersPage'
 import { LostFoundPage } from '../pages/app/lostFound/LostFoundPage'
+import { AdoptionPage } from '../pages/app/adoption/AdoptionPage'
 import { RedirectIfAuthed, RequireAdmin, RequireAuth } from './guards'
 
 // Route table follows migration.md §4 (Page Organization) — a 1:1 mirror of
@@ -59,7 +60,7 @@ export const routes: RouteObject[] = [
       { index: true, element: <Navigate to="/app/dashboard" replace /> },
       { path: 'dashboard', element: <DashboardPage /> },
       { path: 'mypet', element: <MyPetsPage /> },
-      { path: 'adoption', element: <PageStub title="Adoption" /> },
+      { path: 'adoption', element: <AdoptionPage /> },
       { path: 'health', element: <HealthPage /> },
       { path: 'appointments', element: <AppointmentsPage /> },
       { path: 'reminders', element: <RemindersPage /> },
