@@ -12,6 +12,7 @@
 @import './petid.css';
 @import './health.css';
 @import './appointments.css';
+@import './reminders.css';
 
 /* =========================================================
    GLOBAL DESIGN TOKENS — mirrors docs/design.md §1.1

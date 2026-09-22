@@ -225,7 +225,7 @@ export function ActivitySection({ items }: { items: ActivityItem[] | null }) {
   )
 }
 
-function isToday(d?: string) {
+function isToday(d?: string | Date | null) {
   return fmtDate(d) === fmtDate(new Date())
 }
 
