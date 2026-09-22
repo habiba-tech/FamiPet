@@ -197,7 +197,7 @@ tree verified.
 | 19    | Pet Breeds                     | [x]    | `526f78e`    |
 | 20    | Settings                       | [x]    | `ed4d6cb`   |
 | 21    | Admin panel                    | [x]    | `d18c336`   |
-| 22    | AI / PetGPT (redesign)         | [x]    | (this push)  |
+| 22    | AI / PetGPT (redesign)         | [x]    | `d26e955`    |
 | 23    | API integration layer          | [ ]    | —            |
 | 24    | Auth/state management          | [ ]    | —            |
 | 25    | UI/UX completion & stabilization| [ ]    | —            |
