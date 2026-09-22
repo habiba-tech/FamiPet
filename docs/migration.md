@@ -194,7 +194,7 @@ tree verified.
 | 16    | Community                      | [x]    | —            |
 | 17    | Favorites                      | [ ]    | —            |
 | 18    | Adoption                       | [ ]    | —            |
-| 19    | Lost & Found                   | [ ]    | —            |
+| 19    | Lost & Found                   | [x]    | —            |
 | 20    | AI/PetGPT                      | [ ]    | —            |
 | 21    | Admin panel                    | [ ]    | —            |
 | 22    | API integration layer          | [ ]    | —            |
@@ -211,8 +211,9 @@ Status legend: `[ ]` not started · `[~]` in progress · `[x]` completed and pus
 Renumbering note: the current roadmap executes **Community as Phase 15**, because the
 Notifications sprint (plan §15) was delivered incrementally inside Phases 10–14
 (shared `NotificationBell`/`NotificationPanel`, `useNotifications`, `api/notifications.ts`
-— consumed by Dashboard, Health, Appointments, and now Community). The phase sections
-below keep the original plan numbering (Notifications §15, Community §16) for traceability.
+— consumed by Dashboard, Health, Appointments, and now Community), and **Lost & Found
+as Phase 16**. The phase sections below keep the original plan numbering (Notifications
+§15, Community §16, Lost & Found §19) for traceability.
 
 ### Stabilization note (2026-09-22, migrated pages only)
 
@@ -1039,6 +1040,72 @@ lint (`oxlint`) + `tsc -b && vite build` pass. Live-API + ownership-isolation
 - **Verification:** list/create/edit/delete with real DB; photo upload.
 - **Completion criteria:** lost & found lifecycle parity.
 - **Rollback/safety:** isolated.
+
+  Implemented (commit + push, roadmap **Phase 16 — Lost & Found** — see renumbering
+  note under Phase Status):
+  `src/pages/app/lostFound/{LostFoundPage,ReportCard,ReportFormModal,DetailsModal}.tsx` +
+  `lostFoundBase.ts` (`FILTER_TABS`/`TYPE_OPTIONS`/`LOCATION_OPTIONS`/`SORT_OPTIONS`,
+  `assetUrl`, `titleCaseGender`, `normalizeLocation`, `formatDate` (en-IN "3 Sep 2026"),
+  `toReportView` incl. owner flag from populated `user._id`, `reportSearchText`) +
+  `src/api/lostFound.ts` (typed `GET /lost-found`, `POST`/`PUT` with FormData `image`
+  via the existing `apiRequest` multipart path, `DELETE /:id`) +
+  `src/styles/lostFound.css` scoped under `.lostfound-page`, imported in `global.css`.
+  Route `/app/lost-found` now renders `LostFoundPage` (was `PageStub`); the sidebar
+  already listed Lost & Found (`Icon.tsx` already had `mars`/`venus`/`ellipsis`/`pen`).
+  Surface: header (title + search + real notification bell/panel — no fake "3" like
+  Vanilla's), hero (`FIND • REUNITE • CARE`, animated `petimg.png` with the radial mask,
+  Lost/Found report cards), filter bar (All/Lost Pets/Found Pets tabs, type/location/
+  sort selects), 4-up report-card grid, report modal (create + edit; real multer photo
+  upload with preview, inline backend errors), details modal (meta, location, date,
+  description, contact person with Call `tel:` / Message `mailto:`), own-report 3-dot
+  menu (Edit/Delete), no-results + Clear Filters, help tip, page toast, loading/error +
+  Retry states.
+  Accepted deltas (AGENTS §5 — no fabricated data; the pattern established in Phases
+  10–16):
+  (1) Grid renders real `GET /lost-found` reports only. Vanilla shipped 4 static demo
+  cards that its JS replaced on load; here loading shows
+  a neutral spinner state and an empty grid shows the genuine "No pets found" empty
+  state.
+  (2) Notification bell uses real `GET /notifications` + unread badge, not Vanilla's
+  hardcoded "3"/fake panel (shared panel, as Community).
+  (3) Photo upload goes through the backend's multer path (FormData `image` → stored
+  under `/uploads`, absolute URL returned) instead of Vanilla's JSON `images:
+  [base64 dataURL]` — the same genuine upload route Phase 15's compose modal uses.
+  (4) Edit + Delete added (the Vanilla page had no such UI, but the phase objective
+  requires CRUD and the backend exposes owner-only PUT / owner-or-admin DELETE). The
+  3-dot menu renders only on the user's own reports (`user._id === currentUser.id`);
+  the backend still enforces 403 on foreign reports.
+  (5) Email and Age fields dropped from the report form: the backend LostFound model
+  has no `email`/`age` fields and Vanilla collected but never sent them (Phase 9/12
+  precedent). The card's middle meta slot shows `breed || "Not specified"` — Vanilla
+  labeled that slot "age" but it always rendered the breed (no backend age field).
+  (6) Backend errors render inline in the form; feedback uses the page toast +
+  `window.confirm` for delete (Phase 10–14 convention); the details "not available"
+  Call/Message guards keep the Vanilla `alert()` messages.
+  (7) Dark mode added (the Vanilla lost-found CSS had none) following the verified
+  reminders/community scoped blocks (`#171523` bg, `#211e30`/`#332e45` surfaces,
+  `#f5f2ff`/`#b7b0c9` text); responsive 1200/950/650 breakpoints ported from Vanilla.
+  (8) Edit photo notes: `PUT /:id` appends a newly uploaded photo to `images[]`, so
+  the card keeps showing the original `images[0]` unless a new photo is added — the
+  form labels this ("choose a file to add another"). Backend contract unchanged.
+  Verified live (backend running; DB has the seeded reports — `user@example.com` /
+  `user123`): `npm run lint` (only pre-existing AuthContext/VerifyEmailPage warnings)
+  + `tsc -b && vite build` pass. Backend flow exercised against the real DB via a
+  throwaway second verified user (created directly in Mongo because register requires
+  email verification and the SMTP path is absent): `GET /api/lost-found` → 200 (user
+  populated, `createdAt desc`); `POST` (FormData + PNG via `File`) → 201, stored image
+  returned as `http://localhost:5000/uploads/…` (absolute — `assetUrl` passes absolute
+  URLs through); `POST` no-image found report → 201; missing required fields → 400
+  "Type, pet name, species, description, location, date..."; owner `PUT` → 200 and
+  persisted; foreign edit/delete → 403; invalid id → 400; missing report/delete →
+  404; owner delete → 200. Test reports, uploaded files, and the throwaway user were
+  removed afterward (feed restored to the 2 seeded reports, `uploads/` empty). Note:
+  the backend's delete removes the DB record but leaves the uploaded file on disk
+  (existing behavior, not changed in this frontend phase). Headless browser/screenshot
+  automation was not available in this session, so the 390px-mobile + dark-mode visual
+  checks were not run programmatically — CSS follows the verified
+  reminders/community scoped patterns and the notifications panel rules were ported
+  from those verified files.
 
 ### Phase 20 — AI / PetGPT
 - **Objective:** chat UI (bubbles, typing indicator, quick suggests, find-a-vet modal)

@@ -17,6 +17,7 @@ import { CommunityPage } from '../pages/app/community/CommunityPage'
 import { MyPetsPage } from '../pages/app/mypet/MyPetsPage'
 import { PetIdPage } from '../pages/app/petid/PetIdPage'
 import { RemindersPage } from '../pages/app/reminders/RemindersPage'
+import { LostFoundPage } from '../pages/app/lostFound/LostFoundPage'
 import { RedirectIfAuthed, RequireAdmin, RequireAuth } from './guards'
 
 // Route table follows migration.md §4 (Page Organization) — a 1:1 mirror of
@@ -63,7 +64,7 @@ export const routes: RouteObject[] = [
       { path: 'appointments', element: <AppointmentsPage /> },
       { path: 'reminders', element: <RemindersPage /> },
       { path: 'community', element: <CommunityPage /> },
-      { path: 'lost-found', element: <PageStub title="Lost & Found" /> },
+      { path: 'lost-found', element: <LostFoundPage /> },
       { path: 'petgpt', element: <PageStub title="PetGPT" /> },
       { path: 'breeds', element: <PageStub title="Pet Breeds" /> },
       { path: 'breeds/:id', element: <PageStub title="Breed Details" /> },
