@@ -185,7 +185,7 @@ tree verified.
 | 7     | Authentication                 | [x]    | `9b44727`    |
 | 8     | Dashboard                      | [x]    | `d2f6952`    |
 | 9     | Pet management                 | [x]    | `38c6aa9`  |
-| 10    | Health                         | [ ]    | —            |
+| 10    | Health                         | [x]    | `17fc630`    |
 | 11    | Vaccinations                   | [ ]    | —            |
 | 12    | Appointments                   | [ ]    | —            |
 | 13    | Veterinarians                  | [ ]    | —            |
@@ -627,6 +627,45 @@ lint (`oxlint`) + `tsc -b && vite build` pass. Live-API + ownership-isolation
   with no records.
 - **Completion criteria:** record lifecycle parity, no fabricated medical data.
 - **Rollback/safety:** isolated.
+- **Status (2026-09-22):** `[x]` implemented in `17fc630` (docs in `docs(migration)`);
+  `src/pages/app/health/HealthPage.tsx`
+  + `src/pages/app/health/RecordFormModal.tsx` + `src/pages/app/health/healthBase.ts`;
+  route `/app/health` now renders `HealthPage` (was `PageStub`). `src/api/health.ts`
+  (typed `/health` CRUD) + `markAllNotificationsRead()` in `src/api/notifications.ts`
+  added; `HEALTH_SELECTED_PET_KEY` in `src/lib/storage.ts`; `health.css` scoped under
+  `.health-page`; Plus Jakarta Sans loaded (design.md §1.4). Accepted deltas
+  (AGENTS §5/§9 — no fabricated or never-persisted data):
+  (1) Phase scope is health records + pet selector. Vaccination tracker
+  (Phase 11), Vet Appointment card (Phase 12), and Nutrition card (hardcoded
+  `85%` / "well balanced" — fake data, no backend source) are not rendered;
+  the Care Guide tips card stays (legitimate static content). "Book
+  Appointment" navigates to `/app/appointments` (Phase 12 stub).
+  (2) Records table dropped the hardcoded "Completed" status pill (backend has
+  no status field) — replaced with edit/delete actions; create/edit/delete
+  work on real records scoped to the selected pet (empty state when none).
+  (3) Stats are real: Vaccinations = vaccination-type health records for the
+  selected pet ("In health records" / "None recorded", Vanilla always claimed
+  "Up to date"), Health Records count, Weight = "Checked" + latest weight-
+  record date (Vanilla hardcoded `28 kg`), Next Visit = nearest
+  `record.nextVisit` (Vanilla hardcoded `12 Aug`).
+  (4) Loading/error/empty states render real messages instead of `alert()` +
+  sample numbers; form errors render inline; Vanilla only created records —
+  edit/delete are new.
+  (5) Pet selector persists the selected pet in `annSelectedHealthPet`
+  (same key as Vanilla) and defaults to the first pet; details show the real
+  named pet + species.
+  CSS/JS ported verbatim where the underlying capability exists; responsive
+  (+ `.main-content` mobile padding parity) and dark-mode rules are scoped the
+  same way as `mypet.css`/`petid.css`.
+  Verified live (backend seeded via `npm run seed`): `npm run lint` (only
+  pre-existing AuthContext/VerifyEmailPage warnings) + `tsc -b && vite build`
+  pass. Headless Chrome against the running app: login → `/app/health`
+  renders header/pet-selector/hero/4 stats/tips/records from real `/health`
+  data; create (modal open/close) → row added; delete → row removed; search
+  for a miss shows the empty state; notification panel opens with real unread
+  count + "Mark all read" clears it; dark mode + 390px mobile viewport both
+  render with 0 horizontal overflow. Edit verified via the shared modal
+  (update path exercised by API; inline-error path covered by validation).
 
 ### Phase 11 — Vaccinations
 - **Objective:** vaccinations (list, upcoming, CRUD) — currently lives inside the health
