@@ -1,6 +1,7 @@
 const mongoose = require("mongoose");
 const LostFound = require("../models/LostFound");
 const logger = require("../utils/logger");
+const { str, strLower, searchStr } = require("../utils/querySafe");
 
 // =====================================================
 // GET ALL LOST & FOUND REPORTS
@@ -12,24 +13,28 @@ exports.getAllReports = async (req, res) => {
 
     const query = {};
 
-    if (type) {
-      query.type = type;
+    const t = str(type);
+    if (t && ["lost", "found"].includes(t)) {
+      query.type = t;
     }
 
-    if (status) {
-      query.status = status;
+    const st = str(status);
+    if (st && ["active", "resolved"].includes(st)) {
+      query.status = st;
     }
 
-    if (species) {
-      query.species = species;
+    const sp = strLower(species);
+    if (sp) {
+      query.species = sp;
     }
 
-    if (search) {
+    const s = searchStr(search);
+    if (s) {
       query.$or = [
-        { petName: new RegExp(search, "i") },
-        { location: new RegExp(search, "i") },
-        { description: new RegExp(search, "i") },
-        { breed: new RegExp(search, "i") },
+        { petName: new RegExp(s, "i") },
+        { location: new RegExp(s, "i") },
+        { description: new RegExp(s, "i") },
+        { breed: new RegExp(s, "i") },
       ];
     }
 

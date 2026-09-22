@@ -61,6 +61,15 @@ exports.createAppointment = async (req, res) => {
       return res.status(400).json({ success: false, message: "Invalid appointment date." });
     }
 
+    const startOfToday = new Date();
+    startOfToday.setHours(0, 0, 0, 0);
+    if (appointmentDate < startOfToday) {
+      return res.status(400).json({
+        success: false,
+        message: "Appointment date cannot be in the past.",
+      });
+    }
+
     const existing = await Appointment.findOne({
       veterinarian,
       date: appointmentDate,
@@ -138,6 +147,10 @@ exports.createAppointment = async (req, res) => {
 
 exports.updateAppointment = async (req, res) => {
   try {
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+      return res.status(400).json({ success: false, message: "Invalid appointment ID." });
+    }
+
     const appointment = await Appointment.findOne({
       _id: req.params.id,
       user: req.user._id,
@@ -154,6 +167,36 @@ exports.updateAppointment = async (req, res) => {
     allowed.forEach((field) => {
       if (req.body[field] !== undefined) appointment[field] = req.body[field];
     });
+
+    if (req.body.date !== undefined || req.body.time !== undefined) {
+      const newDate = new Date(appointment.date);
+      if (Number.isNaN(newDate.getTime())) {
+        return res.status(400).json({ success: false, message: "Invalid appointment date." });
+      }
+      const startOfToday = new Date();
+      startOfToday.setHours(0, 0, 0, 0);
+      if (newDate < startOfToday) {
+        return res.status(400).json({
+          success: false,
+          message: "Appointment date cannot be in the past.",
+        });
+      }
+
+      const conflict = await Appointment.findOne({
+        _id: { $ne: appointment._id },
+        veterinarian: appointment.veterinarian,
+        date: newDate,
+        time: appointment.time,
+        status: { $in: ["pending", "confirmed"] },
+      });
+
+      if (conflict) {
+        return res.status(400).json({
+          success: false,
+          message: "This veterinarian is already booked at this time.",
+        });
+      }
+    }
 
     await appointment.save();
 
@@ -197,6 +240,10 @@ exports.updateAppointment = async (req, res) => {
 
 exports.deleteAppointment = async (req, res) => {
   try {
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+      return res.status(400).json({ success: false, message: "Invalid appointment ID." });
+    }
+
     const appointment = await Appointment.findOne({
       _id: req.params.id,
       user: req.user._id,

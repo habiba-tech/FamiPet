@@ -28,6 +28,10 @@ exports.createReminder = async (req, res) => {
       });
     }
 
+    if (pet && !mongoose.Types.ObjectId.isValid(pet)) {
+      return res.status(400).json({ success: false, message: "Invalid pet ID." });
+    }
+
     if (pet) {
       const petExists = await Pet.findOne({ _id: pet, owner: req.user._id });
       if (!petExists) {
@@ -39,7 +43,13 @@ exports.createReminder = async (req, res) => {
     }
 
     const reminder = await Reminder.create({
-      ...req.body,
+      pet: pet || undefined,
+      title,
+      type,
+      date,
+      time,
+      description: req.body.description || "",
+      frequency: req.body.frequency || "once",
       user: req.user._id,
     });
 
@@ -68,9 +78,10 @@ exports.updateReminder = async (req, res) => {
       return res.status(404).json({ success: false, message: "Reminder not found." });
     }
 
-    delete req.body.user;
-    delete req.body.pet;
-    Object.assign(reminder, req.body);
+    const allowed = ["title", "type", "description", "date", "time", "frequency"];
+    allowed.forEach((field) => {
+      if (req.body[field] !== undefined) reminder[field] = req.body[field];
+    });
     await reminder.save();
 
     res.json({

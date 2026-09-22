@@ -142,6 +142,15 @@ exports.updateAdoptionStatus = async (req, res) => {
       });
     }
 
+    // Approved requests are terminal: the pet is marked adopted and
+    // cannot be rolled back to Pending/Rejected.
+    if (adoption.status === "Approved" && status !== "Approved") {
+      return res.status(400).json({
+        success: false,
+        message: "An already approved adoption request cannot be changed.",
+      });
+    }
+
     const pet = adoption.pet;
 
     if (status === "Approved") {

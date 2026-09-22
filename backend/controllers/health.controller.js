@@ -46,6 +46,10 @@ exports.createHealthRecord = async (req, res) => {
       });
     }
 
+    if (!mongoose.Types.ObjectId.isValid(pet)) {
+      return res.status(400).json({ success: false, message: "Invalid pet ID." });
+    }
+
     const petExists = await Pet.findOne({ _id: pet, owner: req.user._id });
     if (!petExists) {
       return res.status(404).json({
@@ -55,7 +59,15 @@ exports.createHealthRecord = async (req, res) => {
     }
 
     const record = await HealthRecord.create({
-      ...req.body,
+      pet,
+      diagnosis,
+      treatment: req.body.treatment || "",
+      doctor: req.body.doctor || "",
+      hospital: req.body.hospital || "",
+      prescription: req.body.prescription || "",
+      visitDate: req.body.visitDate,
+      nextVisit: req.body.nextVisit,
+      notes: req.body.notes || "",
       user: req.user._id,
     });
 
@@ -71,6 +83,10 @@ exports.createHealthRecord = async (req, res) => {
 
 exports.updateHealthRecord = async (req, res) => {
   try {
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+      return res.status(400).json({ success: false, message: "Invalid health record ID." });
+    }
+
     const record = await HealthRecord.findOne({
       _id: req.params.id,
       user: req.user._id,
@@ -80,9 +96,10 @@ exports.updateHealthRecord = async (req, res) => {
       return res.status(404).json({ success: false, message: "Health record not found." });
     }
 
-    ["user", "pet"].forEach((field) => delete req.body[field]);
-
-    Object.assign(record, req.body);
+    const allowed = ["diagnosis", "treatment", "doctor", "hospital", "prescription", "visitDate", "nextVisit", "notes"];
+    allowed.forEach((field) => {
+      if (req.body[field] !== undefined) record[field] = req.body[field];
+    });
     await record.save();
 
     res.json({
@@ -97,6 +114,10 @@ exports.updateHealthRecord = async (req, res) => {
 
 exports.deleteHealthRecord = async (req, res) => {
   try {
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+      return res.status(400).json({ success: false, message: "Invalid health record ID." });
+    }
+
     const record = await HealthRecord.findOneAndDelete({
       _id: req.params.id,
       user: req.user._id,

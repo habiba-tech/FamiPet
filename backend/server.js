@@ -9,6 +9,15 @@ const path = require('path');
 require('dotenv').config();
 const logger = require('./utils/logger');
 
+// Map multer errors (no HTTP status attached) to a client-safe message.
+const multerErrorMessage = (err) => {
+  if (!err || err.name !== 'MulterError') return null;
+  if (err.code === 'LIMIT_FILE_SIZE') {
+    return 'File too large. Maximum allowed size is 5MB.';
+  }
+  return err.message || 'File upload failed.';
+};
+
 // Ensure the local uploads directory exists before multer writes to it.
 const UPLOADS_DIR = path.join(__dirname, 'uploads');
 if (!fs.existsSync(UPLOADS_DIR)) {
@@ -42,8 +51,15 @@ app.use(cors({
   },
   credentials: true
 }));
-app.use(express.json({ limit: '50mb' }));
-app.use(express.urlencoded({ extended: true, limit: '50mb' }));
+app.use(express.json({ limit: '5mb' }));
+app.use(express.urlencoded({ extended: true, limit: '5mb' }));
+
+// Request logging with URL redaction: reset / verify tokens are
+// passed in the URL path as long hex strings and must never be
+// written to the logs.
+morgan.token('url', (req) =>
+  String(req.originalUrl || req.url || '').replace(/[a-f0-9]{32,}/gi, '[REDACTED]')
+);
 app.use(morgan('dev'));
 
 // Static files
@@ -86,12 +102,32 @@ app.get("/",(req,res)=>{
   });
 });
 
-// Error Handler
+// Error Handler — centralized, production-safe. Logs the full error
+// server-side but never leaks stack traces / internal details to the
+// client: only 4xx messages (which we author ourselves) are echoed.
 app.use((err, req, res, _next) => {
-  logger.error(err.stack);
-  res.status(err.status || 500).json({
+  logger.error(err.stack || err.message || err);
+
+  // Multer file-upload errors carry a code but no HTTP status.
+  const multerMessage = multerErrorMessage(err);
+
+  if (multerMessage) {
+    return res.status(413).json({
+      success: false,
+      message: multerMessage,
+    });
+  }
+
+  const status = err.status || 500;
+
+  const message =
+    status >= 400 && status < 500 && err.message
+      ? err.message
+      : 'Internal Server Error';
+
+  res.status(status).json({
     success: false,
-    message: err.message || 'Internal Server Error'
+    message,
   });
 });
 

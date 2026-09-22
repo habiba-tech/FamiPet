@@ -1,6 +1,7 @@
 const mongoose = require("mongoose");
 const Veterinarian = require("../models/Veterinarian");
 const logger = require("../utils/logger");
+const { str, searchStr } = require("../utils/querySafe");
 
 // ========================================
 // Get All Veterinarians
@@ -13,20 +14,23 @@ exports.getAllVeterinarians = async (req, res) => {
       isActive: true,
     };
 
-    if (search) {
+    const s = searchStr(search);
+    if (s) {
       query.$or = [
-        { name: new RegExp(search, "i") },
-        { clinic: new RegExp(search, "i") },
-        { city: new RegExp(search, "i") },
+        { name: new RegExp(s, "i") },
+        { clinic: new RegExp(s, "i") },
+        { city: new RegExp(s, "i") },
       ];
     }
 
-    if (specialization) {
-      query.specialization = new RegExp(specialization, "i");
+    const spec = str(specialization);
+    if (spec) {
+      query.specialization = new RegExp(searchStr(specialization), "i");
     }
 
-    if (city) {
-      query.city = new RegExp(city, "i");
+    const c = str(city);
+    if (c) {
+      query.city = new RegExp(searchStr(city), "i");
     }
 
     const veterinarians = await Veterinarian.find(query)
@@ -150,9 +154,15 @@ exports.updateVeterinarian = async (req, res) => {
       return res.status(400).json({ success: false, message: "Invalid veterinarian ID." });
     }
 
+    const allowed = ["name", "email", "phone", "specialization", "qualifications", "experience", "clinic", "address", "city", "image", "rating", "availability", "isActive", "consultationFee"];
+    const payload = {};
+    allowed.forEach((field) => {
+      if (req.body[field] !== undefined) payload[field] = req.body[field];
+    });
+
     const veterinarian = await Veterinarian.findByIdAndUpdate(
       req.params.id,
-      req.body,
+      payload,
       {
         new: true,
         runValidators: true,

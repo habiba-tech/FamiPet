@@ -3,6 +3,7 @@ const Pet = require("../models/Pet");
 const Breed = require("../models/Breed");
 const QRCode = require("qrcode");
 const logger = require("../utils/logger");
+const { str, strLower, searchStr } = require("../utils/querySafe");
 
 // ==========================
 // Get All Pets
@@ -13,26 +14,30 @@ exports.getAllPets = async (req, res) => {
 
     const query = {};
 
-    if (species) {
-      query.species = species;
+    const sp = strLower(species);
+    if (sp && ["dog", "cat", "bird", "rabbit", "fish", "other"].includes(sp)) {
+      query.species = sp;
     }
 
     if (breed && mongoose.Types.ObjectId.isValid(breed)) {
       query.breed = breed;
     }
 
-    if (gender) {
-      query.gender = gender;
+    const g = strLower(gender);
+    if (g && ["male", "female"].includes(g)) {
+      query.gender = g;
     }
 
-    if (status) {
-      query.status = status;
+    const st = str(status);
+    if (st && ["available", "adopted", "lost", "inactive"].includes(st)) {
+      query.status = st;
     }
 
-    if (search) {
+    const s = searchStr(search);
+    if (s) {
       query.$or = [
-        { name: new RegExp(search, "i") },
-        { description: new RegExp(search, "i") },
+        { name: new RegExp(s, "i") },
+        { description: new RegExp(s, "i") },
       ];
     }
 
@@ -237,6 +242,13 @@ exports.createPet = async (req, res) => {
 // ==========================
 exports.updatePet = async (req, res) => {
   try {
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid pet ID.",
+      });
+    }
+
     const pet = await Pet.findById(req.params.id);
 
     if (!pet) {
