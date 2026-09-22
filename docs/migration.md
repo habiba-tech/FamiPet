@@ -188,7 +188,7 @@ tree verified.
 | 10    | Health                         | [x]    | `17fc630`    |
 | 11    | Vaccinations                   | [x]    | `3d10701`  |
 | 12    | Appointments                   | [x]    | `6876e43`  |
-| 13    | Veterinarians                  | [x]    | `.`          |
+| 13    | Veterinarians                  | [x]    | `721f03f`  |
 | 14    | Reminders                      | [ ]    | —            |
 | 15    | Notifications                  | [ ]    | —            |
 | 16    | Community                      | [ ]    | —            |
