@@ -13,6 +13,7 @@ import { NotFound } from '../pages/NotFound'
 import { DashboardPage } from '../pages/app/dashboard/DashboardPage'
 import { HealthPage } from '../pages/app/health/HealthPage'
 import { AppointmentsPage } from '../pages/app/appointments/AppointmentsPage'
+import { CommunityPage } from '../pages/app/community/CommunityPage'
 import { MyPetsPage } from '../pages/app/mypet/MyPetsPage'
 import { PetIdPage } from '../pages/app/petid/PetIdPage'
 import { RemindersPage } from '../pages/app/reminders/RemindersPage'
@@ -61,7 +62,7 @@ export const routes: RouteObject[] = [
       { path: 'health', element: <HealthPage /> },
       { path: 'appointments', element: <AppointmentsPage /> },
       { path: 'reminders', element: <RemindersPage /> },
-      { path: 'community', element: <PageStub title="Community" /> },
+      { path: 'community', element: <CommunityPage /> },
       { path: 'lost-found', element: <PageStub title="Lost & Found" /> },
       { path: 'petgpt', element: <PageStub title="PetGPT" /> },
       { path: 'breeds', element: <PageStub title="Pet Breeds" /> },

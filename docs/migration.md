@@ -190,8 +190,8 @@ tree verified.
 | 12    | Appointments                   | [x]    | `6876e43`  |
 | 13    | Veterinarians                  | [x]    | `721f03f`  |
 | 14    | Reminders                      | [x]    | —            |
-| 15    | Notifications                  | [ ]    | —            |
-| 16    | Community                      | [ ]    | —            |
+| 15    | Notifications                  | [x]    | Phases 10–14 |
+| 16    | Community                      | [x]    | —            |
 | 17    | Favorites                      | [ ]    | —            |
 | 18    | Adoption                       | [ ]    | —            |
 | 19    | Lost & Found                   | [ ]    | —            |
@@ -207,6 +207,12 @@ tree verified.
 
 Status legend: `[ ]` not started · `[~]` in progress · `[x]` completed and pushed ·
 `[-]` intentionally skipped · `[!]` blocked/problem.
+
+Renumbering note: the current roadmap executes **Community as Phase 15**, because the
+Notifications sprint (plan §15) was delivered incrementally inside Phases 10–14
+(shared `NotificationBell`/`NotificationPanel`, `useNotifications`, `api/notifications.ts`
+— consumed by Dashboard, Health, Appointments, and now Community). The phase sections
+below keep the original plan numbering (Notifications §15, Community §16) for traceability.
 
 ### Stabilization note (2026-09-22, migrated pages only)
 
@@ -895,6 +901,16 @@ lint (`oxlint`) + `tsc -b && vite build` pass. Live-API + ownership-isolation
 - **Completion criteria:** notification lifecycle parity + no dupes.
 - **Rollback/safety:** hook swap only.
 
+  Implemented within Phases 10–14 rather than as a standalone sprint: shared
+  `components/shared/NotificationBell.tsx` + `NotificationPanel.tsx` (+ `Badge`),
+  `hooks/useNotifications.ts`, and `src/api/notifications.ts` (typed
+  `GET /notifications`, `GET /notifications/unread`,
+  `PUT /notifications/:id/read`, `PUT /notifications/read-all`,
+  `DELETE /notifications/:id`). Consumed by Dashboard (Phase 8), Health (Phase 10),
+  Appointments (Phase 12), and the Community page (roadmap Phase 15, see the
+  renumbering note under Phase Status). See also the existing Phase 12 §3 delta:
+  the bell loads real `/notifications` with an unread badge.
+
 ### Phase 16 — Community
 - **Objective:** community feed (posts, image upload, like, comments, delete).
 - **Existing source files:** `pages/community.html`, `css/community.css`, `js/community.js`.
@@ -908,6 +924,74 @@ lint (`oxlint`) + `tsc -b && vite build` pass. Live-API + ownership-isolation
 - **Verification:** post with image, like toggle, comments, delete-own-post E2E.
 - **Completion criteria:** feed parity with real data.
 - **Rollback/safety:** isolated.
+
+  Implemented (commit + push, roadmap **Phase 15 — Community** — see renumbering note
+  under Phase Status):
+  `src/pages/app/community/{CommunityPage,PostCard,ComposePostModal,CommentsModal}.tsx` +
+  `communityBase.ts` (category↔type maps, `toPostView`, `relativeTime`, `assetUrl`,
+  storage helpers) + `src/api/community.ts` (typed `GET/POST /community`,
+  `DELETE /community/:id`, `POST /community/:id/like`, `POST /community/:id/comments`;
+  compose sends FormData via the existing `apiRequest` path) +
+  `src/styles/community.css` scoped under `.community-page` and imported in `global.css`.
+  Route `/app/community` now renders `CommunityPage` (was `PageStub`); the sidebar
+  already listed Community under the ported layout. `Icon.tsx` added `image`/`share`/
+  `face-frown`/`circle-question`.
+  Surface: header (title + search + notification bell/panel · New Post), 4 real stat
+  cards (Members = unique authors, Posts = total, Discussions/Stories = mapped types),
+  create-post toolbar (Photo/Question/Story buttons + real logged-in avatar), 5 tabs
+  (All/General/Discussions/Questions/Stories + mapped category chips), post feed
+  (avatar, type label, relative time, title/content pre-wrap, image, tags, like /
+  comment / share footer), right sidebar (groups Join/Leave + Helpful Tips static
+  card), compose modal (type select, title, content + inline error, image upload +
+  preview + remove, publish), comments modal (list, empty state, Enter-to-send
+  composer), loading / empty ("No matching posts found.") / error + Retry states.
+  Accepted deltas (AGENTS §5 — no fabricated data; identical to how Phases 10–14
+  handled Vanilla hard-coded data):
+  (1) Like uses the backend's real `POST /community/:id/like` (Vanilla called `PUT`,
+  which the backend never served) → toggles `likesCount`/`liked` from the response.
+  (2) Stats are real (Vanilla hard-coded 1,248 Members / 24 Posts / 156 Discussions /
+  89 Stories); Members = distinct `user._id`s on the fetched page, Discussions /
+  Stories = posts whose mapped type is discussion/story (the Cat-type → "general"
+  quirk of the shared `CATEGORY_TO_TYPE` map is preserved verbatim, so the Questions
+  tab stays empty for the backend's categories by design, as in Vanilla).
+  (3) The bell is real (`GET /notifications` + unread badge), not Vanilla's fake "3";
+  the same shared panel as elsewhere in the app.
+  (4) "Report Post" is dropped: in Vanilla it only showed a no-op toast over the
+  backend-less modal; there is no backend endpoint for it. The more-menu therefore
+  exists only on the user's own posts and offers Delete (backed by `DELETE /:id`;
+  like/comments stay open to everyone).
+  (5) Compose toolbar + modal header use the signed-in user from `getUser()`
+  (Vanilla hard-coded "Mahek Shaikh"); no post-edit UI and no per-comment delete UI
+  (Vanilla has neither — the backend's PUT and comment-delete routes stay unused).
+  (6) Feedback uses the page toast + `window.confirm` (Phase 10–14 convention) in
+  place of Vanilla's `ann-toast`/`ann-confirm`; search runs on a `postSearchText`
+  (user/title/content/type-label/category label) instead of DOM textContent.
+  (7) Share counts and group membership persist in the Vanilla localStorage keys
+  (`annCommunityShares`, `annCommunityGroups`); Groups + Helpful Tips cards are static
+  content with no backend source (preserved as-is, Join/Leave toggles membership).
+  Verified live (backend running; DB seeded via `utils/seedData.js` — `user@example.com`
+  / `user123`):
+  `npm run lint` (only the pre-existing AuthContext/VerifyEmailPage warnings) +
+  `tsc -b && vite build` pass. Backend flow exercised against the real DB: login →
+  `GET /api/community` → 200 with the 3 seeded posts (user populated, likes/comments
+  arrays) → `GET ?category=health` filters to 1 → `POST` (FormData, text) creates →
+  `POST` (FormData, `image` file) creates with an absolute `/uploads/…` URL that
+  serves `200` (required creating the missing `backend/uploads/` dir — the backend's
+  multer writes there but does not `mkdir`, and the checkout had none) → `POST
+  /:id/like` toggles `likesCount` 0→1→0 / `liked` → `POST /:id/comments` appends →
+  `DELETE /:id` removes own post. Error cases: create without token → `401`; missing
+  title/content → `400 "Title and content are required."`; delete another user's post
+  → `403 "You are not allowed to delete this post."`; like without token → `401`.
+  Malformed ObjectId currently yields a `500` from the backend's controller-level
+  try/catch (every `backend/controllers/*.controller.js` uses this convention, so the
+  `errorHandler` CastError→404 branch never runs) — not changed here, since the React
+  pages only ever send ids taken from the feed. All test records and uploaded files
+  were removed afterward (feed restored to the 3 seeded posts, `uploads/` empty).
+  Headless browser/screenshot automation was not available in this session, so the
+  390px-mobile and dark-mode visual checks were not re-run programmatically (CSS
+  follows the verified appointments/health/reminders scoped patterns; the dark-mode
+  blocks mirror those files' verified selectors, and the notifications panel rules
+  were ported from `appointments.css`).
 
 ### Phase 17 — Favorites
 - **Objective:** favorite toggle on pet surfaces (dashboard pet list, adoption cards, my
