@@ -171,7 +171,7 @@ export function AppointmentSection({
             </div>
             <div className="appointment-details">
               <span className="appointment-label">{String(appointment.type || 'checkup').toUpperCase()}</span>
-              <h3>{appointment.pet?.name || 'Your Pet'}</h3>
+              <h3>{(typeof appointment.pet === 'object' && appointment.pet?.name) || 'Your Pet'}</h3>
               <div className="appointment-meta">
                 <span>
                   <Icon name="calendar" /> {fmtDate(appointment.date)}
@@ -182,7 +182,10 @@ export function AppointmentSection({
               </div>
             </div>
             <div className="appointment-pet">
-              <img src={petImage(appointment.pet)} alt={appointment.pet?.name || 'Your Pet'} />
+              <img
+                src={petImage(typeof appointment.pet === 'object' ? appointment.pet : undefined)}
+                alt={(typeof appointment.pet === 'object' && appointment.pet?.name) || 'Your Pet'}
+              />
             </div>
           </>
         )}

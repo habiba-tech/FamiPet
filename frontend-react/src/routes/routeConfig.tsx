@@ -12,6 +12,7 @@ import { PageStub } from '../pages/_stub/PageStub'
 import { NotFound } from '../pages/NotFound'
 import { DashboardPage } from '../pages/app/dashboard/DashboardPage'
 import { HealthPage } from '../pages/app/health/HealthPage'
+import { AppointmentsPage } from '../pages/app/appointments/AppointmentsPage'
 import { MyPetsPage } from '../pages/app/mypet/MyPetsPage'
 import { PetIdPage } from '../pages/app/petid/PetIdPage'
 import { RedirectIfAuthed, RequireAdmin, RequireAuth } from './guards'
@@ -57,7 +58,7 @@ export const routes: RouteObject[] = [
       { path: 'mypet', element: <MyPetsPage /> },
       { path: 'adoption', element: <PageStub title="Adoption" /> },
       { path: 'health', element: <HealthPage /> },
-      { path: 'appointments', element: <PageStub title="Appointments" /> },
+      { path: 'appointments', element: <AppointmentsPage /> },
       { path: 'reminders', element: <PageStub title="Reminders" /> },
       { path: 'community', element: <PageStub title="Community" /> },
       { path: 'lost-found', element: <PageStub title="Lost & Found" /> },
