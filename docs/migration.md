@@ -189,7 +189,7 @@ tree verified.
 | 11    | Vaccinations                   | [x]    | `3d10701`  |
 | 12    | Appointments                   | [x]    | `6876e43`  |
 | 13    | Veterinarians                  | [x]    | `721f03f`  |
-| 14    | Reminders                      | [ ]    | —            |
+| 14    | Reminders                      | [x]    | —            |
 | 15    | Notifications                  | [ ]    | —            |
 | 16    | Community                      | [ ]    | —            |
 | 17    | Favorites                      | [ ]    | —            |
@@ -833,6 +833,50 @@ lint (`oxlint`) + `tsc -b && vite build` pass. Live-API + ownership-isolation
 - **Verification:** CRUD + complete toggle E2E.
 - **Completion criteria:** reminder lifecycle parity.
 - **Rollback/safety:** isolated.
+
+  Implemented (commit + push under Phase 14):
+  `src/pages/app/reminders/{RemindersPage,ReminderFormModal}.tsx` +
+  `remindersBase.ts` (+ `src/api/reminders.ts` typed CRUD — `GET/POST /reminders`,
+  `PUT /reminders/:id`, `PUT /reminders/:id/complete`, `DELETE /reminders/:id`) +
+  `src/styles/reminders.css` scoped under `.reminders-page` and imported in
+  `global.css`. Route `/app/reminders` now renders `RemindersPage` (was `PageStub`);
+  `Icon.tsx` added `bell-off`/`scissors`/`ellipsis` and `bug`/`trash-2` aliases.
+  UI: top-bar (search + "Add Reminder"), 4 real stat cards (upcoming / completed /
+  overdue / total), upcoming list (view-all toggle, days chip, more-menu:
+  Mark Completed / Edit / Delete), number-keyed reminder calendar (prev/next month,
+  today ring, event-color dots + static 5-type legend), tips card,
+  add/edit modal (pet select, type select, date, time), plus loading/empty/error
+  states with Retry. Accepted deltas (AGENTS §5 — no fabricated data; Vanilla
+  `reminders.js` hard-coded data dropped where it has no backend source):
+  (1) Stats are real (Vanilla hard-coded 5/12/1/18 + fake "Next in 2 days"
+  placeholder). Upcoming = not-completed, completed = `isCompleted`, overdue =
+  not-completed with a past date, all = total; the upcoming stat's sub-line shows
+  the next due date ("Next in 3 days"/"Today"/"No upcoming reminders").
+  (2) Calendar starts at the current month (Vanilla hard-coded May 2025) and day
+  dots come from real reminders; the `.calendar-day.today` ring Vanilla's CSS
+  defined but JS never applied is now wired.
+  (3) Success uses the page toast instead of `alert()`; Mark Completed / Delete
+  reload from the API after the mutation (Vanilla only mutated local state, so
+  completion did not survive refresh). Delete keeps `window.confirm`
+  (HealthPage/AppointmentsPage parity); form errors render inline.
+  (4) The Vanilla pet free-text datalist becomes a select of the user's real pets
+  (AGENTS §3 — ownership-following); the backend still verifies pet ownership.
+  (5) No notification bell: the Vanilla page header has none (search + Add only),
+  matching the old surface exactly; the shared `NotificationBell` (Phase 15)
+  remains unused here as in Vanilla.
+  Verified live (backend running, seeded demo user `user@example.com`):
+  `npm run lint` (only the pre-existing AuthContext/VerifyEmailPage warnings) +
+  `tsc -b && vite build` pass. Backend flow exercised against real DB: login →
+  `GET /reminders` (3 seeded, pet populated) → `POST /reminders` (vaccination,
+  created) → appears in list → `PUT /:id/complete` (flips `isCompleted`) →
+  `PUT /:id` (type→grooming, time, reflected) → `DELETE` (removed); missing
+  required fields → `400 "Title, type, date and time are required."`; pet not
+  owned → `404 "Pet not found or not owned by you."`; malformed id → `404
+  "Invalid reminder ID."`. Test record was removed afterward, restoring the
+  prior 3-record state. Headless browser/screenshot automation was not available
+  in this session, so the 390px mobile and dark-mode visual checks were not
+  re-run programmatically (CSS follows the verified appointments/health scoped
+  pattern; dark-mode selectors mirror those files' verified blocks).
 
 ### Phase 15 — Notifications
 - **Objective:** bell + dropdown panel + unread/read/read-all + badge, replace dashboard
