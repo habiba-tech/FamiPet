@@ -5,7 +5,7 @@
 // (backend/ai/) and between that layer and vendors. Nothing
 // here depends on a specific vendor. Configuration is
 // environment-driven; per-user provider/key management is a
-// Phase 2 concern and builds on the shape below.
+// Phase 3 concern and builds on the shape below.
 // =========================================================
 
 const AI_CONFIG = Object.freeze({
@@ -17,6 +17,13 @@ const AI_CONFIG = Object.freeze({
   // Applies to every provider.
   timeoutMs: Number(process.env.PETGPT_TIMEOUT_MS) || 25000,
   maxQuestionLength: Number(process.env.PETGPT_MAX_QUESTION_LENGTH) || 2000,
+
+  // Conversation history cap (Phase 2): the number of prior
+  // user/assistant messages fed to the provider as context on
+  // each exchange. Bounded (20 x maxQuestionLength chars worst
+  // case); "do not send unbounded history". History never
+  // overrides the system prompt above.
+  maxHistoryMessages: Number(process.env.PETGPT_MAX_HISTORY_MESSAGES) || 20,
 
   // Google/Gemini adapter settings.
   gemini: Object.freeze({

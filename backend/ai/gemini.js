@@ -18,7 +18,7 @@ const {
 
 const name = "google";
 
-async function generate({ system, question, petContext }) {
+async function generate({ system, question, petContext, history = [] }) {
   const apiKey = AI_CONFIG.gemini.apiKey;
   if (!apiKey) {
     throw new AiProviderError(AI_ERROR_CODES.CONFIG, "no GEMINI_API_KEY configured");
@@ -36,7 +36,13 @@ async function generate({ system, question, petContext }) {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         systemInstruction: { parts: [{ text: system }] },
-        contents: [{ parts: [{ text: userPetsText(petContext) + "User asks: " + question }] }],
+        contents: [
+          ...history.map((m) => ({
+            role: m.role === "assistant" ? "model" : "user",
+            parts: [{ text: m.content }],
+          })),
+          { parts: [{ text: userPetsText(petContext) + "User asks: " + question }] },
+        ],
       }),
     },
     AI_CONFIG.timeoutMs

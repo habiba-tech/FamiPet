@@ -50,7 +50,7 @@ PetGPT's behavior is governed by these rules. They are encoded in the backend sy
 - Entry: `backend/server.js` mounts helmet (with `crossOriginResourcePolicy: cross-origin` for image embedding), compression, CORS (dev-origin allowlist incl. LAN private ranges), `express.json({limit:'50mb'})`, morgan, static `/uploads`, a health route (`GET /api/status`), all route modules under `/api/...` (incl. `/api/ai`), an inline error handler, and a 404 handler.
 - `backend/middleware/errorHandler.js` exists but is **not wired into `server.js`** (dead code; `server.js` has its own inline handler).
 - Data: `mongodb://localhost:27017/animal_planet` by default. No `.env` present locally (only tracked `backend/.env.example`; `backend/.gitignore` ignores `.env`, `node_modules/`, `uploads/`).
-- PetGPT is a controller pair (`ai.controller.js`) behind the `/api/ai` router, a central config module (`backend/config/ai.js`), and a provider layer (`backend/ai/`) with a Google/Gemini adapter and an OpenAI-compatible adapter. No conversation store, no tool layer, no SSE/streaming yet.
+- PetGPT is a controller pair (`ai.controller.js` + `conversation.controller.js`) behind the `/api/ai` router, a central config module (`backend/config/ai.js`), a provider layer (`backend/ai/`) with a Google/Gemini adapter and an OpenAI-compatible adapter, and (Phase 2) persistent `Conversation`/`Message` models. No tool layer, no SSE/streaming yet.
 
 ## 2. Complete Request/Response Flow
 
@@ -74,12 +74,28 @@ PetGPT's behavior is governed by these rules. They are encoded in the backend sy
 3. Rule-based advice array (not AI): unvaccinated → warn; `age < 1` → young-pet advice; missing/zero weight → record-weight advice; else generic continue-care advice.
 4. Respond `200 { success, pet: {id,name,species,breed,age,weight,vaccinated}, advice }`.
 
+### Persistent conversations (Phase 2) — `/api/ai/conversations` (auth required)
+
+Every conversation/message operation is scoped to `req.user._id` (ownership is never client-supplied). Contract per endpoint: see §16 "API contracts".
+
+Exchange flow behind `POST /api/ai/conversations/:conversationId/messages`:
+1. Validate `content` (non-empty, ≤ `AI_CONFIG.maxQuestionLength`) and that the conversation is owned by the user (else 404).
+2. Load the user's own pet context (≤ 5 pets) and the conversation's prior user/assistant messages capped at `AI_CONFIG.maxHistoryMessages` (default 20, oldest-first).
+3. Persist the user message (`role: "user"`, backend-set).
+4. Scope gate: clearly unrelated question → persist the canned scope answer and stop (no provider call). Otherwise call `generatePetGPTResponse(content, petContext, history)` — the system prompt/scope rules still rank above any history.
+5. Persist the assistant message — whatever the user actually saw (provider text, or the Phase 1 fallback answer if the provider failed). **The persisted assistant message is the source of truth; it never depends on the HTTP request staying alive.**
+6. Update conversation `title` (only if still the default), `lastMessageAt`, `lastMessagePreview`; respond with both persisted messages.
+
 ## 3. Relevant Files and Modules
 
 | File | Role |
 |---|---|
-| `backend/routes/ai.routes.js` | Mounts `/ask`, `/advice`, both behind `protect` |
-| `backend/controllers/ai.controller.js` | `askPetGPT`, `getPetAdvice`, `fallbackAnswer`; provider calls delegated to `backend/ai` (Phase 1) |
+| `backend/routes/ai.routes.js` | Mounts `/ask`, `/advice` (both behind `protect`) and `/conversations` (Phase 2 sub-router) |
+| `backend/routes/conversation.routes.js` | **Phase 2** — conversation CRUD + message routes, all behind `protect` |
+| `backend/controllers/ai.controller.js` | `askPetGPT` (legacy single-turn), `getPetAdvice`, `fallbackAnswer`, `loadPetContext` (shared with the conversation controller); provider calls delegated to `backend/ai` |
+| `backend/controllers/conversation.controller.js` | **Phase 2** — create/list/get/clear conversations, add message + Persist→Generate→Persist flow |
+| `backend/models/Conversation.js` | **Phase 2** — conversation doc (`owner`, `title`, `lastMessageAt`, `lastMessagePreview`, timestamps) |
+| `backend/models/Message.js` | **Phase 2** — message doc (`conversation`, `role: user\|assistant\|system`, `content`, timestamps) |
 | `backend/ai/index.js` | **Provider layer entry (Phase 1):** registers `google`+`openai` adapters, selects the active one, `generatePetGPTResponse()` with normalized outcome logging (`ok`/`failed (<code>); using fallback`) |
 | `backend/ai/provider.js` | **Provider contract/interface (Phase 1):** `AiProviderError` + `AI_ERROR_CODES` (`config|timeout|http|malformed|unknown`), adapter registry, `fetchWithTimeout` (AbortController), `parseJson`, `userPetsText` prompt assembly |
 | `backend/ai/gemini.js` | **Google/Gemini adapter (Phase 1)** — name `"google"`; same endpoint/body/config as pre-Phase-0 `callGemini`; `GEMINI_API_KEY` + `PETGPT_MODEL` |
@@ -90,6 +106,9 @@ PetGPT's behavior is governed by these rules. They are encoded in the backend sy
 | `backend/models/HealthRecord.js`, `Vaccination.js`, `Reminder.js`, `Appointment.js`, `Veterinarian.js` | Adjacent data (currently **not** exposed to PetGPT) |
 | `backend/server.js` | Route mount `/api/ai`, middleware, error/404 handlers |
 | `backend/test/ai-provider.test.js` (new, npm `test`) | **Phase 1 assert-based checks (no framework, no real keys):** adapter error-code mapping, real local mock OpenAI endpoint, service fallback & logging |
+| `backend/test/conversation-api.test.js` (new, npm `test`) | **Phase 2 assert-based API checks** over real local Mongo: auth gate, create/list/get, ownership isolation, validation, persistence, clear-chat, legacy `/ask` backward compat, no-secrets-in-messages |
+| `backend/test/petgpt-provider-conversation.test.js` (new, npm `test`) | **Phase 2 mock-provider checks:** persist→generate→persist flow, history reuse + cap, provider-failure fallback (no fake success), durability from DB |
+| `backend/test/petgpt-omniroute.test.js` (new, npm `test`) | **Phase 2 real OpenAI-compatible E2E** through the local OmniRoute container; SKIPS when `PETGPT_OPENAI_API_KEY` is unset |
 | `backend/models/HealthRecord.js`, `Vaccination.js`, `Reminder.js`, `Appointment.js`, `Veterinarian.js` | Adjacent data (currently **not** exposed to PetGPT) |
 | `backend/server.js` | Route mount `/api/ai`, middleware, error/404 handlers |
 | `frontend/js/petgpt.js` | Chat UI: `FamiPetAPI.post("/ai/ask", {question})`, error fallback to **its own** canned `getResponse()` |
@@ -107,7 +126,8 @@ PetGPT's behavior is governed by these rules. They are encoded in the backend sy
 - Question length limit enforced (Phase 0).
 - Keyword fallback so chat "works" offline / without a key.
 - Rule-based per-pet advice endpoint.
-- Owns no conversation; no memory of prior questions or follow-ups.
+- **Persistent conversations (Phase 2):** ownership-scoped `Conversation`+`Message` records; the DB is the source of truth for chat history — page refresh, navigation, focus changes, and reconnects survive. Prior context is replayed to the provider (capped). "Clear chat" hard-deletes the conversation and all its messages on the backend.
+- Owns no memory of prior `/ai/ask` questions (the legacy endpoint stays stateless); persistent memory lives in the `/api/ai/conversations` API.
 
 ## 5. Tools
 
@@ -137,10 +157,10 @@ Available in the DB but **not** used:
 - Logs never contain API keys, auth headers, or request bodies.
 - No `generationConfig` (temperature, `maxOutputTokens`, topK/topP), no `safetySettings`, no `tools`, no stop sequences, no candidate count (later phases). No retries, no rate-limit handling, no usage/cost tracking.
 
-## 8. Conversation/History Behavior (current = none; design in §B)
+## 8. Conversation/History Behavior
 
-- **None.** Every `/ai/ask` is independent. No conversation model exists, no session ids, no message persistence, nothing stored client-side either (messages are DOM-only and lost on refresh).
-- Follow-up questions ("and what about food?") get no context.
+- **Phase 2: persistent conversations** are implemented and durable (see §16). Every `/api/ai/ask` remains independent and stateless for backward compatibility.
+- Follow-up questions ("and what about food?") get their prior context inside a conversation via `/api/ai/conversations/:id/messages`.
 
 ## 9. Security and Authorization Model
 
@@ -151,8 +171,8 @@ Available in the DB but **not** used:
 
 ## 10. Current Limitations
 
-- Stateless single-turn chat; no memory.
-- Thin context (no age/weight/health/vaccination data).
+- Legacy `/api/ai/ask` remains stateless single-turn chat (deliberate; persistent chat lives on `/api/ai/conversations`).
+- Thin context (no age/weight/health/vaccination data) — Phase 5.
 - No tool/function calling.
 - `gemini-1.5-flash` default, no streaming, no retry/backoff, no structured output.
 - Scope gate is a keyword heuristic (deliberate; see `config/ai.js` `ponytail:` comment).
@@ -178,6 +198,8 @@ Available in the DB but **not** used:
 
 ## 12. Architecture Roadmap (design intent)
 
+Implementations: A ✅ (Phase 1), B ✅ (Phase 2). C/D/E-F design, not implemented.
+
 ### A. Provider abstraction
 - PetGPT must NOT be architecturally tied to Google/Gemini, nor to OmniRoute.
 - ✅ **Implemented (Phase 1):** `backend/ai/` provider layer — `provider.js` (contract: `provider.generate({system, question, petContext}) → {text, latencyMs}`; `AiProviderError` + `AI_ERROR_CODES` `config|timeout|http|malformed|unknown`; `register/getProvider/getActiveProvider` registry; `fetchWithTimeout`, `parseJson`, `userPetsText`), `gemini.js` (name `"google"`, default), `openai.js` (name `"openai"`, chat-completions dialect, no SDK), `index.js` (registration + `generatePetGPTResponse()` with normalized logging and `null`-on-failure fallback signal). The controller no longer embeds vendor details.
@@ -186,11 +208,11 @@ Available in the DB but **not** used:
 - Users should eventually configure their own compatible provider/API key (Phase 2).
 - Provider-specific details stay isolated behind the provider layer; the controller/policy code never embeds vendor knowledge.
 
-### B. Conversation architecture (design, not implemented)
+### B. Conversation architecture ✅ implemented (Phase 2)
 - Persistent `Conversation` + `Message` models.
 - Conversations belong to the authenticated user (`owner: user`).
 - Messages belong to a conversation (parent ref), ordered, with `role` and content.
-- Pet context is associated safely (per-conversation or per-message pet refs) and **must** be validated against `owner === req.user._id` before any read; never allows cross-user access.
+- Pet context is loaded from the authenticated user's own pets, never from client-supplied owners; all conversation reads/writes are scoped `owner: req.user._id`. History is replayed to the provider capped at `AI_CONFIG.maxHistoryMessages`.
 
 ### C. Durable generation architecture (design, not implemented)
 - An accepted AI request must be able to continue even if the browser refreshes, changes page, or loses focus.
@@ -227,16 +249,16 @@ Available in the DB but **not** used:
 
 ## 14. Phased Roadmap
 
-Ordering rationale: (1) a stable provider interface must exist before anything consumes it (Phase 0→1→2); (2) conversations and durable generations both consume the provider and are prerequisites for good context and tools (3→4); (3) rich pet context and tool calling build on persisted conversations so the AI can reference "Max's vaccination history" across turns (5→6); (4) safety/limits/observability gate any public/general use and rate the spend (7); (5) streaming is a delivery mechanism layered on durable generations (8); (6) evaluation keeps the product honest against the non-negotiable rules (9). This reorders the earlier draft (which had context before provider/config) because provider/config are upstream dependencies.
+Ordering rationale: (1) a stable provider interface must exist before anything consumes it (Phase 0→1→2); (2) conversations consume the provider and are prerequisites for good context and tools (2→4); (3) durable generations and rich pet context and tool calling build on persisted conversations so the AI can reference "Max's vaccination history" across turns (4→5→6); (4) safety/limits/observability gate any public/general use and rate the spend (7); (5) streaming is a delivery mechanism layered on durable generations (8); (6) evaluation keeps the product honest against the non-negotiable rules (9). This reorders the earlier draft (which had provider config before conversations) because conversations are required before provider/API-key management can be user-facing.
 
 - **Phase 0 — Foundation & Architecture** ✅ implemented
   Backend-only. Central config/prompt/scope module (`config/ai.js`), product-rules system prompt, question-length limit, outcome logging, scope gate. `/api/ai/ask` contract preserved; Gemini fallback preserved. Later-phase architecture documented (not implemented).
 - **Phase 1 — Provider abstraction + OpenAI-compatible provider** ✅ implemented
   Provider layer (`backend/ai/`): chat-completions-shaped `provider.generate(...)` contract, normalized error codes (`config|timeout|http|malformed|unknown`), adapter registry, Google/Gemini adapter (default, preserves `GEMINI_API_KEY`), OpenAI-compatible adapter (no SDK, no vendor hard-coding), service entry with normalized outcome logging and `null`-on-failure fallback. Dead `config/gemini.js` removed; single `AI_CONFIG`. Verified by assert-based `npm test` + e2e.
-- **Phase 2 — Provider/API-key/model configuration**
+- **Phase 2 — Persistent conversations/messages** ✅ implemented
+  Implement §B: `Conversation`/`Message` models, ownership-scoped CRUD, conversation-aware message flow (new `/api/ai/conversations` API; legacy `/api/ai/ask` untouched), history fetch + provider context reuse with a bounded cap.
+- **Phase 3 — Provider/API-key/model configuration** (not started)
   Per-user or per-instance provider + model + API key configuration; manage secrets; provider selection honored by the provider layer.
-- **Phase 3 — Persistent conversations/messages**
-  Implement §B: `Conversation`/`Message` models, ownership-scoped CRUD, conversation-aware ask endpoint (backward-compatible), history fetch.
 - **Phase 4 — Durable AI generations + recovery**
   Implement §C: generation records with status transition, persisted result as source of truth, replay/recovery path, cleanup/retention.
 - **Phase 5 — Rich pet context**
@@ -250,9 +272,9 @@ Ordering rationale: (1) a stable provider interface must exist before anything c
 - **Phase 9 — PetGPT evaluation/regression checks**
   Golden-set of pet-care queries + product-rule boundary checks (scope refusals, honesty, no-competitor, emergency escalation, ownership) as a runnable regression suite.
 
-## 15. Phase 0 Implementation Status & Verification
+## 15. Phase 0/1 Implementation Status & Verification
 
-Implementing note: Phase 0 shipped the foundation; Phase 1 ships the provider layer on top of it. See Phase 1 section after this one.
+Implementing note: Phase 0 shipped the foundation; Phase 1 ships the provider layer on top of it; Phase 2 ships persistent conversations. See Phase 2 section (§16) after the Phase 0/1 sections below.
 
 ### Phase 0
 
@@ -301,3 +323,107 @@ Verified on 2026-09-22 (unit + e2e over real local Mongo with a real mock OpenAI
 - E2E over real HTTP + Mongo (seeded+cleaned test user): login → pet create → `/ai/ask` 200 (fallback), `/ai/ask` empty → 400, `/ai/advice` owned 200 / foreign 404 / bad 400 / none 400, no-token & bad-token → 401.
 - Pre-existing operational issues (not code bugs): no `.env` (SMTP + Gemini key absent); leftover `node server.js` on :5000 belongs to the **other** worktree (`~/Code/FamiPet/backend`) and was left untouched.
 - Test data (1 user, 1 pet) removed after verification; DB left as found.
+
+---
+
+## 16. Phase 2 — Persistent Conversations + Messages + Chat Lifecycle
+
+Status: **✅ implemented & verified** (2026-09-22). Backend-only; no frontend changes; React-migration worktree untouched; no streaming; no tool calling; no provider/API-key management (Phase 3).
+
+### Goal
+
+Chat history is durable on the backend and survives page refresh, navigation, focus changes, reconnects, and server-side AI processing. The MongoDB database is the source of truth for conversation history.
+
+### Conversation/Messages architecture
+
+- `Conversation` (owner) owns many `Message` records; every operation resolves the conversation first via `{ _id, owner: req.user._id }`, then acts on its messages. Cross-user access is impossible through IDs (404, identical to "not found").
+- The legacy single-turn `POST /api/ai/ask` is preserved untouched and stateless; persistent chat is a separate API so existing clients and the React migration keep working.
+
+### Database schema decisions (`backend/models/`)
+
+- **Conversation**: `owner` (ObjectId→User, required — never client-supplied), `title` (default `"New conversation"`, auto-derived from the first user message on first exchange), `lastMessageAt` (Date), `lastMessagePreview` (String, first 60 chars of the last assistant message — drives the list UI), `timestamps`. Index `{ owner: 1, lastMessageAt: -1 }`. No `deleted` flag: **hard-delete strategy** (see Clear-chat behavior).
+- **Message**: `conversation` (ObjectId→Conversation, required, indexed), `role` (enum `user|assistant|system`, backend-set only), `content` (String, required, trimmed), `timestamps`. Index `{ conversation: 1, createdAt: 1 }`.
+- Deliberately omitted (not premature): `status`/`pending|completed|failed` (durable generation records are Phase 4), `provider`/`model`/metadata (Phase 3/4), attachments, pagination keys, soft-delete flags. The enum includes `system` so a future system message fits without a migration, but nothing writes it yet.
+
+### API contracts (all behind `protect`; mounted `/api/ai/conversations`)
+
+| Method + path | Request | Success | Errors |
+|---|---|---|---|
+| `POST /api/ai/conversations` | `{ title? }` (also serves "start new conversation" — no duplicate endpoint) | `201 { success, conversation: { id, title, lastMessageAt, lastMessagePreview, createdAt, updatedAt } }` | 400 title too long; 401 |
+| `GET /api/ai/conversations` | — | `200 { success, conversations: [...] }` sorted by `lastMessageAt` desc | 401 |
+| `GET /api/ai/conversations/:conversationId` | — | `200 { success, conversation, messages: [{ id, role, content, createdAt }] }` (chronological) | 400 invalid id; 404 not found/not owned; 401 |
+| `POST /api/ai/conversations/:conversationId/messages` | `{ content }` | `200 { success, conversationId, userMessage, assistantMessage }` (both persisted) | 400 empty/oversized; 400 invalid id; 404 not found/not owned; 500 provider/persistence failure (generic message); 401 |
+| `DELETE /api/ai/conversations/:conversationId` | — | `200 { success, message: "Conversation cleared." }` | 400 invalid id; 404 not found/not owned; 401 |
+
+Server errors always respond `{ success:false, message:"Something went wrong." }` — internal database/provider errors are never leaked.
+
+### Ownership rules
+
+- `owner` is always taken from `req.user._id`. Client-supplied `owner`/`userId`/`conversationsOwner` fields in bodies are ignored (verified by test).
+- Read, append, and delete all return 404 for a foreign or unknown id — no method/status signaling that reveals the existence or ownership of another user's data.
+- Pet context for prompts is loaded from `Pet.find({ owner: req.user._id })` only.
+
+### Clear-chat behavior
+
+- `DELETE /api/ai/conversations/:conversationId` is a real backend operation (hard delete): `Message.deleteMany({ conversation })` then `Conversation.deleteOne({ _id, owner })`.
+- After clearing: the conversation 404s on get/send, is absent from the list, and **cannot participate in AI context** (history queries and the provider path are conversation-scoped, so a deleted conversation can never produce history or prompts).
+- `ponytail:` — sequential deletes, not a Mongo transaction. A mid-sequence failure leaves the conversation plus an unreachable orphan (all reads are conversation-scoped), never a leaked history; wrap in a transaction if multi-document atomicity ever matters (Phase 4).
+
+### Context/history handling
+
+- Prior `user`/`assistant` messages are replayed to the provider between the system message and the current user turn (`{role}` mapped to `model` on the Gemini adapter), oldest-first.
+- **Cap: `PETGPT_MAX_HISTORY_MESSAGES` (default 20)** prior messages per exchange. Worst case ≈ 20 × `PETGPT_MAX_QUESTION_LENGTH` (2000) chars ≈ 40k chars. Bound chosen so the default context window is never exceeded by an ordinary conversation; raise it by env when a model's window allows. The provider layer treats `history` as optional, so single-turn providers remain valid.
+- The system prompt (product rules) is always first — **history can never override PetGPT's product rules**. The scope gate still short-circuits the provider regardless of history.
+- The database retains full history (source of truth); only the provider *context* is truncated.
+
+### PetGPT request flow
+
+```text
+Authenticated user
+      ↓
+Conversation (ownership-checked)
+      ↓
+Persist user message
+      ↓
+Load permitted conversation context (capped) + user's own pet context
+      ↓
+PetGPT provider layer (generatePetGPTResponse) — scope gate first, no provider call when out of scope
+      ↓
+Persist assistant message (provider text, or Phase 1 fallback when the provider failed)
+      ↓
+Return persisted result
+```
+
+The persisted assistant message is the source of truth; nothing relies on the HTTP request remaining alive.
+
+### Error handling covered
+
+unauthenticated (401), invalid conversation id (400), conversation not found (404), conversation belongs to another user (404), invalid/empty message (400), oversized message (400), provider failure (normalized → fallback answer, still 200, no fabricated success), persistence failure (500 generic). Internal messages never leak.
+
+### Testing strategy
+
+`npm test` chains four assert-based suites (no framework, no external API keys required):
+
+1. `test/ai-provider.test.js` (Phase 1, unchanged) — 17 checks.
+2. `test/conversation-api.test.js` (Phase 2, real local Mongo + real HTTP) — 15 checks: auth gate; create (default/custom title); client-supplied owner ignored; list scoped per user; empty retrieval; invalid-id 400 / unknown 404 / foreign read-append-delete 404 (and the target untouched); empty/oversized/missing content → 400; send+persist user/assistant with server-set roles; retrieval + ordering (user/assistant/user/assistant) + title/metadata updates; ownership isolation on retrieval; title auto-derived from first message; scope-gate exchange persisted (no provider call); clear-chat hard-delete + cannot-be-reused; legacy `/api/ai/ask` unchanged; no JWT/secret material in persisted messages.
+3. `test/petgpt-provider-conversation.test.js` (Phase 2, mock OpenAI-compatible HTTP server) — 5 checks: persist→provider→persist; history reused in order + roles; provider 500 → fallback persisted, no fake success; history capped at `PETGPT_MAX_HISTORY_MESSAGES`; full history durable from DB.
+4. `test/petgpt-omniroute.test.js` (Phase 2, real OpenAI-compatible E2E) — 5 checks against the local OmniRoute container; **skips** (exit 0) when `PETGPT_OPENAI_API_KEY` is unset or the container is unreachable.
+
+### OmniRoute local testing setup/verification
+
+- OmniRoute runs as the Docker container `catlium-omniroute` (`diegosouzapw/omniroute:latest`), exposed on `127.0.0.1:20128`. Start it with `docker start catlium-omniroute`.
+- An API key is created in the OmniRoute dashboard/API (e.g. `POST /api/keys {"name":"..."}` after log-in) and passed to the test via env — the key is **never hard-coded** in the application or the repo.
+- Verify the path: `PETGPT_OPENAI_BASE_URL=http://localhost:20128/v1 PETGPT_OPENAI_API_KEY=<key> PETGPT_OPENAI_MODEL=auto/best-fast node test/petgpt-omniroute.test.js`.
+- The application itself points at OmniRoute purely through `PETGPT_OPENAI_*` env (Phase 1 provider config); OmniRoute is a test/lab target, not a code dependency.
+- Verified 2026-09-22: real provider exchange + follow-up with history persisted, scope gate still enforced in the conversation flow, and the API key absent from persisted messages and all captured logs.
+
+### Phase 2 verification (2026-09-22, real local Mongo + local OmniRoute)
+
+- `node --check` on all touched backend files → pass.
+- `npm test` (default env, no key): 17 Phase-1 + 15 API + 5 provider-path checks pass; OmniRoute suite skips cleanly.
+- OmniRoute E2E: 5/5 pass against the live container (real model `codestral-2508` backing `auto/best-fast`).
+- Ownership isolation, clear-chat determinism, scope gate, fallback behaviour, and backward-compat `/api/ai/ask` all re-verified end-to-end.
+- No API keys/secrets in logs or persisted messages (asserted by the suites).
+- No frontend file changes; no React-migration worktree/file changes.
+
+Commit: see Phase 2 commit on `feature/petgpt-enhancement`.

@@ -14,11 +14,33 @@ const http = require("http");
   // Fresh-load the AI layer under a given env snapshot. Config is
   // snapshotted at require time, so env only needs to be present
   // while modules load (mirrors real app boot).
+  // Hermetic: any PETGPT_*/GEMINI_* var present in the ambient shell but
+  // NOT in `env` is cleared for the load, so a "missing key" scenario
+  // cannot be masked by inherited env (e.g. PETGPT_OPENAI_API_KEY exported
+  // to run the OmniRoute E2E later in the same npm test chain).
+  const AI_ENV_KEYS = [
+    "GEMINI_API_KEY",
+    "PETGPT_PROVIDER",
+    "PETGPT_MODEL",
+    "PETGPT_TIMEOUT_MS",
+    "PETGPT_MAX_QUESTION_LENGTH",
+    "PETGPT_MAX_HISTORY_MESSAGES",
+    "PETGPT_OPENAI_BASE_URL",
+    "PETGPT_OPENAI_API_KEY",
+    "PETGPT_OPENAI_MODEL",
+  ];
   function loadLayer(env) {
     const prev = {};
     for (const k of Object.keys(env)) {
       prev[k] = process.env[k];
       process.env[k] = env[k];
+    }
+    const cleared = {};
+    for (const k of AI_ENV_KEYS) {
+      if (!(k in env) && k in process.env) {
+        cleared[k] = process.env[k];
+        delete process.env[k];
+      }
     }
     for (const m of ["../config/ai", "../ai/provider", "../ai/gemini", "../ai/openai", "../ai/index"]) {
       delete require.cache[require.resolve(m)];
@@ -33,6 +55,9 @@ const http = require("http");
     for (const k of Object.keys(env)) {
       if (prev[k] === undefined) delete process.env[k];
       else process.env[k] = prev[k];
+    }
+    for (const k of Object.keys(cleared)) {
+      process.env[k] = cleared[k];
     }
     return mods;
   }

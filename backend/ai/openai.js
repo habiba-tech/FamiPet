@@ -18,7 +18,7 @@ const {
 
 const name = "openai";
 
-async function generate({ system, question, petContext }) {
+async function generate({ system, question, petContext, history = [] }) {
   const { baseUrl, apiKey, model } = AI_CONFIG.openai;
 
   if (!baseUrl || !apiKey) {
@@ -47,6 +47,7 @@ async function generate({ system, question, petContext }) {
         model,
         messages: [
           { role: "system", content: system },
+          ...history.map((m) => ({ role: m.role, content: m.content })),
           { role: "user", content: userPetsText(petContext) + "User asks: " + question },
         ],
         stream: false,

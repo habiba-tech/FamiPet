@@ -3,6 +3,27 @@ const Pet = require("../models/Pet");
 const { AI_CONFIG, outOfScopeResponse } = require("../config/ai");
 const { generatePetGPTResponse } = require("../ai");
 
+// Loads the authenticated user's own pet context (max 5) for provider
+// prompts. Ownership is enforced by the caller passing req.user._id.
+// Silently degrades to [] on failure (unchanged Phase 1 behaviour).
+async function loadPetContext(userId) {
+  try {
+    const pets = await Pet.find({ owner: userId })
+      .select("name species breed")
+      .populate("breed", "name")
+      .limit(5)
+      .lean();
+
+    return pets.map((p) => ({
+      name: p.name,
+      species: p.species,
+      breed: p.breed && p.breed.name ? p.breed.name : undefined,
+    }));
+  } catch (error) {
+    return [];
+  }
+}
+
 function fallbackAnswer(question) {
   const q = question.toLowerCase();
   let answer = "I'm PetGPT 🐾. Please provide more details about your pet so I can help you better.";
@@ -22,7 +43,10 @@ function fallbackAnswer(question) {
   return answer;
 }
 
-exports.askPetGPT = async (req, res) => {
+// Legacy single-turn endpoint (kept working and stateless for existing
+// clients / the React migration). Persistent chat lives on the
+// /api/ai/conversations routes instead.
+async function askPetGPT(req, res) {
   try {
     const raw = req.body && req.body.question;
     const question = String(raw === undefined || raw === null ? "" : raw).trim();
@@ -47,22 +71,7 @@ exports.askPetGPT = async (req, res) => {
       return res.json({ success: true, question, answer: scope });
     }
 
-    let petContext = [];
-    try {
-      const pets = await Pet.find({ owner: req.user._id })
-        .select("name species breed")
-        .populate("breed", "name")
-        .limit(5)
-        .lean();
-
-      petContext = pets.map((p) => ({
-        name: p.name,
-        species: p.species,
-        breed: p.breed && p.breed.name ? p.breed.name : undefined,
-      }));
-    } catch (error) {
-      petContext = [];
-    }
+    let petContext = await loadPetContext(req.user._id);
 
     let answer = await generatePetGPTResponse(question, petContext);
     if (!answer) answer = fallbackAnswer(question);
@@ -71,9 +80,9 @@ exports.askPetGPT = async (req, res) => {
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
-};
+}
 
-exports.getPetAdvice = async (req, res) => {
+async function getPetAdvice(req, res) {
   try {
     const { petId } = req.body;
 
@@ -116,4 +125,6 @@ exports.getPetAdvice = async (req, res) => {
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
-};
+}
+
+module.exports = { fallbackAnswer, loadPetContext, askPetGPT, getPetAdvice };

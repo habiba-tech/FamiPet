@@ -21,7 +21,7 @@ const {
 register("google", require("./gemini"));
 register("openai", require("./openai"));
 
-async function generatePetGPTResponse(question, petContext) {
+async function generatePetGPTResponse(question, petContext, history = []) {
   const startedAt = Date.now();
   let provider = null;
   try {
@@ -30,6 +30,7 @@ async function generatePetGPTResponse(question, petContext) {
       system: buildSystemPrompt(),
       question,
       petContext,
+      history,
     });
     const latency = typeof result.latencyMs === "number" ? result.latencyMs : Date.now() - startedAt;
     console.log(`PetGPT: provider "${provider.name}" ok after ${latency}ms (${result.text.length} chars).`);

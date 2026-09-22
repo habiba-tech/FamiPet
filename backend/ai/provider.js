@@ -2,7 +2,11 @@
 // PetGPT provider layer — interface/contract + shared helpers
 // ---------------------------------------------------------
 // Provider contract:
-//   provider = { name: string, generate({ system, question, petContext }) => Promise<{ text, latencyMs? }> }
+//   provider = { name: string, generate({ system, question, petContext, history? }) => Promise<{ text, latencyMs? }> }
+//   history? (Phase 2): Array<{ role: "user"|"assistant", content }> of prior
+//   conversation messages, oldest-first, already capped by the caller
+//   (AI_CONFIG.maxHistoryMessages). Inserted between the system message and
+//   the current user turn. Ignoring it is allowed (single-turn providers).
 // Providers throw AiProviderError(code, message) on any failure.
 // Normalized error codes let callers distinguish:
 //   config / timeout / http / malformed / unknown
