@@ -52,7 +52,6 @@ const ok = (name) => { passed++; console.log(`ok ${passed} - ${name}`); };
   process.env.PETGPT_ENCRYPTION_KEY = "petgpt-provider-cfg-omniroute-encryption-key";
 
   const { AI_CONFIG } = require("../config/ai");
-  const { fallbackAnswer } = require("../controllers/ai.controller");
   assert.strictEqual(AI_CONFIG.provider, "google", "system env = google fallback path");
 
   await mongoose.connect(URI);
@@ -67,10 +66,13 @@ const ok = (name) => { passed++; console.log(`ok ${passed} - ${name}`); };
   });
   const base = `http://127.0.0.1:${server.address().port}`;
 
+  const { startWorker, stopWorker } = require("../jobs/generation.worker");
   const User = require("../models/User");
   const AiProvider = require("../models/AiProvider");
+  const GenerationJob = require("../models/GenerationJob");
   const Conversation = require("../models/Conversation");
   const Message = require("../models/Message");
+  await GenerationJob.init(); // rebuild unique idempotency index after drop
 
   const logLines = [];
   const origLog = console.log, origErr = console.error;
@@ -95,6 +97,20 @@ const ok = (name) => { passed++; console.log(`ok ${passed} - ${name}`); };
     assert.ok(!jsonOf(payload).includes(API_KEY), `API key not in ${where}`);
   };
 
+  // Phase 4: poll a durable generation job to its terminal state.
+  async function awaitJob(jobId) {
+    const started = Date.now();
+    while (Date.now() - started < 60000) {
+      const r = await api("GET", `/api/ai/jobs/${jobId}`);
+      assert.strictEqual(r.status, 200, "job status readable while running");
+      if (["completed", "failed"].includes(r.data.job.status)) return r.data;
+      await new Promise((s) => setTimeout(s, 100));
+    }
+    throw new Error(`job ${jobId} not terminal in time`);
+  }
+
+  startWorker();
+
   const provPath = "/api/ai/providers";
 
   // Store an OmniRoute configuration (encrypted key, auto-active).
@@ -116,7 +132,7 @@ const ok = (name) => { passed++; console.log(`ok ${passed} - ${name}`); };
     ok("omniroute: configured provider created with encrypted API key");
   }
 
-  // Real provider exchange through the STORED configuration.
+  // Real provider exchange through the STORED configuration (durable job).
   let convId;
   {
     const c = await api("POST", "/api/ai/conversations", {});
@@ -126,23 +142,28 @@ const ok = (name) => { passed++; console.log(`ok ${passed} - ${name}`); };
   {
     const q = "Give me a short tip about feeding an adult dog.";
     const a = await api("POST", `/api/ai/conversations/${convId}/messages`, { content: q });
-    assert.strictEqual(a.status, 200, "real OmniRoute exchange via stored config -> 200");
+    assert.strictEqual(a.status, 202, "real OmniRoute exchange via stored config -> 202 (durable generation)");
     assert.strictEqual(a.data.userMessage.content, q, "user message persisted");
+    assert.ok(a.data.job && a.data.job.id, "job queued");
+    const T = await awaitJob(a.data.job.id);
+    assert.strictEqual(T.job.status, "completed", "job completes");
     assert.ok(
-      typeof a.data.assistantMessage.content === "string" && a.data.assistantMessage.content.trim().length > 0,
+      typeof T.assistantMessage.content === "string" && T.assistantMessage.content.trim().length > 0,
       "real assistant reply non-empty"
     );
-    assert.notStrictEqual(a.data.assistantMessage.content, fallbackAnswer(q), "reply is a real provider answer, not the canned fallback");
+    assert.notStrictEqual(T.assistantMessage.content, "I'm PetGPT, FamiPet's pet-care assistant", "reply is a real provider answer");
     assertNoSecret(a.data, "message response");
-    ok("omniroute: configured (encrypted-key) provider produced the real reply");
+    ok("omniroute: configured (encrypted-key) provider produced the real reply via the worker");
   }
 
   // Follow-up with history context.
   {
     const q2 = "How often should that dog be walked daily?";
     const a = await api("POST", `/api/ai/conversations/${convId}/messages`, { content: q2 });
-    assert.strictEqual(a.status, 200);
-    assert.ok(a.data.assistantMessage.content.trim().length > 0, "follow-up reply non-empty");
+    assert.strictEqual(a.status, 202);
+    const T = await awaitJob(a.data.job.id);
+    assert.strictEqual(T.job.status, "completed", "follow-up completes");
+    assert.ok(T.assistantMessage.content.trim().length > 0, "follow-up reply non-empty");
     const g = await api("GET", `/api/ai/conversations/${convId}`);
     assert.strictEqual(g.data.messages.length, 4, "history durable across exchanges");
     assert.deepStrictEqual(g.data.messages.map((m) => m.role), ["user", "assistant", "user", "assistant"]);
@@ -150,25 +171,28 @@ const ok = (name) => { passed++; console.log(`ok ${passed} - ${name}`); };
     ok("omniroute: follow-up conversation durable through configured provider");
   }
 
-  // Disable the stored provider -> deterministic system fallback.
+  // Disable the stored provider -> no active provider -> job fails.
   {
     await api("PATCH", `${provPath}/${provId}`, { enabled: false });
     const q3 = "Cat litter box tips?";
     const a = await api("POST", `/api/ai/conversations/${convId}/messages`, { content: q3 });
-    assert.strictEqual(a.status, 200);
-    assert.strictEqual(a.data.assistantMessage.content, fallbackAnswer(q3), "disabled configured provider -> system env fallback");
-    ok("omniroute: disabling the configured provider falls back to system config (no cross-user/provider use)");
+    assert.strictEqual(a.status, 202);
+    const T = await awaitJob(a.data.job.id);
+    assert.strictEqual(T.job.status, "failed", "disabled configured provider -> job fails (no fake answer)");
+    ok("omniroute: disabling the configured provider leaves no active provider; job fails cleanly");
   }
 
-  // Delete the stored provider -> deterministic system fallback.
+  // Delete the stored provider -> no provider at all -> job fails.
   {
     await api("PATCH", `${provPath}/${provId}`, { enabled: true });
     const del = await api("DELETE", `${provPath}/${provId}`);
     assert.strictEqual(del.status, 200, "delete -> 200");
     const q4 = "More cat advice?";
     const a = await api("POST", `/api/ai/conversations/${convId}/messages`, { content: q4 });
-    assert.strictEqual(a.data.assistantMessage.content, fallbackAnswer(q4), "deleted configured provider -> system env fallback");
-    ok("omniroute: deleting the configured provider falls back to system config");
+    assert.strictEqual(a.status, 202);
+    const T = await awaitJob(a.data.job.id);
+    assert.strictEqual(T.job.status, "failed", "deleted configured provider -> job fails cleanly");
+    ok("omniroute: deleting the configured provider leaves no generation path; no fake answer");
   }
 
   // No secrets persisted or logged.
@@ -176,14 +200,17 @@ const ok = (name) => { passed++; console.log(`ok ${passed} - ${name}`); };
     const messages = await Message.find({}).lean();
     const all = messages.map((m) => m.content).join("\n");
     assert.ok(!all.includes(API_KEY), "API key never in persisted messages");
+    const jobs = await GenerationJob.find({}).lean();
+    assert.ok(!JSON.stringify(jobs).includes(API_KEY), "no plaintext API key in job docs");
     const docs = await AiProvider.find({}).lean();
     assert.ok(!JSON.stringify(docs).includes(API_KEY), "only ciphertext stored in provider docs");
     for (const line of logLines) {
       assert.ok(!line.includes(API_KEY), `API key not in any log line: ${line.slice(0, 120)}`);
     }
-    ok("omniroute: API key absent from persisted messages, provider docs, and logs");
+    ok("omniroute: API key absent from persisted messages, jobs, provider docs, and logs");
   }
 
+  stopWorker();
   console.log = origLog;
   console.error = origErr;
   await Message.deleteMany({});

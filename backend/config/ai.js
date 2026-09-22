@@ -25,6 +25,13 @@ const AI_CONFIG = Object.freeze({
   // overrides the system prompt above.
   maxHistoryMessages: Number(process.env.PETGPT_MAX_HISTORY_MESSAGES) || 20,
 
+  // Durable generation worker (Phase 4): in-process poller settings.
+  worker: Object.freeze({
+    pollMs: Number(process.env.PETGPT_WORKER_POLL_MS) || 300,
+    staleMs: Number(process.env.PETGPT_WORKER_STALE_MS) || 60000,
+    maxAttempts: Number(process.env.PETGPT_MAX_JOB_ATTEMPTS) || 2,
+  }),
+
   // Google/Gemini adapter settings.
   gemini: Object.freeze({
     apiKey: process.env.GEMINI_API_KEY,

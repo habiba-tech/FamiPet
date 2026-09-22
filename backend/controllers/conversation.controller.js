@@ -1,5 +1,5 @@
 // =========================================================
-// PetGPT conversations controller (Phase 2)
+// PetGPT conversations controller (Phase 2 + Phase 4)
 // ---------------------------------------------------------
 // Persistent, ownership-scoped chat. The DB is the source of
 // truth for conversation history: page refresh, navigation,
@@ -7,41 +7,37 @@
 // Every operation reads/writes via req.user._id — never via
 // client-supplied ownership fields.
 //
-// Flow of an exchange (POST .../messages):
-//   validate -> ownership-check conversation -> pet context
-//   -> load capped history -> persist user message
-//   -> scope gate / provider -> persist assistant message
-//   -> update conversation metadata -> return both messages
+// Exchange flow (POST .../messages):
 //
-// The persisted assistant message is the source of truth; the
-// response does not depend on the HTTP request staying alive.
+//   validate -> ownership-check conversation -> idempotency check
+//     -> scope gate (immediate synchronous scope answer)
+//     -> persist user message -> enqueue generation job -> 202
+//
+// AI generation no longer runs inside this request. The durable
+// job (Phase 4) is claimed by the background worker, which calls
+// the provider, persists the assistant message, and completes or
+// fails the job. This request may end long before generation does.
+//
+//   HTTP request lifecycle          AI generation lifecycle
+//   ─────────────────────          ────────────────────────
+//   auth/ownership/validate         job queued
+//   persist user message     ──►    worker claims (processing)
+//   enqueue job                     provider call
+//   return 202 (.userMessage,       persist assistant message
+//     .job, no assistant)           job completed/failed
+//   ─── request ends here ──►   (keeps running)
 // =========================================================
 
 const mongoose = require("mongoose");
 const Conversation = require("../models/Conversation");
 const Message = require("../models/Message");
+const GenerationJob = require("../models/GenerationJob");
 const { AI_CONFIG, outOfScopeResponse } = require("../config/ai");
-const { generatePetGPTResponse, resolveActiveProviderConfig } = require("../ai");
-const { fallbackAnswer, loadPetContext } = require("./ai.controller");
+const { publicMessage, updateConversationMetadata } = require("../ai/context");
+const { publicJob } = require("./job.controller");
 
 const DEFAULT_TITLE = "New conversation";
-const TITLE_CHARS = 60;
-const PREVIEW_CHARS = 60;
-
-function publicConversation(c) {
-  return {
-    id: c._id,
-    title: c.title,
-    lastMessageAt: c.lastMessageAt || null,
-    lastMessagePreview: c.lastMessagePreview || "",
-    createdAt: c.createdAt,
-    updatedAt: c.updatedAt,
-  };
-}
-
-function publicMessage(m) {
-  return { id: m._id, role: m.role, content: m.content, createdAt: m.createdAt };
-}
+const IDEMPOTENCY_KEY_MAX = 200;
 
 function notFound(res) {
   return res.status(404).json({ success: false, message: "Conversation not found or not owned by you." });
@@ -90,6 +86,8 @@ exports.listConversations = async (req, res) => {
 };
 
 // GET /api/ai/conversations/:conversationId — conversation + full message list.
+// A turn whose job is still running shows its single (user) message here
+// until the worker persists the assistant reply.
 exports.getConversation = async (req, res) => {
   try {
     const { conversationId } = req.params;
@@ -113,10 +111,31 @@ exports.getConversation = async (req, res) => {
   }
 };
 
-// POST /api/ai/conversations/:conversationId/messages — add a user message,
-// run the PetGPT flow, persist the assistant message, return both.
+function publicConversation(c) {
+  return {
+    id: c._id,
+    title: c.title,
+    lastMessageAt: c.lastMessageAt || null,
+    lastMessagePreview: c.lastMessagePreview || "",
+    createdAt: c.createdAt,
+    updatedAt: c.updatedAt,
+  };
+}
+
+// POST /api/ai/conversations/:conversationId/messages — enqueue a durable
+// AI generation for a user message.
+//
+// Behaviors:
+//   * out-of-scope  -> immediate synchronous canned scope answer
+//     (preserved Phase 2 behavior; no job).
+//   * in-scope      -> persist user message, queue a GenerationJob,
+//     return 202 immediately. The assistant reply is written by the
+//     background worker and is never part of this response.
+//   * idempotency   -> { idempotencyKey } scoped to the authenticated
+//     user: a repeat submission with the same key returns the original
+//     job/message (no duplicates); reusing a key against a DIFFERENT
+//     conversation fails with 409.
 exports.addMessage = async (req, res) => {
-  const startedAt = Date.now();
   try {
     const { conversationId } = req.params;
     if (!mongoose.Types.ObjectId.isValid(conversationId)) return invalidId(res);
@@ -133,67 +152,111 @@ exports.addMessage = async (req, res) => {
       });
     }
 
+    let idempotencyKey;
+    if (req.body && req.body.idempotencyKey !== undefined && req.body.idempotencyKey !== null) {
+      idempotencyKey = String(req.body.idempotencyKey).trim();
+      if (!idempotencyKey) {
+        return res.status(400).json({ success: false, message: "idempotencyKey must not be empty." });
+      }
+      if (idempotencyKey.length > IDEMPOTENCY_KEY_MAX) {
+        return res.status(400).json({
+          success: false,
+          message: `idempotencyKey is too long. Maximum length is ${IDEMPOTENCY_KEY_MAX} characters.`,
+        });
+      }
+    }
+
     const conversation = await Conversation.findOne({ _id: conversationId, owner: req.user._id });
     if (!conversation) return notFound(res);
 
-    const petContext = await loadPetContext(req.user._id);
+    // Idempotency (Phase 4): one (owner, key) -> one job. A prior
+    // submission with the same key and the same conversation returns
+    // the existing persisted message + job verbatim; the same key on
+    // a different conversation is a conflicting reuse -> 409.
+    if (idempotencyKey) {
+      const existing = await GenerationJob.findOne({ owner: req.user._id, idempotencyKey }).lean();
+      if (existing) {
+        if (String(existing.conversation) !== String(conversationId)) {
+          return res.status(409).json({
+            success: false,
+            message: "Idempotency key was already used for a different conversation.",
+          });
+        }
+        const userMessage = await Message.findById(existing.userMessage).lean();
+        console.log(`PetGPT: idempotent resubmission for user ${req.user._id} -> reused job ${existing._id}.`);
+        return res.json({
+          success: true,
+          reused: true,
+          conversationId,
+          userMessage: publicMessage(userMessage),
+          job: publicJob(existing),
+        });
+      }
+    }
 
-    // Capped conversation history (oldest-first) to use as provider context.
-    // Loaded before persisting the current message so it stays self-contained.
-    const history = await Message.find({
-      conversation: conversationId,
-      role: { $in: ["user", "assistant"] },
-    })
-      .sort({ createdAt: -1, _id: -1 })
-      .limit(AI_CONFIG.maxHistoryMessages)
-      .lean();
-    history.reverse();
-
-    const userMessage = await Message.create({
-      conversation: conversationId,
-      role: "user",
-      content,
-    });
-
-    // Scope gate short-circuits before any provider call (Phase 0 rule).
+    // Scope gate short-circuits before any provider work (Phase 0 rule).
+    // Preserved immediate behavior: user message + canned scope answer
+    // persisted synchronously, no generation job created.
     const scope = outOfScopeResponse(content);
-    let answer;
     if (scope) {
-      console.log(`PetGPT: out-of-scope question blocked for user ${req.user._id}.`);
-      answer = scope;
-    } else {
-      // Phase 3: resolve the authenticated user's active, enabled provider
-      // configuration (owner-scoped). null -> system env configuration.
-      const providerConfig = await resolveActiveProviderConfig(req.user._id);
-      const generated = await generatePetGPTResponse(content, petContext, history, providerConfig);
-      // Provider failure -> existing fallback behaviour; the persisted
-      // assistant message is whatever the user actually saw. No fabricated
-      // "provider success" is ever stored.
-      answer = generated || fallbackAnswer(content);
+      console.log(`PetGPT: out-of-scope question block for user ${req.user._id}.`);
+      const userMessage = await Message.create({ conversation: conversationId, role: "user", content });
+      const scopeMessage = await Message.create({ conversation: conversationId, role: "assistant", content: scope });
+      await updateConversationMetadata(conversation, content, scope);
+      return res.json({
+        success: true,
+        scopeHandled: true,
+        conversationId,
+        userMessage: publicMessage(userMessage),
+        assistantMessage: publicMessage(scopeMessage),
+      });
     }
 
-    const assistantMessage = await Message.create({
-      conversation: conversationId,
-      role: "assistant",
-      content: answer,
-    });
+    // Durable generation: persist the user turn and enqueue the job.
+    // The response returns before generation runs — the background
+    // worker owns the rest (provider resolution happens there, at the
+    // correct point, owner-scoped).
+    const userMessage = await Message.create({ conversation: conversationId, role: "user", content });
 
-    if (!conversation.title || conversation.title === DEFAULT_TITLE) {
-      conversation.title = content.slice(0, TITLE_CHARS) + (content.length > TITLE_CHARS ? "…" : "");
+    let job;
+    try {
+      job = await GenerationJob.create({
+        owner: req.user._id,
+        conversation: conversationId,
+        userMessage: userMessage._id,
+        idempotencyKey: idempotencyKey || undefined,
+      });
+    } catch (error) {
+      // Unique (owner, idempotencyKey) collision: a concurrent identical
+      // submission won the race. Drop our orphan message and adopt the
+      // winner's job so exactly one user message + one job survive.
+      if (error && (error.code === 11000 || (error.name === "MongoServerError" && error.code === 11000))) {
+        await Message.deleteOne({ _id: userMessage._id });
+        const existing = await GenerationJob.findOne({ owner: req.user._id, idempotencyKey }).lean();
+        if (!existing || String(existing.conversation) !== String(conversationId)) {
+          return res.status(409).json({
+            success: false,
+            message: "Idempotency key was already used for a different conversation.",
+          });
+        }
+        const winnerMessage = await Message.findById(existing.userMessage).lean();
+        return res.json({
+          success: true,
+          reused: true,
+          conversationId,
+          userMessage: publicMessage(winnerMessage),
+          job: publicJob(existing),
+        });
+      }
+      throw error;
     }
-    conversation.lastMessageAt = new Date();
-    conversation.lastMessagePreview = answer.slice(0, PREVIEW_CHARS) + (answer.length > PREVIEW_CHARS ? "…" : "");
-    await conversation.save();
 
-    console.log(
-      `PetGPT: conversation ${conversationId} exchange done in ${Date.now() - startedAt}ms (${conversation.title}).`
-    );
-
-    res.json({
+    console.log(`PetGPT: queued job ${job._id} for conversation ${conversationId} (user ${req.user._id}).`);
+    res.status(202).json({
       success: true,
       conversationId,
       userMessage: publicMessage(userMessage),
-      assistantMessage: publicMessage(assistantMessage),
+      job: publicJob(job),
     });
   } catch (error) {
     console.error("PetGPT: add message failed:", error.message);
@@ -202,12 +265,13 @@ exports.addMessage = async (req, res) => {
 };
 
 // DELETE /api/ai/conversations/:conversationId — "clear chat" as a real
-// backend operation: hard-deletes the conversation and every message.
-// Messages first, then the conversation; a mid-sequence failure leaves
-// either the conversation intact (retry-safe) or an unreachable orphan
-// (all reads are conversation-scoped), never a leaked history.
+// backend operation: hard-deletes the conversation, every message, and
+// every generation job for it. Messages and jobs first, then the
+// conversation; a mid-sequence failure leaves either the conversation
+// intact (retry-safe) or an unreachable orphan (all reads are
+// conversation-scoped), never a leaked history.
 // ponytail: sequential deletes, not a transaction — wrap in a Mongo
-// transaction if multi-document atomicity ever matters (Phase 4).
+// transaction if multi-document atomicity ever matters.
 exports.clearConversation = async (req, res) => {
   try {
     const { conversationId } = req.params;
@@ -217,6 +281,7 @@ exports.clearConversation = async (req, res) => {
     if (!conversation) return notFound(res);
 
     await Message.deleteMany({ conversation: conversationId });
+    await GenerationJob.deleteMany({ conversation: conversationId });
     await Conversation.deleteOne({ _id: conversationId, owner: req.user._id });
 
     console.log(`PetGPT: conversation ${conversationId} cleared for user ${req.user._id}.`);

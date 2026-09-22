@@ -3,10 +3,11 @@
 // real local mock OpenAI-compatible HTTP endpoint.
 // Run: node test/petgpt-provider-conversation.test.js
 // Requires reachable MongoDB (default localhost:27017 test DB).
-// Verifies the durable chat flow: user message persisted,
-// assistant reply persisted, conversation history reused by the
-// provider, history capped, and no fake success on provider
-// failure (existing fallback behaviour preserved).
+// Verifies the durable chat flow (Phase 4): user message persisted
+// and a generation job queued (202), the assistant reply persisted
+// by the worker, conversation history reused by the provider as
+// context, history capped, and no fake success on provider failure
+// (the job fails instead).
 // =========================================================
 
 const assert = require("assert");
@@ -58,7 +59,6 @@ const mock = http.createServer((req, res) => {
   process.env.JWT_SECRET = "petgpt-provider-conversation-test-secret";
 
   const { AI_CONFIG } = require("../config/ai");
-  const { fallbackAnswer } = require("../controllers/ai.controller");
   assert.strictEqual(AI_CONFIG.provider, "openai", "provider openai active");
   assert.strictEqual(AI_CONFIG.maxHistoryMessages, 2, "history cap applied");
 
@@ -74,9 +74,13 @@ const mock = http.createServer((req, res) => {
   });
   const base = `http://127.0.0.1:${server.address().port}`;
 
+  const { startWorker, stopWorker } = require("../jobs/generation.worker");
+
   const User = require("../models/User");
+  const GenerationJob = require("../models/GenerationJob");
   const Conversation = require("../models/Conversation");
   const Message = require("../models/Message");
+  await GenerationJob.init(); // rebuild unique idempotency index after drop
 
   const user = await User.create({ name: "Phase2 Provider", email: "phase2-provider@test.dev", password: "testpass123" });
   const token = jwt.sign({ id: user._id.toString() }, process.env.JWT_SECRET, { expiresIn: "1h" });
@@ -93,6 +97,20 @@ const mock = http.createServer((req, res) => {
     return { status: res.status, data };
   }
 
+  // Phase 4: poll a durable generation job to its terminal state.
+  async function awaitJob(jobId) {
+    const started = Date.now();
+    while (Date.now() - started < 20000) {
+      const r = await api("GET", `/api/ai/jobs/${jobId}`);
+      assert.strictEqual(r.status, 200, "job status readable while running");
+      if (["completed", "failed"].includes(r.data.job.status)) return r.data;
+      await new Promise((s) => setTimeout(s, 40));
+    }
+    throw new Error(`job ${jobId} not terminal in time`);
+  }
+
+  startWorker();
+
   // ---- Flow: persist user -> provider (with history) -> persist assistant
   let convId;
   {
@@ -103,41 +121,47 @@ const mock = http.createServer((req, res) => {
   {
     const q1 = "What food for a puppy?";
     const a = await api("POST", `${convPath}/${convId}/messages`, { content: q1 });
-    assert.strictEqual(a.status, 200, "send -> 200");
+    assert.strictEqual(a.status, 202, "send -> 202 (durable generation)");
     assert.strictEqual(a.data.userMessage.role, "user");
     assert.strictEqual(a.data.userMessage.content, q1, "user message persisted");
-    assert.strictEqual(a.data.assistantMessage.role, "assistant");
-    assert.strictEqual(a.data.assistantMessage.content, PROVIDER_ANSWER, "provider assistant reply persisted");
+    assert.ok(a.data.job && a.data.job.id, "job queued");
+    assert.ok(!a.data.assistantMessage, "no assistant message in the 202 response");
+    const T = await awaitJob(a.data.job.id);
+    assert.strictEqual(T.job.status, "completed", "job completes");
+    assert.strictEqual(T.assistantMessage.role, "assistant");
+    assert.strictEqual(T.assistantMessage.content, PROVIDER_ANSWER, "provider assistant reply persisted by the worker");
     assert.deepStrictEqual(
       requests[0].messages.map((m) => m.role),
       ["system", "user"],
       "first exchange sends system + current user turn only (no history yet)"
     );
     assert.strictEqual(requests[0].messages[1].content, `User asks: ${q1}`, "current user turn is the question");
-    ok("flow: user message persisted, provider called, assistant reply persisted");
+    ok("flow: user message persisted, durable job ran the provider, assistant reply persisted");
   }
   {
     const q2 = "And what about walking him daily?";
     const a = await api("POST", `${convPath}/${convId}/messages`, { content: q2 });
-    assert.strictEqual(a.status, 200);
+    assert.strictEqual(a.status, 202);
+    await awaitJob(a.data.job.id);
     const sent = requests[1].messages;
     const roles = sent.map((m) => m.role);
     assert.deepStrictEqual(roles, ["system", "user", "assistant", "user"], "history inserted between system and current turn");
     assert.strictEqual(sent[1].content, "What food for a puppy?", "history[0] = prior user message");
     assert.strictEqual(sent[2].content, PROVIDER_ANSWER, "history[1] = prior provider answer");
     assert.strictEqual(sent[3].content, `User asks: ${q2}`, "current question last");
-    assert.strictEqual(a.data.assistantMessage.content, PROVIDER_ANSWER);
     ok("history: conversation history reused as provider context (order + roles preserved)");
   }
 
-  // ---- Provider failure -> no fake success; fallback persisted -------
+  // ---- Provider failure -> failed job; no fake success --------------
   {
     mockMode = "http500";
     const q3 = "Should I take my dog to the vet?";
     const a = await api("POST", `${convPath}/${convId}/messages`, { content: q3 });
-    assert.strictEqual(a.status, 200, "provider failure still 200 (existing fallback behaviour)");
-    assert.strictEqual(a.data.assistantMessage.content, fallbackAnswer(q3), "fallback answer persisted when provider fails");
-    assert.notStrictEqual(a.data.assistantMessage.content, PROVIDER_ANSWER, "no fabricated provider success");
+    assert.strictEqual(a.status, 202, "post accepted");
+    const T = await awaitJob(a.data.job.id);
+    assert.strictEqual(T.job.status, "failed", "provider failure fails the job");
+    assert.strictEqual(T.job.error.code, "provider", "safe client error code");
+    assert.strictEqual(T.assistantMessage, null, "no fabricated assistant reply");
     mockMode = "ok";
     ok("failure: failed provider does not create a fake successful assistant response");
   }
@@ -146,7 +170,9 @@ const mock = http.createServer((req, res) => {
   {
     for (const q of ["Message four?", "Message five?", "Message six?"]) {
       const a = await api("POST", `${convPath}/${convId}/messages`, { content: q });
-      assert.strictEqual(a.status, 200);
+      assert.strictEqual(a.status, 202);
+      const T = await awaitJob(a.data.job.id);
+      assert.strictEqual(T.job.status, "completed", `${q} completes`);
     }
     const last = requests[requests.length - 1];
     const historyCount = last.messages.filter((m) => m.role !== "system" && !m.content.startsWith("User asks:")).length;
@@ -157,15 +183,18 @@ const mock = http.createServer((req, res) => {
   // ---- Durable history survives "restart" (DB is source of truth) ----
   {
     const persisted = await Message.find({ conversation: convId }).sort({ createdAt: 1, _id: 1 }).lean();
-    assert.strictEqual(persisted.length, 12, "12 messages persisted (6 exchanges)");
-    assert.deepStrictEqual(persisted.map((m) => m.role), [
-      "user", "assistant", "user", "assistant", "user", "assistant", "user", "assistant", "user", "assistant", "user", "assistant",
-    ]);
+    // 6 turns: q1, q2 complete (2 messages each), q3 fails (user only),
+    // q4, q5, q6 complete (2 messages each) = 11 messages in order.
+    assert.strictEqual(persisted.length, 11, "11 messages persisted (5 complete exchanges + 1 failed turn)");
+    const roles = ["user", "assistant", "user", "assistant", "user", "user", "assistant", "user", "assistant", "user", "assistant"];
+    assert.deepStrictEqual(persisted.map((m) => m.role), roles);
     assert.strictEqual(persisted[1].content, PROVIDER_ANSWER, "assistant reply stored as source of truth");
-    assert.strictEqual(persisted[5].content, fallbackAnswer("Should I take my dog to the vet?"), "fallback exchange stored as-is");
+    assert.strictEqual(persisted[4].role, "user", "failed exchange user message stored");
+    assert.strictEqual(persisted[4].content, "Should I take my dog to the vet?", "failed exchange question stored");
     ok("durability: full history readable from DB in order, independent of the request lifecycle");
   }
 
+  stopWorker();
   await Message.deleteMany({});
   await Conversation.deleteMany({});
   await User.deleteMany({ _id: user._id });

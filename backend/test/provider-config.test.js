@@ -66,7 +66,6 @@ const mock = http.createServer((req, res) => {
 
   await mongoose.connect(URI);
   await mongoose.connection.dropDatabase();
-
   const express = require("express");
   const app = express();
   app.use(express.json());
@@ -76,10 +75,16 @@ const mock = http.createServer((req, res) => {
   });
   const base = `http://127.0.0.1:${server.address().port}`;
 
+  const { startWorker, stopWorker } = require("../jobs/generation.worker");
+  startWorker();
+
   const User = require("../models/User");
   const AiProvider = require("../models/AiProvider");
+  const GenerationJob = require("../models/GenerationJob");
   const Conversation = require("../models/Conversation");
   const Message = require("../models/Message");
+
+  await GenerationJob.init(); // rebuild unique idempotency index after drop
 
   const [alice, bob] = await Promise.all([
     User.create({ name: "Phase3 Alice", email: "phase3-a@test.dev", password: "testpass123" }),
@@ -113,6 +118,18 @@ const mock = http.createServer((req, res) => {
   };
 
   const provPath = "/api/ai/providers";
+
+  // Phase 4: poll a durable generation job to its terminal state.
+  async function awaitJob(token, jobId) {
+    const started = Date.now();
+    while (Date.now() - started < 20000) {
+      const r = await api("GET", `/api/ai/jobs/${jobId}`, token);
+      assert.strictEqual(r.status, 200, "job status readable while running");
+      if (["completed", "failed"].includes(r.data.job.status)) return r.data;
+      await new Promise((s) => setTimeout(s, 40));
+    }
+    throw new Error(`job ${jobId} not terminal in time`);
+  }
 
   // ---- Encryption unit checks ---------------------------------------
   {
@@ -290,62 +307,71 @@ const mock = http.createServer((req, res) => {
   {
     const q1 = "What food for a puppy?";
     const a = await api("POST", `/api/ai/conversations/${convId}/messages`, aliceTok, { content: q1 });
-    assert.strictEqual(a.status, 200, "exchange -> 200");
-    assert.strictEqual(a.data.assistantMessage.content, MOCK_ANSWER, "configured provider answer persisted (not env fallback)");
+    assert.strictEqual(a.status, 202, "exchange -> 202 (durable generation)");
+    const T = await awaitJob(aliceTok, a.data.job.id);
+    assert.strictEqual(T.job.status, "completed", "job completes");
+    assert.strictEqual(T.assistantMessage.content, MOCK_ANSWER, "configured provider answer persisted (not env fallback)");
     assert.strictEqual(requests[0].messages[0].role, "system", "system prompt sent first");
     ok("petgpt: persistent conversation used the user's configured provider");
   }
   {
     const q2 = "And about walking?";
     const a = await api("POST", `/api/ai/conversations/${convId}/messages`, aliceTok, { content: q2 });
-    assert.strictEqual(a.status, 200);
+    assert.strictEqual(a.status, 202);
+    const T = await awaitJob(aliceTok, a.data.job.id);
+    assert.strictEqual(T.job.status, "completed");
     assert.deepStrictEqual(requests[1].messages.map((m) => m.role), ["system", "user", "assistant", "user"], "history reused through configured provider");
-    assert.strictEqual(a.data.assistantMessage.content, MOCK_ANSWER);
+    assert.strictEqual(T.assistantMessage.content, MOCK_ANSWER);
     ok("petgpt: follow-up conversation uses configured provider with history");
   }
   {
-    // Encryption config disappears at request time -> decrypt fails safely:
-    // the exchange still answers deterministically (fallback), never leaks
-    // the plaintext, and never crashes.
+    // Encryption config disappears at request time -> the worker's decrypt
+    // fails safely: the job fails cleanly, never leaks the plaintext, and
+    // never crashes the request (which already returned 202 by then).
     delete process.env.PETGPT_ENCRYPTION_KEY;
     const qx = "Food for a hamster?";
     const a = await api("POST", `/api/ai/conversations/${convId}/messages`, aliceTok, { content: qx });
-    assert.strictEqual(a.status, 200, "missing encryption key -> graceful 200 (no crash)");
-    assert.strictEqual(a.data.assistantMessage.content, fallbackAnswer(qx), "fallback persisted, no fabricated success");
+    assert.strictEqual(a.status, 202, "missing encryption key -> 202 (no crash at request time)");
+    const T = await awaitJob(aliceTok, a.data.job.id);
+    assert.strictEqual(T.job.status, "failed", "missing encryption config fails the job safely");
+    assert.strictEqual(T.job.error.code, "provider");
     assertNoSecret(a.data, "message response");
     process.env.PETGPT_ENCRYPTION_KEY = ENCRYPTION_KEY;
-    ok("petgpt: missing encryption configuration fails safely at request time");
+    ok("petgpt: missing encryption configuration fails the job safely (no crash, no secret)");
   }
   {
-    // Provider failure -> fallback persisted, no fake success.
+    // Provider failure -> failed job, no fake success.
     mockMode = "http500";
     const q3 = "Should I take him to the vet?";
     const a = await api("POST", `/api/ai/conversations/${convId}/messages`, aliceTok, { content: q3 });
-    assert.strictEqual(a.status, 200);
-    assert.strictEqual(a.data.assistantMessage.content, fallbackAnswer(q3), "fallback answer persisted");
-    assert.notStrictEqual(a.data.assistantMessage.content, MOCK_ANSWER, "no fabricated provider success");
+    assert.strictEqual(a.status, 202);
+    const T = await awaitJob(aliceTok, a.data.job.id);
+    assert.strictEqual(T.job.status, "failed", "provider failure fails the job");
+    assert.strictEqual(T.job.error.code, "provider");
     mockMode = "ok";
-    ok("petgpt: configured-provider failure does not create fake success");
+    ok("petgpt: configured-provider failure fails the job; no fake success");
   }
 
-  // ---- Disable the provider -> system env fallback (deterministic) --
+  // ---- Disable the provider -> no active provider -> job fails -------
   {
     await api("PATCH", `${provPath}/${secondId}`, aliceTok, { enabled: false });
     const q4 = "Cat litter tips?";
     const a = await api("POST", `/api/ai/conversations/${convId}/messages`, aliceTok, { content: q4 });
-    assert.strictEqual(a.status, 200);
-    assert.strictEqual(a.data.assistantMessage.content, fallbackAnswer(q4), "disabled provider -> system env fallback");
+    assert.strictEqual(a.status, 202);
+    const T = await awaitJob(aliceTok, a.data.job.id);
+    assert.strictEqual(T.job.status, "failed", "disabled provider -> no generation");
   }
-  // ---- Delete the provider -> system env fallback -------------------
+  // ---- Delete the provider -> job fails cleanly ----------------------
   {
     await api("PATCH", `${provPath}/${secondId}`, aliceTok, { enabled: true });
     const del = await api("DELETE", `${provPath}/${secondId}`, aliceTok);
     assert.strictEqual(del.status, 200, "delete -> 200");
     const q5 = "More cat advice?";
     const a = await api("POST", `/api/ai/conversations/${convId}/messages`, aliceTok, { content: q5 });
-    assert.strictEqual(a.status, 200);
-    assert.strictEqual(a.data.assistantMessage.content, fallbackAnswer(q5), "deleted provider -> system env fallback");
-    ok("petgpt: disable and delete both fall back to the system env configuration");
+    assert.strictEqual(a.status, 202);
+    const T = await awaitJob(aliceTok, a.data.job.id);
+    assert.strictEqual(T.job.status, "failed", "deleted provider -> no generation");
+    ok("petgpt: disable and delete leave no active provider; jobs fail cleanly (no fake answer)");
   }
 
   // ---- Scope gate remains enforced with a configured provider -------
@@ -371,14 +397,17 @@ const mock = http.createServer((req, res) => {
     const messages = await Message.find({}).lean();
     const all = messages.map((m) => m.content).join("\n");
     assert.ok(!all.includes(API_KEY), "API key never in persisted messages");
+    const jobs = await GenerationJob.find({}).lean();
+    assert.ok(!JSON.stringify(jobs).includes(API_KEY), "no plaintext API key in job docs");
     const providersRaw = await AiProvider.find({}).lean();
     assert.ok(!JSON.stringify(providersRaw).includes(API_KEY), "no plaintext key in provider docs (only ciphertext)");
     for (const line of logLines) {
       assert.ok(!line.includes(API_KEY), `API key not in log line: ${line.slice(0, 120)}`);
     }
-    ok("security: no plaintext API key in persisted messages, provider docs, or logs");
+    ok("security: no plaintext API key in persisted messages, jobs, provider docs, or logs");
   }
 
+  stopWorker();
   console.log = origLog;
   console.error = origErr;
   await Message.deleteMany({});

@@ -21,4 +21,7 @@ router.use("/conversations", require("./conversation.routes"));
 // User-owned provider/API-key configuration (Phase 3)
 router.use("/providers", require("./provider.routes"));
 
+// Durable generation job status (Phase 4)
+router.use("/jobs", require("./job.routes"));
+
 module.exports = router;

@@ -220,7 +220,7 @@ Implementations: A ✅ (Phase 1), B ✅ (Phase 2), provider configuration ✅ (P
 - Messages belong to a conversation (parent ref), ordered, with `role` and content.
 - Pet context is loaded from the authenticated user's own pets, never from client-supplied owners; all conversation reads/writes are scoped `owner: req.user._id`. History is replayed to the provider capped at `AI_CONFIG.maxHistoryMessages`.
 
-### C. Durable generation architecture (design, not implemented)
+### C. Durable generation architecture (design → implement as Phase 4) ✅ implemented (see §18)
 - An accepted AI request must be able to continue even if the browser refreshes, changes page, or loses focus.
 - The persisted backend result becomes the source of truth; the frontend reads it back/replays it.
 - A generation record (request, status: queued/running/done/failed, result, timestamps) owned by the user.
@@ -265,7 +265,7 @@ Ordering rationale: (1) a stable provider interface must exist before anything c
   Implement §B: `Conversation`/`Message` models, ownership-scoped CRUD, conversation-aware message flow (new `/api/ai/conversations` API; legacy `/api/ai/ask` untouched), history fetch + provider context reuse with a bounded cap.
 - **Phase 3 — Provider/API-key/model configuration** ✅ implemented
   Per-user provider + model + API key configuration (encrypted); owner-scoped CRUD + test API; active-provider resolution honored by the provider layer with system-env fallback. See §17.
-- **Phase 4 — Durable AI generations + recovery**
+- **Phase 4 — Durable AI generations + recovery** ✅ implemented (see §18)
   Implement §C: generation records with status transition, persisted result as source of truth, replay/recovery path, cleanup/retention.
 - **Phase 5 — Rich pet context**
   Expand context: pet age/weight/gender/vaccinated/description, full breed doc, recent health records, vaccinations, reminders, upcoming appointments; token-budget assembly.
@@ -358,7 +358,7 @@ Chat history is durable on the backend and survives page refresh, navigation, fo
 | `POST /api/ai/conversations` | `{ title? }` (also serves "start new conversation" — no duplicate endpoint) | `201 { success, conversation: { id, title, lastMessageAt, lastMessagePreview, createdAt, updatedAt } }` | 400 title too long; 401 |
 | `GET /api/ai/conversations` | — | `200 { success, conversations: [...] }` sorted by `lastMessageAt` desc | 401 |
 | `GET /api/ai/conversations/:conversationId` | — | `200 { success, conversation, messages: [{ id, role, content, createdAt }] }` (chronological) | 400 invalid id; 404 not found/not owned; 401 |
-| `POST /api/ai/conversations/:conversationId/messages` | `{ content }` | `200 { success, conversationId, userMessage, assistantMessage }` (both persisted) | 400 empty/oversized; 400 invalid id; 404 not found/not owned; 500 provider/persistence failure (generic message); 401 |
+| `POST /api/ai/conversations/:conversationId/messages` | `{ content, idempotencyKey? }` | In-scope: `202 { success, conversationId, userMessage, job }` (job queued). Out-of-scope: `200 { success, conversationId, userMessage, assistantMessage }` (canned answer persisted, no job). See §18 for Phase 4. Both messages persisted in-scope; no `jobId` field. | 400 empty/oversized/idempotencyKey; 400 invalid id; 404 not found/not owned; 409 idempotency conflict; 401 |
 | `DELETE /api/ai/conversations/:conversationId` | — | `200 { success, message: "Conversation cleared." }` | 400 invalid id; 404 not found/not owned; 401 |
 
 Server errors always respond `{ success:false, message:"Something went wrong." }` — internal database/provider errors are never leaked.
@@ -389,31 +389,36 @@ Authenticated user
       ↓
 Conversation (ownership-checked)
       ↓
+Scope gate (out of scope → persist user message + canned assistant answer, 200, no job)
+      ↓
 Persist user message
       ↓
-Load permitted conversation context (capped) + user's own pet context
+Create GenerationJob (queued) — async acceptance, 202
       ↓
-PetGPT provider layer (generatePetGPTResponse) — scope gate first, no provider call when out of scope
+Worker poller claims & runs the job (loads bounded history + own pet context)
       ↓
-Persist assistant message (provider text, or Phase 1 fallback when the provider failed)
+Provider resolves (owner's active config, or system env) → persist assistant message on success
       ↓
-Return persisted result
+Job → completed (assistantMessageId) | failed (provider error, no fake answer) | retried (bounded)
 ```
 
-The persisted assistant message is the source of truth; nothing relies on the HTTP request remaining alive.
+The persisted job and assistant message are the source of truth; nothing relies on the HTTP request remaining alive. The client polls `GET /api/ai/jobs/:id` for the result.
 
 ### Error handling covered
 
-unauthenticated (401), invalid conversation id (400), conversation not found (404), conversation belongs to another user (404), invalid/empty message (400), oversized message (400), provider failure (normalized → fallback answer, still 200, no fabricated success), persistence failure (500 generic). Internal messages never leak.
+unauthorized (401), invalid conversation id (400), conversation not found (404), conversation belongs to another user (404), invalid/empty message (400), oversized message (400), invalid idempotencyKey (400), idempotency conflict (409), foreign/unknown job id (404), invalid job id (400), provider failure (job → `failed` with normalized code, no fake assistant message), persistence failure (job → `failed`). Internal messages never leak.
 
 ### Testing strategy
 
-`npm test` chains four assert-based suites (no framework, no external API keys required):
+`npm test` chains eight assert-based suites (no framework, no external API keys required):
 
 1. `test/ai-provider.test.js` (Phase 1, unchanged) — 17 checks.
-2. `test/conversation-api.test.js` (Phase 2, real local Mongo + real HTTP) — 15 checks: auth gate; create (default/custom title); client-supplied owner ignored; list scoped per user; empty retrieval; invalid-id 400 / unknown 404 / foreign read-append-delete 404 (and the target untouched); empty/oversized/missing content → 400; send+persist user/assistant with server-set roles; retrieval + ordering (user/assistant/user/assistant) + title/metadata updates; ownership isolation on retrieval; title auto-derived from first message; scope-gate exchange persisted (no provider call); clear-chat hard-delete + cannot-be-reused; legacy `/api/ai/ask` unchanged; no JWT/secret material in persisted messages.
-3. `test/petgpt-provider-conversation.test.js` (Phase 2, mock OpenAI-compatible HTTP server) — 5 checks: persist→provider→persist; history reused in order + roles; provider 500 → fallback persisted, no fake success; history capped at `PETGPT_MAX_HISTORY_MESSAGES`; full history durable from DB.
+2. `test/conversation-api.test.js` (Phase 2, real local Mongo + real HTTP, adapted for Phase 4) — 15 checks: auth gate; create (default/custom title); client-supplied owner ignored; list scoped per user; empty retrieval; invalid-id 400 / unknown 404 / foreign read-append-delete 404 (and the target untouched); empty/oversized/missing content → 400; in-scope send → 202 + job `failed` (no assistant); out-of-scope send → 200 canned answer persisted; retrieval + ordering + title/metadata updates; ownership isolation; title auto-derived; scope-gate exchange persisted (no provider call); clear-chat hard-delete of messages+jobs; legacy `/api/ai/ask` unchanged; no JWT/secret material in persisted messages.
+3. `test/petgpt-provider-conversation.test.js` (Phase 2, mock OpenAI-compatible HTTP server, adapted) — 5 checks: persist→provider→persist; history reused in order + roles; provider 500 → job fails (no fake success); history capped at `PETGPT_MAX_HISTORY_MESSAGES`; full history durable from DB.
 4. `test/petgpt-omniroute.test.js` (Phase 2, real OpenAI-compatible E2E) — 5 checks against the local OmniRoute container; **skips** (exit 0) when `PETGPT_OPENAI_API_KEY` is unset or the container is unreachable.
+5. `test/petgpt-jobs.test.js` (Phase 4, real local Mongo + real HTTP + mock OpenAI server) — job lifecycle end-to-end (see §18).
+6. `test/petgpt-jobs-omniroute.test.js` (Phase 4, real OmniRoute) — durable generation through the env path with the real container; **skips** like the Phase-2 OmniRoute suite.
+7. `test/provider-config.test.js` and 8. `test/petgpt-provider-config-omniroute.test.js` (Phase 3, adapted for Phase 4) — see §17.
 
 ### OmniRoute local testing setup/verification
 
@@ -539,7 +544,7 @@ provider adapter (decrypt stored key at call time)
 persist assistant response
 ```
 
-Provider credentials never live on `Conversation`/`Message` documents. Provider failure still falls back to canned answers (persisted as-is, no fabricated success). `clear/delete` behavior and the scope gate are unchanged.
+Provider credentials never live on `Conversation`/`Message` documents. Provider failure in the persistent flow (Phase 4) fails the job (`failed`, code `provider`) with no fabricated answer; only the legacy `/api/ai/ask` still falls back to canned answers. `clear/delete` behavior: `DELETE .../conversations/:id` also removes the conversation's jobs. The scope gate is unchanged.
 
 ### OmniRoute testing setup
 
@@ -566,3 +571,81 @@ Reachability check: `POST /api/ai/providers/:id/test` against the stored config 
 - No frontend file changes; no React-migration worktree/file changes.
 
 Commit: see Phase 3 commit on `feature/petgpt-enhancement`.
+
+---
+
+## 18. Phase 4 — Durable AI Generation + Background Jobs
+
+Status: **✅ implemented & verified** (2026-09-22). Backend-only; no frontend changes; React-migration worktree untouched; no streaming; no tool calling; no Phase 5.
+
+### Goal
+
+In-scope AI generation outlives the HTTP request. The request is accepted with `202 Accepted` and a persisted `GenerationJob`; an in-process poller worker runs it in the background; the client polls the job status API for the durable result. A refresh/navigation loses nothing.
+
+### Job model (`backend/models/GenerationJob.js`)
+
+`owner` (ObjectId→User, required, indexed), `conversation` (ObjectId), `userMessageId` (ObjectId), `assistantMessageId` (ObjectId, set on completion), `status` (`queued|processing|completed|failed`), `provider` (label: `"env"` or stored config name), `model`, `attemptCount`, `error` (`{ code, message }`, failed only), `idempotencyKey` (optional String), `timestamps` plus explicit `startedAt`/`completedAt`/`failedAt`.
+
+Indexes: `{ owner, idempotencyKey }` **unique partial** (only docs where `idempotencyKey` exists) — idempotency scope = `(owner, key)`; `{ status, provider, createdAt }` for FIFO claim; `{ conversation }`. After `dropDatabase()` in tests the partial index must be rebuilt via `GenerationJob.init()`.
+
+### Job lifecycle / state machine
+
+```text
+                  ┌────────────────────────────────────────────┐
+        create    │   queued ──claim──▶ processing ──ok──▶ completed
+ POST /messages ──▶  (attemptCount 0)         │                 │
+                  │                          fail (retryable)     │
+                  │                           ↕ bounded retries   │
+                  └──────────────────────────────────────────────┘
+                                              └────fail (terminal)▶ failed
+```
+
+- **queued** — created with the user message's newest turn inside, based on fresh (pre-create) messages so context replays correctly.
+- **processing** — claimed atomically (see Worker).
+- **completed** — assistant message persisted with the provider text; `assistantMessageId` set; `completedAt` stamped. Idempotent key+owner now yield the completed job → reuse.
+- **failed** — `error: { code, message: "AI generation failed. Please try again." }`, `failedAt` stamped. No fake/fallback assistant message. Conflict/reuse keys return the failed job. Retryable codes are `config|timeout|http|unknown|malformed`; non-retryable (`invalid_request`) fails immediately at any attempt. `PETGPT_MAX_JOB_ATTEMPTS` (default 3) bounds retries; `attemptCount` increments each claim.
+
+### Worker (`backend/jobs/generation.worker.js`, in-process poller)
+
+- Single poller per process; **busy guard** (one job at a time) prevents overlapping claims while the poll is running and while a job is executing. Poll interval `PETGPT_WORKER_POLL_MS` (default 250).
+- **Atomic claim**: `findOneAndUpdate({ status: "queued", ...at-most-PETGPT_MAX_JOB_ATTEMPTS }, { $set: { status: "processing", startedAt }, $inc: { attemptCount: 1 } })` sorted `createdAt` asc (FIFO). Survives restarts (orphaned `processing` jobs are re-enqueued by `reapStale`, default `PETGPT_WORKER_STALE_MS` = 60_000).
+- **runJob** pipeline: load latest user turn + bounded history (`PETGPT_MAX_HISTORY_MESSAGES`) + owner's own pet context → resolve provider (owner's active config or system env) → `generatePetGPTResponse` → persist assistant `Message` → mark completed. On error: classify, increment attempts, re-enqueue or fail, using `$inc` + findOneAndUpdate guards so failures during provider latency race safely.
+- Lifecycle hooks: `startWorker()` / `stopWorker()`; `server.js` starts the worker after DB connect, stops on shutdown. Tests start/stop their own in-process worker.
+- `ponytail:` single-process in-process poller — a single instance must process claims (second instance would double-run; `reapStale` would still converge via atomic claims). Upgrade path: distributed claim via Mongo TTL/Tornado-style lease or a queue broker when multiple app instances ship (Phase 7).
+- Config (`backend/config/ai.js`, frozen at require time — set env before requiring): `PETGPT_WORKER_POLL_MS`, `PETGPT_WORKER_STALE_MS`, `PETGPT_MAX_JOB_ATTEMPTS`, `PETGPT_MAX_HISTORY_MESSAGES`.
+
+### API changes
+
+| Method + path | Body | Success | Errors |
+|---|---|---|---|
+| `POST /api/ai/conversations/:conversationId/messages` | `{ content, idempotencyKey? }` | In-scope: `202 { success, conversationId, userMessage, job }` (job ) — no `assistantMessage`, no `jobId` field | 400 empty/oversized/invalid key; 400/404 conversation; 409 conflict; 401 |
+| `GET /api/ai/jobs/:jobId` (`protect`) | — | `200 { success, job }` | 400 "Invalid job ID."; 404 foreign/unknown; 401 |
+| `DELETE /api/ai/conversations/:conversationId` | — | also `GenerationJob.deleteMany({ conversation })` | unchanged |
+
+`publicJob(job)` shape: `{ id, status, provider, model, attemptCount, conversationId, userMessageId, assistantMessageId, error, createdAt, updatedAt, startedAt, completedAt, failedAt }`.
+
+Out-of-scope content stays synchronous `200` (canned scope answer persisted + metadata update, no job). Legacy `/api/ai/ask` untouched.
+
+### Idempotency
+
+- Same `owner + idempotencyKey + conversation` → `200` with the existing job (any status, incl. `failed`); no duplicate message, no duplicate job, no provider call.
+- Same `owner + key` with a **different** conversation → `409`.
+- Key optional, max 200 chars, scoped per owner (cross-user same string is fine).
+- Race: two concurrent creates with the same key → one wins, the loser's `E11000` triggers delete of its orphan user message and a response pointing at the winner's job. Tests must `GenerationJob.init()` after `dropDatabase()` to rebuild the partial index (else no E11000 involved).
+
+### Durability & recovery
+
+- Persisted `GenerationJob` + `Message` are the source of truth; the HTTP response is only an acceptance receipt.
+- Status transitions are monotonic writes with status-conditional (`strict` findOneAndUpdate) guards — no lost updates between request and worker.
+- `clearConversation` hard-deletes messages + jobs together; a deleted conversation can never be re-processed.
+- No TTL/retention (`ponytail:` deliberate — jobs accumulate; add a TTL on `updatedAt` when job growth matters, likely Phase 7).
+
+### Verification (2026-09-22)
+
+- `node --check` all touched files → pass.
+- Local suites (mock OpenAI on :4105, OWN DBs, no keys): **`petgpt-jobs.test.js` 11 jobs / 7 provider calls** (lifecycle 202→queued/processing→completed; durability across refresh; history + pet-context follow-up; provider failure → `failed`, no fake assistant; idempotency incl. parallel race — exactly one job+message; conflict 409; cross-user reuse; failed-job reuse; concurrency atomic claim; stale + bounded retries; ownership isolation 404; no secrets in logs/docs) + adapted **conversation-api 15**, **petgpt-provider-conversation 5**, **provider-config 19** all pass.
+- OmniRoute E2E (real container `catlium-omniroute`, dummy key, env path): **petgpt-omniroute 5/5**, **petgpt-provider-config-omniroute 6/6**, **petgpt-jobs-omniroute** durable completion (queued→…→completed, reply persisted) all pass. Suites skip cleanly (exit 0) when the key is unset.
+- Full `npm test` chain exit 0 (no key) and exit 0 with the OmniRoute key.
+- No frontend file changes; no React-migration worktree/file changes.
+
+Commit: see Phase 4 commit on `feature/petgpt-enhancement`.

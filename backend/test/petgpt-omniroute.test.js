@@ -1,13 +1,15 @@
 // =========================================================
-// PetGPT conversations (Phase 2) — real OpenAI-compatible path
-// through the local EduTech OmniRoute container.
+// PetGPT conversations (Phase 2 + Phase 4) — real OpenAI-compatible
+// path through the local EduTech OmniRoute container.
 // Run: node test/petgpt-omniroute.test.js
 // Requires: the OmniRoute container reachable at
 // PETGPT_OPENAI_BASE_URL (default http://localhost:20128/v1) and
 // PETGPT_OPENAI_API_KEY set. Without the key the check SKIPS
 // (exit 0): no public API key is required.
 //
-// Uses a dedicated test DB on the locally running MongoDB.
+// Uses a dedicated test DB on the locally running MongoDB. In-scope
+// exchanges are durable jobs (202): the worker runs the provider and
+// persists the assistant reply; out-of-scope stays synchronous.
 // =========================================================
 
 const assert = require("assert");
@@ -62,8 +64,12 @@ const ok = (name) => { passed++; console.log(`ok ${passed} - ${name}`); };
   const base = `http://127.0.0.1:${server.address().port}`;
 
   const User = require("../models/User");
+  const GenerationJob = require("../models/GenerationJob");
   const Conversation = require("../models/Conversation");
   const Message = require("../models/Message");
+  await GenerationJob.init(); // rebuild unique idempotency index after drop
+
+  const { startWorker, stopWorker } = require("../jobs/generation.worker");
 
   const logLines = [];
   const origLog = console.log, origErr = console.error;
@@ -85,6 +91,20 @@ const ok = (name) => { passed++; console.log(`ok ${passed} - ${name}`); };
     return { status: res.status, data };
   }
 
+  // Phase 4: poll a durable generation job to its terminal state.
+  async function awaitJob(jobId) {
+    const started = Date.now();
+    while (Date.now() - started < 60000) {
+      const r = await api("GET", `/api/ai/jobs/${jobId}`);
+      assert.strictEqual(r.status, 200, "job status readable while running");
+      if (["completed", "failed"].includes(r.data.job.status)) return r.data;
+      await new Promise((s) => setTimeout(s, 100));
+    }
+    throw new Error(`job ${jobId} not terminal in time`);
+  }
+
+  startWorker();
+
   let convId;
   {
     const c = await api("POST", convPath, {});
@@ -93,24 +113,29 @@ const ok = (name) => { passed++; console.log(`ok ${passed} - ${name}`); };
     ok("omniroute: conversation created");
   }
 
-  // Real provider exchange: user message + assistant reply persisted.
+  // Real provider exchange (durable job): user + assistant persisted.
   {
     const q = "Give me a short tip about feeding an adult dog.";
     const a = await api("POST", `${convPath}/${convId}/messages`, { content: q });
-    assert.strictEqual(a.status, 200, "real OmniRoute exchange -> 200");
+    assert.strictEqual(a.status, 202, "real OmniRoute exchange -> 202 (durable generation)");
     assert.strictEqual(a.data.userMessage.role, "user");
     assert.strictEqual(a.data.userMessage.content, q, "user message persisted");
-    assert.strictEqual(a.data.assistantMessage.role, "assistant");
-    assert.ok(typeof a.data.assistantMessage.content === "string" && a.data.assistantMessage.content.trim().length > 0, "real assistant reply non-empty");
-    ok("omniroute: real provider reply persisted as assistant message");
+    assert.ok(a.data.job && a.data.job.id, "job queued");
+    const T = await awaitJob(a.data.job.id);
+    assert.strictEqual(T.job.status, "completed", "job completes");
+    assert.strictEqual(T.assistantMessage.role, "assistant");
+    assert.ok(typeof T.assistantMessage.content === "string" && T.assistantMessage.content.trim().length > 0, "real assistant reply non-empty");
+    ok("omniroute: real provider reply persisted as assistant message by the worker");
   }
 
   // Follow-up with history context; 4 messages in order afterwards.
   {
     const q2 = "How often should that dog be walked daily?";
     const a = await api("POST", `${convPath}/${convId}/messages`, { content: q2 });
-    assert.strictEqual(a.status, 200, "follow-up -> 200");
-    assert.ok(a.data.assistantMessage.content.trim().length > 0, "follow-up reply non-empty");
+    assert.strictEqual(a.status, 202, "follow-up -> 202");
+    const T = await awaitJob(a.data.job.id);
+    assert.strictEqual(T.job.status, "completed", "follow-up completes");
+    assert.ok(T.assistantMessage.content.trim().length > 0, "follow-up reply non-empty");
     const g = await api("GET", `${convPath}/${convId}`);
     assert.strictEqual(g.status, 200);
     assert.strictEqual(g.data.messages.length, 4, "history durable across exchanges");
@@ -139,7 +164,9 @@ const ok = (name) => { passed++; console.log(`ok ${passed} - ${name}`); };
 
   await Message.deleteMany({});
   await Conversation.deleteMany({});
+  await GenerationJob.deleteMany({});
   await User.deleteMany({ _id: user._id });
+  stopWorker();
   console.log = origLog;
   console.error = origErr;
   await mongoose.connection.dropDatabase();

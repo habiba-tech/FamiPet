@@ -1,11 +1,12 @@
 // =========================================================
-// PetGPT conversations (Phase 2) — assert-based E2E checks.
+// PetGPT conversations (Phase 2 + Phase 4) — assert-based E2E checks.
 // Run: node test/conversation-api.test.js
 // Requires a reachable MongoDB (MONGODB_URI or the default
 // localhost:27017). Uses a dedicated test database, cleaned up
 // afterwards. Provider is the default google adapter with no
-// GEMINI_API_KEY, so every AI exchange deterministically takes
-// the fallback path (existing Phase 1 behaviour).
+// GEMINI_API_KEY, so every in-scope exchange deterministically
+// fails in the durable worker (job -> failed, no fake assistant);
+// out-of-scope exchanges stay synchronous (canned scope answer).
 // =========================================================
 
 const assert = require("assert");
@@ -17,6 +18,7 @@ const DB_NAME = "animal_planet_petgpt_conv_test";
 const URI = process.env.MONGODB_URI || `mongodb://localhost:27017/${DB_NAME}`;
 const { AI_CONFIG, outOfScopeResponse } = require("../config/ai");
 const { fallbackAnswer } = require("../controllers/ai.controller");
+const GenerationJob = require("../models/GenerationJob");
 
 const OUT_OF_SCOPE = outOfScopeResponse("what is the capital of France");
 assert.ok(typeof OUT_OF_SCOPE === "string" && OUT_OF_SCOPE.length > 0, "scope gate must block off-topic input");
@@ -55,12 +57,27 @@ const tokenFor = (userId) => jwt.sign({ id: userId.toString() }, process.env.JWT
 (async () => {
   await mongoose.connect(URI);
   await mongoose.connection.dropDatabase();
+  await GenerationJob.init(); // rebuild unique idempotency index after drop
   const server = await initAppRouter();
   const base = `http://127.0.0.1:${server.address().port}`;
 
+  const { startWorker, stopWorker } = require("../jobs/generation.worker");
   const User = require("../models/User");
   const Conversation = require("../models/Conversation");
   const Message = require("../models/Message");
+
+  async function awaitJob(token, jobId) {
+    const started = Date.now();
+    while (Date.now() - started < 15000) {
+      const a = await api(base, "GET", `/api/ai/jobs/${jobId}`, token);
+      assert.strictEqual(a.status, 200, "job status readable while running");
+      if (["completed", "failed"].includes(a.data.job.status)) return a.data;
+      await new Promise((s) => setTimeout(s, 40));
+    }
+    throw new Error(`job ${jobId} not terminal in time`);
+  }
+
+  startWorker();
 
   const users = [];
   for (const [i, email] of ["phase2-a@test.dev", "phase2-b@test.dev"].entries()) {
@@ -157,59 +174,64 @@ const tokenFor = (userId) => jwt.sign({ id: userId.toString() }, process.env.JWT
     ok("messages: empty / oversized / missing content rejected");
   }
 
-  // ---- Send + persist (fallback path, deterministic) ----------------
+  // ---- Send enqueues a durable generation (no provider key -> fails) --
   let userMsgId;
-  let assistantMsgId;
   {
     const q1 = "What food for a dog?";
     const a = await api(base, "POST", `${convPath}/${convId}/messages`, aliceTok, { content: q1 });
-    assert.strictEqual(a.status, 200, "send -> 200");
+    assert.strictEqual(a.status, 202, "send -> 202 (durable generation)");
     assert.strictEqual(a.data.conversationId, convId, "echoes conversation id");
     assert.strictEqual(a.data.userMessage.role, "user");
     assert.strictEqual(a.data.userMessage.content, q1, "user message persisted verbatim");
-    assert.strictEqual(a.data.assistantMessage.role, "assistant");
-    assert.strictEqual(a.data.assistantMessage.content, fallbackAnswer(q1), "fallback answer persisted (no key)");
-    assert.ok(a.data.assistantMessage.content.trim().length > 0, "assistant message non-empty");
+    assert.ok(a.data.job && a.data.job.id, "job queued");
+    assert.ok(!a.data.assistantMessage, "202 carries no assistant message");
     userMsgId = a.data.userMessage.id;
-    assistantMsgId = a.data.assistantMessage.id;
+
+    // No provider configured -> the worker fails the job; no fake answer.
+    const T = await awaitJob(aliceTok, a.data.job.id);
+    assert.strictEqual(T.job.status, "failed", "job fails without a provider");
+    assert.strictEqual(T.job.error.code, "provider");
+    assert.strictEqual(T.assistantMessage, null, "no assistant message on a failed job");
   }
   {
     // Client cannot forge a role; backend always writes "user" on send.
     const forged = await api(base, "POST", `${convPath}/${convId}/messages`, aliceTok, { content: "second question", role: "assistant", conversationsOwner: "none" });
+    assert.strictEqual(forged.status, 202);
     assert.strictEqual(forged.data.userMessage.role, "user", "server-set role wins");
-    ok("messages: add + persist user/assistant; roles never client-supplied");
+    ok("messages: durable send + persist user message; roles never client-supplied");
   }
 
-  // ---- Ordering + retrieval -----------------------------------------
+  // ---- Retrieval (failed jobs leave only user turns) -----------------
   {
     const a = await api(base, "GET", `${convPath}/${convId}`, aliceTok);
-    assert.strictEqual(a.data.messages.length, 4, "4 messages persisted (2 exchanges)");
+    assert.strictEqual(a.data.messages.length, 2, "2 user messages persisted (no assistant without a provider)");
     assert.strictEqual(a.data.messages[0].id, userMsgId, "user message first");
-    assert.strictEqual(a.data.messages[1].id, assistantMsgId, "assistant message second");
-    const roles = a.data.messages.map((m) => m.role);
-    assert.deepStrictEqual(roles, ["user", "assistant", "user", "assistant"], "chronological ordering");
-    assert.strictEqual(a.data.conversation.title, "My puppy questions", "custom title preserved (not overwritten)");
-    assert.ok(a.data.conversation.lastMessageAt, "lastMessageAt updated");
-    const preview = a.data.messages[3].content;
-    assert.strictEqual(
-      a.data.conversation.lastMessagePreview,
-      preview.slice(0, 60) + (preview.length > 60 ? "…" : ""),
-      "preview = last assistant message"
-    );
-    ok("messages: retrieval + ordering + title/metadata updates");
+    assert.deepStrictEqual(a.data.messages.map((m) => m.role), ["user", "user"], "chronological ordering");
+    ok("messages: retrieval + ordering without fabricated assistant turns");
+  }
 
+    // ---- Ownership isolation on retrieval -----------------------------
+  {
     const b = await api(base, "GET", `${convPath}/${convId}`, bobTok);
     assert.strictEqual(b.status, 404, "bob cannot retrieve alice messages");
     ok("messages: ownership isolation on retrieval");
   }
 
-  // ---- Title derived from first message when conversation is untitled --
+  // ---- Title + metadata derived from first message (scope path sync) --
   {
-    const a = await api(base, "POST", `${convPath}/${convC.id}/messages`, aliceTok, { content: "My puppy is teething a lot" });
-    assert.strictEqual(a.status, 200, "send on default-title conversation -> 200");
+    const a = await api(base, "POST", `${convPath}/${convC.id}/messages`, aliceTok, { content: "what is the capital of France" });
+    assert.strictEqual(a.status, 200, "exchange on default-title conversation -> 200");
+    assert.strictEqual(a.data.assistantMessage.content, OUT_OF_SCOPE, "scope answer persisted synchronously");
     const g = await api(base, "GET", `${convPath}/${convC.id}`, aliceTok);
-    assert.strictEqual(g.data.conversation.title, "My puppy is teething a lot", "default title replaced by first message");
-    ok("conversations: title auto-derived from first message on untitled conversation");
+    assert.strictEqual(g.data.conversation.title, "what is the capital of France", "default title replaced by first message");
+    assert.ok(g.data.conversation.lastMessageAt, "lastMessageAt updated");
+    const preview = g.data.messages[1].content;
+    assert.strictEqual(
+      g.data.conversation.lastMessagePreview,
+      preview.slice(0, 60) + (preview.length > 60 ? "…" : ""),
+      "preview = last assistant message"
+    );
+    ok("conversations: title auto-derived from first message + metadata updated");
   }
 
   // ---- Scope gate persists the canned scope answer ------------------
@@ -218,14 +240,16 @@ const tokenFor = (userId) => jwt.sign({ id: userId.toString() }, process.env.JWT
     assert.strictEqual(a.status, 200, "off-topic -> 200");
     assert.strictEqual(a.data.assistantMessage.content, OUT_OF_SCOPE, "canned scope answer persisted");
     const hist = await api(base, "GET", `${convPath}/${convId}`, aliceTok);
-    assert.strictEqual(hist.data.messages.length, 6, "scope exchange persisted too");
-    assert.strictEqual(hist.data.messages[4].role, "user", "off-topic question persisted");
-    assert.strictEqual(hist.data.messages[5].role, "assistant", "scope answer persisted");
+    assert.strictEqual(hist.data.messages.length, 4, "2 failed in-scope turns + scope exchange");
+    assert.strictEqual(hist.data.messages[2].role, "user", "off-topic question persisted");
+    assert.strictEqual(hist.data.messages[3].role, "assistant", "scope answer persisted");
     ok("messages: scope gate persists user + canned scope answer, no provider call");
   }
 
   // ---- Clear chat ---------------------------------------------------
   {
+    const jobCount = await GenerationJob.countDocuments({});
+    assert.ok(jobCount >= 2, "jobs existed before clear");
     const a = await api(base, "DELETE", `${convPath}/${convId}`, aliceTok);
     assert.strictEqual(a.status, 200, "clear -> 200");
     const goneGet = await api(base, "GET", `${convPath}/${convId}`, aliceTok);
@@ -236,7 +260,9 @@ const tokenFor = (userId) => jwt.sign({ id: userId.toString() }, process.env.JWT
     assert.ok(!goneList.data.conversations.some((c) => c.id === convId), "gone from list");
     const msgCount = await Message.countDocuments({ conversation: convId });
     assert.strictEqual(msgCount, 0, "all messages removed with the conversation");
-    ok("conversations: clear chat hard-deletes conversation + all messages; cannot be reused");
+    const jobCountAfter = await GenerationJob.countDocuments({ conversation: convId });
+    assert.strictEqual(jobCountAfter, 0, "all generation jobs removed with the conversation");
+    ok("conversations: clear chat hard-deletes conversation + messages + jobs; cannot be reused");
   }
 
   // ---- /api/ai/ask backward compatibility ---------------------------
@@ -267,8 +293,10 @@ const tokenFor = (userId) => jwt.sign({ id: userId.toString() }, process.env.JWT
 
   await Message.deleteMany({});
   await Conversation.deleteMany({});
+  await GenerationJob.deleteMany({});
   await User.deleteMany({ _id: { $in: [alice._id, bob._id] } });
 
+  stopWorker();
   await mongoose.connection.dropDatabase();
   await mongoose.disconnect();
   await new Promise((resolve) => server.close(resolve));

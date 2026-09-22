@@ -46,6 +46,11 @@ mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/animal_pl
   .then(() => console.log('✅ MongoDB Connected'))
   .catch(err => console.error('❌ MongoDB Error:', err));
 
+// Durable AI generation worker (Phase 4): in-process poller that picks
+// up queued GenerationJobs and runs them independent of any HTTP request
+// lifecycle. Mongoose buffers queries until the DB connection resolves.
+require('./jobs/generation.worker').startWorker();
+
 // Health Check (registered before the protected /api/health records router)
 app.get('/api/status', (req, res) => {
   res.json({ status: 'OK', message: 'FamiPet API is running!' });
