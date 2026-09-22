@@ -197,7 +197,7 @@ tree verified.
 | 19    | Pet Breeds                     | [x]    | `526f78e`    |
 | 20    | Settings                       | [x]    | `ed4d6cb`   |
 | 21    | Admin panel                    | [x]    | `d18c336`   |
-| 22    | AI / PetGPT (redesign)         | [ ]    | —            |
+| 22    | AI / PetGPT (redesign)         | [x]    | (this push)  |
 | 23    | API integration layer          | [ ]    | —            |
 | 24    | Auth/state management          | [ ]    | —            |
 | 25    | UI/UX completion & stabilization| [ ]    | —            |
@@ -1425,6 +1425,66 @@ Implemented (commit + push under Phase 20, real backend only — no fake data):
   vet modal populated.
 - **Completion criteria:** chat parity with genuine AI responses.
 - **Rollback/safety:** isolated page.
+
+**Implemented (commit + push under Phase 22, real backend only — no fake data):**
+
+- New `src/api/petgpt.ts` typed client for the enhanced `main` backend surface:
+  `createConversation`, `listConversations`, `getConversation`,
+  `deleteConversation`, `addMessage` (202 job model), `getJobStatus`
+  (polling), `newIdempotencyKey`, plus `GET /veterinarians`. Handles all three
+  `addMessage` outcomes — queued `generationJob` (job id kept in
+  sessionStorage so a reload resumes polling), `scopeHandled` (off-topic
+  canned reply), and `reusedMessage` (re-attached to the existing conversation).
+- New `src/pages/app/petgpt/PetGPTPage.tsx` + `QuickActions.tsx` +
+  `VeterinarianPanel.tsx` and `src/styles/petgpt.css` (spa page resolution,
+  plain sticky footer, `bg-primary` user bubbles, `.petgpt-dots` typing dots,
+  amber `.petgpt-error` card with `Try again`, `.petgpt-chip-row`, mobile
+  drawer, dark surfaces via `oklch` slate-950). Empty state pulls the user's
+  real pets via `GET /pets/my` (`toPetView`) for context chips and lists the
+  six quick actions + real veterinarian directory (`GET /api/veterinarians`).
+  Chat renders `.petgpt-answer` only for `role !== 'system'`, filters
+  `toolCalls` in/out of the assistant bubble, mirrors literal layout from
+  `pages/petgpt.html` at 390px, and maps owned-pet chips to `get_my_pets`
+  inputs by name match.
+- `src/routes/routeConfig.tsx` mounts the real page at `/app/petgpt` (was
+  `PageStub`); `src/styles/global.css` imports `petgpt.css` (added the active
+  `@custom-variant dark` line so Tailwind 4 emits `:where` dark variants for
+  the globally-scoped CSS).
+- `backend/.env.example` documents the OmniRoute provider block
+  (verified locally): `PETGPT_PROVIDER=openai`,
+  `PETGPT_OPENAI_BASE_URL=http://172.18.0.2:20128/v1` (container IP of the
+  local OmniRoute), `PETGPT_OPENAI_MODEL=auto`, any non-empty
+  `PETGPT_OPENAI_API_KEY` (OmniRoute accepts a dummy key). Rate-limit knobs
+  `PETGPT_RATE_LIMIT_MAX` / `PETGPT_RATE_LIMIT_WINDOW_MS`; scope gate keyword
+  list `OFF_TOPIC_KEYWORDS`.
+- **Verification:** `npm run lint` (oxlint, zero new issues), `tsc -b`, and
+  `vite build` all clean. End-to-end vs the running enhanced backend (:5000,
+  Mongo `animal_planet`) and the **real** OmniRoute provider (`model=auto`,
+  dummy key) via a headless-Chrome (CDP) suite — `29/29 PASS`: login as
+  admin; empty-state greeting; all six quick actions and their composer
+  prefill; pet context chips show the admin's owner-scoped pets
+  (`GET /pets/my` → Luna + Buddy); send → 202 → queued job → typing dots →
+  real assistant reply (persisted `toolCalls`); sidebar lists the
+  conversation; conversation + messages survive a full reload (re-list +
+  `GET /:id` restore); a second conversation is created, listed, and the
+  first one switches back with its messages restored; veterinarians render
+  real Dr. Michael Chen / Dr. Sarah Johnson + clinics; ask-about-vet prefills
+  the composer; the off-topic bounce ("stock market") returns the canned
+  "outside what I do" reply synchronously; clear conversation → DELETE →
+  empty state and rail removal; 390px mobile has no horizontal overflow and
+  the hamburger/drawer works only when the rail is hidden; dark theme applies
+  `dark-theme` + dark surfaces.
+- **Failure path (honest scope):** the provider-failure job path was verified
+  at the API level — restarting the backend with a dead provider URL makes
+  the job end `failed` with `{"code":"provider","message":"AI generation
+  failed. Please try again."}`, and the frontend renders the amber error card
+  (`Could not get a reply` + `Try again`) from that `pending.error`. The
+  browser segment for the failure→try-again→success cycle was **stopped
+  before completion** per user request; the error-card UI and retry handler
+  are wired identically to the (passing) happy-path series. Not claimed as
+  browser-verified.
+- Known/throttled: test conversations created by the E2E runs were deleted
+  after the suite (admin restored to zero conversations).
 
 ### Phase 23 — API integration layer (formalization)
 - **Objective:** consolidate the typed `src/api/` layer + `client.ts` + `lib/*` so ALL

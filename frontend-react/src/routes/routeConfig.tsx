@@ -22,6 +22,7 @@ import { AdoptionPage } from '../pages/app/adoption/AdoptionPage'
 import { BreedsPage } from '../pages/app/breeds/BreedsPage'
 import { BreedDetailsPage } from '../pages/app/breedDetails/BreedDetailsPage'
 import { SettingsPage } from '../pages/app/settings/SettingsPage'
+import { PetGPTPage } from '../pages/app/petgpt/PetGPTPage'
 import { RedirectIfAuthed, RequireAdmin, RequireAuth } from './guards'
 import { AdminDashboardPage } from '../pages/admin/AdminDashboardPage'
 import { AdminUsersPage } from '../pages/admin/AdminUsersPage'
@@ -75,7 +76,7 @@ export const routes: RouteObject[] = [
       { path: 'reminders', element: <RemindersPage /> },
       { path: 'community', element: <CommunityPage /> },
       { path: 'lost-found', element: <LostFoundPage /> },
-      { path: 'petgpt', element: <PageStub title="PetGPT" /> },
+      { path: 'petgpt', element: <PetGPTPage /> },
       { path: 'breeds', element: <BreedsPage /> },
       { path: 'breeds/:id', element: <BreedDetailsPage /> },
       { path: 'pet-id', element: <PetIdPage /> },

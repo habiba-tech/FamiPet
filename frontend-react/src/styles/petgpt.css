@@ -1,0 +1,67 @@
+/* =========================================================
+   PETGPT PAGE (Phase 22) — scoped composables only. Layout is
+   Tailwind; this file holds the few pieces CSS must own:
+   typing indicator, inner scrollbar, message fade-in.
+   ========================================================= */
+
+.petgpt-dot {
+  animation: petgpt-bounce 1.2s infinite ease-in-out;
+}
+
+@keyframes petgpt-bounce {
+  0%,
+  60%,
+  100% {
+    transform: translateY(0);
+    opacity: 0.45;
+  }
+  30% {
+    transform: translateY(-4px);
+    opacity: 1;
+  }
+}
+
+.petgpt-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: #e8c8d3 transparent;
+}
+
+.petgpt-scroll::-webkit-scrollbar {
+  width: 6px;
+}
+
+.petgpt-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.petgpt-scroll::-webkit-scrollbar-thumb {
+  background: #e8c8d3;
+  border-radius: 20px;
+}
+
+.petgpt-answer {
+  color: inherit;
+}
+
+.petgpt-answer p {
+  margin: 0 0 0.5em;
+}
+
+.petgpt-answer p:last-child {
+  margin-bottom: 0;
+}
+
+.petgpt-answer ul,
+.petgpt-answer ol {
+  margin: 0.4em 0 0.6em;
+  padding-left: 1.25em;
+  list-style: disc;
+}
+
+.petgpt-answer ol {
+  list-style: decimal;
+}
+
+.petgpt-answer strong {
+  font-weight: 600;
+}
