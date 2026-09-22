@@ -9,6 +9,7 @@ import { useEffect, useState, type FormEvent } from 'react'
 import { createAppointment } from '../../../api/appointments'
 import type { Veterinarian } from '../../../api/veterinarians'
 import { Icon } from '../../../components/shared/Icon'
+import { VetSelect } from '../../../components/shared/VetSelect'
 import type { PetView } from '../mypet/petBase'
 import { BOOKING_TYPES, mapTypeToBackend } from './appointmentsBase'
 
@@ -121,18 +122,7 @@ export function AppointmentFormModal({ pets, vets, onClose, onSaved }: Props) {
             </div>
           </div>
 
-          <div className="form-group">
-            <label htmlFor="modalClinic">Veterinary Clinic</label>
-            <select id="modalClinic" value={vet} onChange={(e) => setVet(e.target.value)}>
-              <option value="">Select a veterinarian</option>
-              {vets.map((v) => (
-                <option key={v._id} value={v._id}>
-                  {v.name}
-                  {v.clinic ? ` - ${v.clinic}` : ''}
-                </option>
-              ))}
-            </select>
-          </div>
+          <VetSelect vets={vets} value={vet} onChange={setVet} inputId="modalClinic" />
 
           {error && (
             <div className="form-error" role="alert">
