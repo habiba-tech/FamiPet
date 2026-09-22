@@ -1,0 +1,216 @@
+erDiagram
+    %% FamiPet data model - 13 collections (MongoDB / Mongoose)
+    User ||--o{ Pet : "owns"
+    User ||--o{ Adoption : "submits"
+    Pet ||--o{ Adoption : "is requested for"
+    User ||--o{ Appointment : "books"
+    Pet ||--o{ Appointment : "requires"
+    Veterinarian ||--o{ Appointment : "serves"
+    Breed ||--o{ Pet : "classifies"
+    User ||--o{ Notification : "receives"
+    User ||--o{ Reminder : "sets"
+    Pet ||--o{ Reminder : "for"
+    User ||--o{ HealthRecord : "keeps"
+    Pet ||--o{ HealthRecord : "about"
+    User ||--o{ Vaccination : "tracks"
+    Pet ||--o{ Vaccination : "for"
+    User ||--o{ CommunityPost : "authors"
+    User ||--o{ Favorite : "marks"
+    Pet ||--o{ Favorite : "is favourited"
+    User ||--o{ User : "likes CommunityPost"
+    User ||--o{ CommunityPost : "reply subdocs"
+
+    User {
+        ObjectId _id PK
+        string name
+        string email UK
+        string password
+        string role
+        boolean isVerified
+        boolean isBlocked
+        string avatar
+        string phone
+        string address
+        string city
+        string emailVerificationToken
+        datetime emailVerificationExpire
+        string resetPasswordToken
+        datetime resetPasswordExpire
+        ObjectId pets
+        ObjectId favorites
+        ObjectId adoptionRequests
+        ObjectId notifications
+    }
+
+    Pet {
+        ObjectId _id PK
+        ObjectId owner FK
+        ObjectId breed FK
+        string name
+        string species
+        string gender
+        number age
+        number weight
+        string color
+        boolean vaccinated
+        boolean adopted
+        string status
+        ObjectId images
+        string description
+        number views
+        string qrCode
+        string petUid
+    }
+
+    Breed {
+        ObjectId _id PK
+        string name UK
+        string species
+        string origin
+        string lifespan
+        string weightRange
+        string heightRange
+        ObjectId temperament
+        string exerciseRequirements
+        string groomingGuide
+        ObjectId commonDiseases
+        string suitableEnvironment
+        string description
+        ObjectId images
+        number popularity
+        boolean isActive
+    }
+
+    Adoption {
+        ObjectId _id PK
+        ObjectId pet FK
+        ObjectId user FK
+        string fullName
+        string phone
+        string address
+        string occupation
+        string experienceWithPets
+        string reasonForAdoption
+        string status
+    }
+
+    Appointment {
+        ObjectId _id PK
+        ObjectId user FK
+        ObjectId pet FK
+        ObjectId veterinarian FK
+        datetime date
+        string time
+        string type
+        string status
+        string symptoms
+        string notes
+        string prescription
+        string diagnosis
+        number fee
+        boolean isPaid
+    }
+
+    Veterinarian {
+        ObjectId _id PK
+        string name
+        string email
+        string phone
+        ObjectId specialization
+        ObjectId qualifications
+        number experience
+        string clinic
+        string city
+        string image
+        number rating
+        ObjectId availability
+        boolean isActive
+        number consultationFee
+    }
+
+    Notification {
+        ObjectId _id PK
+        ObjectId user FK
+        string title
+        string message
+        string type
+        boolean isRead
+    }
+
+    Reminder {
+        ObjectId _id PK
+        ObjectId user FK
+        ObjectId pet FK
+        string title
+        string type
+        string description
+        datetime date
+        string time
+        string frequency
+        boolean isActive
+        boolean isCompleted
+    }
+
+    HealthRecord {
+        ObjectId _id PK
+        ObjectId user FK
+        ObjectId pet FK
+        string diagnosis
+        string treatment
+        string doctor
+        string hospital
+        string prescription
+        datetime visitDate
+        datetime nextVisit
+        string notes
+    }
+
+    Vaccination {
+        ObjectId _id PK
+        ObjectId user FK
+        ObjectId pet FK
+        string vaccineName
+        number doseNumber
+        datetime vaccinationDate
+        datetime nextDueDate
+        string veterinarian
+        string hospital
+        string notes
+        string status
+    }
+
+    CommunityPost {
+        ObjectId _id PK
+        ObjectId user FK
+        string title
+        string content
+        string category
+        string image
+        ObjectId likes
+        ObjectId replies
+        boolean isActive
+    }
+
+    Favorite {
+        ObjectId _id PK
+        ObjectId user FK
+        ObjectId pet FK
+    }
+
+    LostFound {
+        ObjectId _id PK
+        ObjectId user FK
+        string type
+        string petName
+        string species
+        string breed
+        string gender
+        string color
+        string description
+        string location
+        datetime date
+        string contactName
+        string contactPhone
+        ObjectId images
+        string status
+    }

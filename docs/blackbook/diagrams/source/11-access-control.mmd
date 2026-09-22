@@ -1,0 +1,12 @@
+flowchart LR
+    A["request with Bearer token"] --> B["jwt.verify(token)"]
+    B --> C["load user"]
+    C --> D{isBlocked?}
+    D -- no --> E["req.user set"]
+    E --> F{adminOnly route?}
+    F -- no --> G["controller"]
+    F -- yes --> H{role admin?}
+    H -- yes --> G
+    D -- yes --> I["403 blocked"]
+    H -- no --> J["403 admin only"]
+    B -- invalid --> K["401"]

@@ -1,0 +1,9 @@
+flowchart LR
+    A["POST /api/pets"] --> B["breed resolve<br/>(create if missing)"]
+    B --> C["Pet.create<br/>owner = user"]
+    C --> D["base36 petUid"]
+    D --> E["qrcode.toDataURL"]
+    E --> F["save QR + UID"]
+    F --> G["201 pet"]
+    G --> H["/api/pets/my list"]
+    G --> I["/api/pets/:id/qr"]

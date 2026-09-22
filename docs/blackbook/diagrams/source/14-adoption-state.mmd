@@ -1,0 +1,20 @@
+stateDiagram-v2
+    [*] --> Pending : User submits request<br/>(valid pet available, no duplicate pending)
+
+    Pending --> Approved : Admin approves
+    Pending --> Rejected : Admin rejects
+
+    Approved --> PetAdopted : pet.adopted = true, pet.status = "adopted"
+    Approved --> NotifyDecision : Notification created for applicant
+    Rejected --> NotifyDecision : Notification created for applicant
+
+    Pending --> Deleted : Admin deletes request
+    Deleted --> [*]
+    NotifyDecision --> [*]
+
+    note right of Pending
+        createAdoption validates:
+        - pet exists
+        - status === "available" and not adopted
+        - no existing Pending request from this user
+    end note

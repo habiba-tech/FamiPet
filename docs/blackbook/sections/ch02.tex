@@ -1,0 +1,93 @@
+\famichapter{Problem and Objectives}{This chapter defines the problem that FamiPet
+addresses, the objectives of the project, and the deliverables that define a
+successful implementation.}{ch:problem}
+
+\section{Problem Statement}
+
+Pet ownership involves several practical responsibilities that are today spread
+across separate tools and sources: remembering vaccination schedules, tracking
+medical history, keeping appointments with veterinarians, organising daily care
+like feeding and medicine, proving a pet's identity when it is lost, and managing
+the process of adopting an animal responsibly. Owners keep this information
+informally or in unrelated documents, so records are lost, reminders are missed,
+and a pet's health history is unavailable at the moment it is needed. People
+looking for a pet have similar difficulties: there is no single place to see
+animals available for adoption and to apply for them, or to report and search
+lost or found animals.
+
+FamiPet addresses this by providing one integrated platform in which:
+
+\begin{itemize}
+    \item a user registers, verifies the account, and manages a personal profile;
+    \item a user records pets, generating a unique digital pet identity and a QR
+    code that encodes public pet information;
+    \item health records and vaccinations are kept per pet, with ownership
+    enforced by the backend;
+    \item veterinary appointments can be booked against a veterinarian's
+    availability, with automatic notifications and reminders;
+    \item reminders for feeding, medicine, grooming, and care can be created and
+    completed;
+    \item users can post to a community, like and comment on posts, and report
+    lost or found animals;
+    \item users can apply to adopt pets, and administrators can approve or reject
+    those applications, automatically changing the pet's status; and
+    \item an AI assistant answers pet-care questions and gives advice based on
+    the user's actual pet records.
+\end{itemize}
+
+The problem is therefore the need for an authenticated, backend-driven pet-care
+system in which all user data is owned by the correct user, is persisted in a
+real database, and is protected by server-side access control.
+
+\section{Objectives}
+
+The objectives of the FamiPet project are:
+
+\begin{enumerate}
+    \item To build a full-stack web application for pet care and adoption with an
+    authenticating backend and a database-backed data store.
+    \item To provide a secure authentication mechanism based on e-mail
+    verification, password hashing, and signed bearer tokens.
+    \item To enforce ownership and role-based authorization on the backend so
+    that users can only access their own resources and only administrators can
+    perform administrative actions.
+    \item To implement a digital pet identity with a unique pet identifier and a
+    QR code that can be read to obtain public pet information.
+    \item To implement pet health management, including health records and
+    vaccinations, tied to the authenticated owner's pets.
+    \item To implement appointment booking with veterinarian slot conflict
+    detection and automatic notification and reminder generation.
+    \item To implement a reminder system with per-owner, per-pet reminders that
+    persist and can be completed.
+    \item To implement adoption management with pending, approved, and rejected
+    states and automated pet status transitions and notifications.
+    \item To implement community and lost-and-found features with moderation by
+    administrators.
+    \item To integrate an AI pet-care assistant that uses the owner's real pet
+    data and falls back to safe, generic guidance when the AI service is
+    unavailable.
+    \item To validate the system through real end-to-end tests, database
+    persistence checks, and security boundary tests.
+\end{enumerate}
+
+\section{Deliverables and Success Criteria}
+
+The project deliverables are:
+
+\begin{itemize}
+    \item the backend API (Express, MongoDB, Mongoose) at \texttt{backend/};
+    \item the frontend application at \texttt{frontend/} and its in-progress
+    React migration at \texttt{frontend-react/};
+    \item project documentation, including this black book, the implementation
+    roadmap (\texttt{ROADMAP.md}, \texttt{docs/migration.md}), and the
+    maintenance rules in \texttt{AGENTS.md};
+    \item a seeded database containing default breeds, an administrator account,
+    and a demo user for evaluation.
+\end{itemize}
+
+A phase is considered successful when the functionality is implemented, connects
+to the persisted database, passes the associated tests, and is committed and
+pushed to the repository. Feature phases are tracked in a checklist: at the time
+of writing, the vanilla frontend and backend are feature-complete, and React
+migration phases 1--21 are complete while phases 22--29 remain planned
+(Chapter~\ref{ch:process}).

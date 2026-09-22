@@ -1,0 +1,12 @@
+flowchart LR
+    subgraph T1["2026-09-07 to 2026-09-09 - Backend feature development"]
+        S1["Initial commit (09-07)"]
+        S2["Core features: auth, pets, adoption,<br/>appointments, community, lost-found, health,<br/>vaccinations, reminders, notifications, AI"]
+        S3["Step-10 final report (09-09):<br/>E2E sweep, DB persistence, security tests"]
+    end
+    subgraph T2["2026-09-09 onward - React migration (branch react-migration)"]
+        M1["Migration plan + phased execution<br/>(29 phases)"]
+        M2["Phases 1-21 completed and pushed (to 09-22):<br/>scaffold, routing, auth, dashboard, pets, health,<br/>vaccinations, appointments, veterinarians, reminders,<br/>community, lost-found, favourites, adoption, breeds,<br/>settings, admin panel"]
+        M3["Phases 22-29 pending:<br/>AI redesign, API layer, auth state, UI/UX,<br/>regression, Docker, removal of vanilla client"]
+    end
+    S1 --> S2 --> S3 --> M1 --> M2 --> M3

@@ -1,0 +1,147 @@
+% =====================================================================
+%  FAMIPET — PROJECT BLACK BOOK
+%  Compiled with: latexmk -xelatex -interaction=nonstopmode main.tex
+% =====================================================================
+\documentclass[12pt,a4paper,twoside,openright]{book}
+
+% ---------------------------------------------------------------
+% Layout: binding-aware two-sided margins
+% ---------------------------------------------------------------
+\usepackage[a4paper,inner=1.30in,outer=0.90in,top=0.90in,bottom=0.90in,footskip=0.5in]{geometry}
+
+% ---------------------------------------------------------------
+% Fonts: 12 pt Times New Roman (body), DejaVu Sans Mono (code)
+% ---------------------------------------------------------------
+\usepackage{fontspec}
+\setmainfont{Times New Roman}
+\setmonofont{DejaVu Sans Mono}
+
+% ---------------------------------------------------------------
+% Supporting packages (strict black-and-white only)
+% ---------------------------------------------------------------
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{longtable}
+\usepackage{array}
+\usepackage{tabularx}
+\usepackage{ragged2e}
+\usepackage{enumitem}
+\setlist{topsep=2pt,itemsep=2pt,parsep=0pt,leftmargin=1.5em}
+\usepackage{caption}
+\captionsetup{font=small,labelfont=bf,labelsep=period,skip=6pt}
+\usepackage{amsmath}
+\usepackage{microtype}
+
+% ---------------------------------------------------------------
+% Headers / footers: page number bottom, odd-right, even-left
+% ---------------------------------------------------------------
+\usepackage{fancyhdr}
+\pagestyle{fancy}
+\fancyhf{}
+\fancyfoot[LE,RO]{\thepage}
+\renewcommand{\headrulewidth}{0pt}
+
+% ---------------------------------------------------------------
+% Chapter-opening pages
+%  - every chapter starts on a right-hand (odd) page
+%  - the opening page contains ONLY chapter number, title and a
+%    short description, and carries no page number
+%  - genuine blank forcing pages (no number, no decoration)
+% ---------------------------------------------------------------
+\newcommand{\cleartorecto}{\clearpage{\pagestyle{empty}\cleardoublepage}}
+
+\newcommand{\famichapter}[3]{%
+  \cleartorecto
+  \thispagestyle{empty}%
+  \global\stepcounter{chapter}%
+  \addcontentsline{toc}{chapter}{\protect\numberline{\thechapter}#1}%
+  \setcounter{section}{0}%
+  \setcounter{figure}{0}%
+  \setcounter{table}{0}%
+  \setcounter{footnote}{0}%
+  \begin{center}
+    \vspace*{\fill}
+    {\fontsize{14}{17}\selectfont\bfseries CHAPTER \thechapter\par}
+    \vspace{10pt}
+    {\fontsize{20}{24}\selectfont\bfseries\MakeUppercase{#1}\par}
+    \vspace{18pt}
+    {\normalsize #2\par}
+    \vspace*{\fill}
+  \end{center}
+  \clearpage
+  \label{#3}%
+}
+
+\newcommand{\famichapterstar}[3]{%
+  \cleartorecto
+  \thispagestyle{empty}%
+  \addcontentsline{toc}{chapter}{#1}%
+  \begin{center}
+    \vspace*{\fill}
+    {\fontsize{20}{24}\selectfont\bfseries\MakeUppercase{#1}\par}
+    \vspace{18pt}
+    {\normalsize #2\par}
+    \vspace*{\fill}
+  \end{center}
+  \clearpage
+  \label{#3}%
+}
+
+% ---------------------------------------------------------------
+% Hyperlinks: never colored (black book rule)
+% ---------------------------------------------------------------
+\usepackage[hidelinks]{hyperref}
+
+% ---------------------------------------------------------------
+% Front matter page numbering (roman)
+% ---------------------------------------------------------------
+\newcommand{\frontpagestyle}{\clearpage{\pagestyle{empty}\cleardoublepage}\pagenumbering{roman}}
+
+\begin{document}
+
+% ---------------- TOC / LOF / LOT ----------------
+\frontpagestyle
+\renewcommand{\contentsname}{CONTENTS}
+\tableofcontents
+\clearpage
+\renewcommand{\listfigurename}{LIST OF FIGURES}
+\listoffigures
+\clearpage
+\renewcommand{\listtablename}{LIST OF TABLES}
+\listoftables
+\clearpage
+
+% ---------------- MAIN MATTER ----------------
+{\pagestyle{empty}\cleardoublepage}
+\pagenumbering{arabic}
+\setcounter{page}{1}
+
+\input{sections/ch01}
+\input{sections/ch02}
+\input{sections/ch03}
+\input{sections/ch04}
+\input{sections/ch05}
+\input{sections/ch06}
+\input{sections/ch07}
+\input{sections/ch08}
+\input{sections/ch09}
+\input{sections/ch10}
+\input{sections/ch11}
+\input{sections/ch12}
+
+% ---------------- REFERENCES ----------------
+\famichapterstar{References}{The sources cited in this black book. All references
+relate to verified technologies, documentation and literature used in the project.}{ch:refs}
+\bibliographystyle{ieeetr}
+\bibliography{references}
+
+% ---------------- GLOSSARY ----------------
+\famichapterstar{Glossary of Terms and Abbreviations}{Definitions of the technical
+terms and abbreviations used throughout this black book.}{ch:glossary}
+\input{sections/glossary}
+
+% ---------------- APPENDICES ----------------
+\input{appendices/appendix_a}
+\input{appendices/appendix_b}
+
+\end{document}

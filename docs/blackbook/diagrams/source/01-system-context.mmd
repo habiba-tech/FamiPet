@@ -1,0 +1,27 @@
+flowchart LR
+    V["Visitor / Public"]:::actor
+    U["Authenticated User"]:::actor
+    A["Administrator"]:::actor
+
+    subgraph FAMIPET["FamiPet Platform"]
+        FE["React Web Client<br/>(presentation)"]
+        API["FamiPet Backend API<br/>Node.js + Express (port 5000)"]
+    end
+
+    DB[("MongoDB<br/>animal_planet")]
+    SMTP["SMTP / Email Service<br/>(Nodemailer - Gmail)"]
+    GEM["Google Gemini API<br/>gemini-1.5-flash (PetGPT)"]
+    CDN["Cloudinary<br/>(avatar storage)"]
+    FS[["Local uploads directory<br/>multer"]]
+
+    V --> FE
+    U --> FE
+    A --> FE
+    FE -- "HTTP/JSON (REST)" --> API
+    API --> DB
+    API -- "verification / reset emails" --> SMTP
+    API -- "HTTPS REST" --> GEM
+    API -- "HTTPS REST" --> CDN
+    API -- "file storage" --> FS
+
+    classDef actor fill:#e6e6e6,stroke:#000000,stroke-width:1px

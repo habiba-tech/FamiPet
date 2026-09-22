@@ -1,0 +1,27 @@
+flowchart LR
+    subgraph PROD["Notification producers (synchronous, request-scoped)"]
+        AP["appointment.controller<br/>appointment booked / updated"]
+        AD["adoption.controller<br/>status approved/rejected"]
+        SEED["seedData / onboarding<br/>welcome + vaccination due"]
+    end
+
+    subgraph STORE["Persistence"]
+        ND["Notification document<br/>user, title, message, type, isRead, timestamps"]
+    end
+
+    subgraph CONS["Consumers (authenticated user only)"]
+        G["GET /api/notifications"]
+        GU["GET /api/notifications/unread"]
+        MR["PUT /:id/read - mark as read"]
+        MA["PUT /read-all"]
+        DL["DELETE /:id"]
+    end
+
+    PROD -->|"Notification.create (user = recipient)"| ND
+    ND --> G
+    ND --> GU
+    ND --> MR
+    ND --> MA
+    ND --> DL
+
+    style STORE stroke:#000000,stroke-width:1.5px

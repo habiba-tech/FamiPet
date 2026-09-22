@@ -1,0 +1,10 @@
+flowchart LR
+    A["POST /api/appointments"] --> B["validate fields"]
+    B --> C["owner check,<br/>vet active"]
+    C --> D{vet free?}
+    D -- no --> E["400 double booking"]
+    D -- yes --> F["create appointment"]
+    F --> G["notification +<br/>reminder (dedup)"]
+    G --> H["201"]
+    H --> I["update appointment -> sync reminder"]
+    H --> J["cancel -> deactivate reminder"]

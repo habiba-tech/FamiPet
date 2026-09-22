@@ -1,0 +1,69 @@
+flowchart LR
+    subgraph PRES["Presentation Layer"]
+        RC["React Web Client (frontend-react)<br/>REST calls over HTTP/JSON + Bearer JWT"]
+    end
+
+    subgraph GATE["Gateway Middleware"]
+        CORS["CORS origin guard"]
+        HLM["Helmet headers / compression / logging"]
+        JSON["JSON body parsing (limit 50 MB) / static uploads"]
+    end
+
+    subgraph RT["Routing Layer - 16 Express route modules"]
+        R1["/api/auth, /api/users, /api/pets, /api/breeds"]
+        R2["/api/adoptions, /api/lost-found, /api/favorites"]
+        R3["/api/health, /api/vaccinations, /api/veterinarians"]
+        R4["/api/appointments, /api/community, /api/ai"]
+        R5["/api/notifications, /api/reminders, /api/admin"]
+    end
+
+    subgraph ACC["Access-Control Middleware"]
+        PROT["protect - JWT verify, load user, block check"]
+        ADMN["adminOnly - role enforcement"]
+        MUL["multer - image upload (5 MB, jpeg/png/webp)"]
+    end
+
+    subgraph CTRL["Controller Layer - business logic"]
+        C1["auth, user, pet, breed controllers"]
+        C2["adoption, lost-found, favorite controllers"]
+        C3["appointment, veterinarian, reminder controllers"]
+        C4["health, vaccination, community controllers"]
+        C5["notification, ai, admin controllers"]
+    end
+
+    subgraph EXT["External Integrations"]
+        SMT["Nodemailer (SMTP)"]
+        GEM["Google Gemini (REST)"]
+        CLD["Cloudinary"]
+    end
+
+    subgraph DATA["Data Layer - Mongoose ODM"]
+        MOD["13 Mongoose models mapped to MongoDB collections"]
+        DB[("MongoDB - animal_planet")]
+    end
+
+    RC --> CORS
+    CORS --> HLM --> JSON --> R1
+    R1 --> PROT
+    R2 --> PROT
+    R3 --> PROT
+    R4 --> PROT
+    R5 --> ADMN
+    PROT --> C1
+    PROT --> C2
+    PROT --> C3
+    PROT --> C4
+    PROT --> C5
+    ADMN --> C1
+    ADMN --> C5
+    MUL --> C1
+    MUL --> C4
+    C1 --> MOD
+    C2 --> MOD
+    C3 --> MOD
+    C4 --> MOD
+    C5 --> MOD
+    C1 --> SMT
+    C4 --> GEM
+    C1 --> CLD
+    MOD --> DB

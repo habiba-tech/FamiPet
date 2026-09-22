@@ -1,0 +1,33 @@
+flowchart TD
+    V["Visitor / User / Admin"] -->|"HTTP requests"| P0["P0 Request handling<br/>(Express app, middleware chain)"]
+
+    P0 --> P1["Authentication <br/>register / login / verify / reset"]
+    P0 --> P2["Pet management <br/>CRUD + QR"]
+    P0 --> P3["Adoption <br/>requests + approval"]
+    P0 --> P4["Appointments <br/>booking + reminders"]
+    P0 --> P5["Health &amp; vaccinations"]
+    P0 --> P6["Community <br/>posts / likes / comments"]
+    P0 --> P7["Lost &amp; found reports"]
+    P0 --> P8["Notifications"]
+    P0 --> P9["Favourites"]
+    P0 --> P10["Breeds / veterinarians"]
+    P0 --> P11["AI assistant (PetGPT)"]
+    P0 --> P12["Administration"]
+
+    P1 --> D1[(User)]
+    P2 --> D2[(Pet)]
+    P3 --> D3[(Adoption)]
+    P4 --> D4[(Appointment)]
+    P4 --> D5[(Reminder)]
+    P5 --> D6[(HealthRecord)]
+    P5 --> D7[(Vaccination)]
+    P6 --> D8[(CommunityPost)]
+    P7 --> D9[(LostFound)]
+    P8 --> D10[(Notification)]
+    P9 --> D11[(Favorite)]
+    P10 --> D12[(Breed)]
+    P10 --> D13[(Veterinarian)]
+    P2 --> D12
+
+    E1["Email service"] --> P1
+    E2["Google Gemini"] --> P11

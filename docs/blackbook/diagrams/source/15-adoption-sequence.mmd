@@ -1,0 +1,28 @@
+sequenceDiagram
+    autonumber
+    participant U as User / Client
+    participant AC as adoption.controller
+    participant P as Pet model
+    participant AD as Adoption model
+    participant N as Notification model
+    participant MA as Admin middleware
+    participant MCA as admin.controller
+
+    U->>AC: POST /api/adoptions { pet, fullName, phone, address, ... }
+    AC->>AC: required fields + valid ObjectId
+    AC->>P: Pet.findById(pet)
+    P-->>AC: not found -> 404
+    AC->>AC: status "available" and !adopted? else 400
+    AC->>AD: findOne({ pet, user, status: "Pending" }) duplicate? -> 400
+    AC->>AD: Adoption.create({ user: req.user.id, ... })
+    AC-->>U: 201 { adoption (Pending) }
+
+    Note over U,MA: Administrator reviews request
+    MA->>MA: protect + adminOnly
+    MA->>MCA: PUT /api/adoptions/:id { status }
+    MCA->>AD: findById + populate pet
+    MCA->>AD: adoption.status = status, save
+    MCA->>P: if Approved: update pet { adopted: true, status: "adopted" }
+    MCA->>N: Notification.create({ user: applicant, type: "adoption", ... })
+    MCA-->>MA: 200 { adoption }
+    U->>U: applicant sees decision via GET /notifications

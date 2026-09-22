@@ -1,0 +1,26 @@
+sequenceDiagram
+    autonumber
+    participant U as User / Client
+    participant C as auth.controller
+    participant M as User model
+    participant P as protect middleware
+    participant R as Resource controller
+
+    U->>C: POST /api/auth/login { email, password }
+    C->>M: User.findOne({ email }).select("+password")
+    C->>M: user.comparePassword(password)
+    M-->>C: mismatch returns 401
+    C->>C: rejected when blocked (403) or unverified (403)
+    C->>C: jwt.sign({ id }, JWT_SECRET, { expiresIn: 30d })
+    C-->>U: 200 { token, user }
+
+    Note over U,R: Subsequent protected request
+    U->>R: GET /api/pets/my (Authorization: Bearer token)
+    R->>P: protect
+    P->>P: header missing Bearer scheme returns 401
+    P->>P: jwt.verify(token) invalid/expired returns 401
+    P->>M: User.findById(decoded.id).select("-password")
+    P->>P: blocked returns 403, not found returns 401
+    P-->>R: req.user = user
+    R->>M: Pet.find({ owner: req.user.id })
+    R-->>U: 200 { pets }

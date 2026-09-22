@@ -1,0 +1,23 @@
+sequenceDiagram
+    autonumber
+    participant Client as React Client
+    participant Srv as Express App
+    participant Rt as Route Handler
+    participant Ctrl as Controller
+    participant Mod as Mongoose Model
+    participant DB as MongoDB
+
+    Client->>Srv: HTTP XHR (JSON + Bearer JWT)
+    Srv->>Srv: CORS guard, helmet, compression, logging
+    Srv->>Rt: matched route (e.g. PUT /api/pets/:id)
+    Rt->>Rt: protect: verify JWT, load user, block check
+    Rt->>Rt: adminOnly (for role-protected routes)
+    Rt->>Ctrl: call controller (ownership known on req.user)
+    Ctrl->>Mod: find({ owner: req.user.id, _id }) or create/update
+    Mod->>DB: query / persist
+    DB-->>Mod: document(s)
+    Mod-->>Ctrl: result (with populate)
+    Ctrl-->>Rt: res.json(success, data)
+    Rt-->>Srv: response escapes
+    Srv-->>Client: HTTP 2xx JSON
+    Note over Srv,Client: On error path, central error handler returns 4xx/5xx JSON

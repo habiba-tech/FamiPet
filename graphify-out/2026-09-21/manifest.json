@@ -1,0 +1,1382 @@
+{
+  ".vscode/settings.json": {
+    "mtime": 1789993924.798667,
+    "seen": 1789999226.3265758,
+    "ast_hash": "57a1e8793543acfd6620ee850b35e80a",
+    "semantic_hash": ""
+  },
+  "backend/config/cloudinary.js": {
+    "mtime": 1789993924.7996671,
+    "seen": 1789999226.3265853,
+    "ast_hash": "3718e087631c42130d93292200ee1cd2",
+    "semantic_hash": ""
+  },
+  "backend/config/database.js": {
+    "mtime": 1789993924.800624,
+    "seen": 1789999226.3265893,
+    "ast_hash": "d8d68b949d5b4b8cf5c51d94d2248e5a",
+    "semantic_hash": ""
+  },
+  "backend/config/email.js": {
+    "mtime": 1789993924.800624,
+    "seen": 1789999226.3265913,
+    "ast_hash": "aee68ea74f8eb32eda226891ecea3c35",
+    "semantic_hash": ""
+  },
+  "backend/config/gemini.js": {
+    "mtime": 1789993924.800624,
+    "seen": 1789999226.3265934,
+    "ast_hash": "dfcec217b0d0c89da9e4e719aa015056",
+    "semantic_hash": ""
+  },
+  "backend/controllers/admin.controller.js": {
+    "mtime": 1789993924.800624,
+    "seen": 1789999226.3265958,
+    "ast_hash": "db95ca337c25fb313f0047aa545a39cd",
+    "semantic_hash": ""
+  },
+  "backend/controllers/adoption.controller.js": {
+    "mtime": 1789993924.8009033,
+    "seen": 1789999226.3265982,
+    "ast_hash": "f6b1205a321a0f196da30d45f5636657",
+    "semantic_hash": ""
+  },
+  "backend/controllers/ai.controller.js": {
+    "mtime": 1789993924.8009033,
+    "seen": 1789999226.3265996,
+    "ast_hash": "090a97be32500b08ddcf7ed9e73fb989",
+    "semantic_hash": ""
+  },
+  "backend/controllers/appointment.controller.js": {
+    "mtime": 1789993924.8009033,
+    "seen": 1789999226.3266008,
+    "ast_hash": "19677ae7446e50d77a3c19c262432b0e",
+    "semantic_hash": ""
+  },
+  "backend/controllers/auth.controller.js": {
+    "mtime": 1789993924.8009033,
+    "seen": 1789999226.3266017,
+    "ast_hash": "31dc86a2aa4024a89fcebf00e391e280",
+    "semantic_hash": ""
+  },
+  "backend/controllers/breed.controller.js": {
+    "mtime": 1789993924.8009033,
+    "seen": 1789999226.326603,
+    "ast_hash": "8d1ff2f7cd643c735caec7d8dd52a810",
+    "semantic_hash": ""
+  },
+  "backend/controllers/community.controller.js": {
+    "mtime": 1789993924.8009033,
+    "seen": 1789999226.3266048,
+    "ast_hash": "99ae5bd8df67479d5244ce315701cb9a",
+    "semantic_hash": ""
+  },
+  "backend/controllers/favorite.controller.js": {
+    "mtime": 1789993924.8009033,
+    "seen": 1789999226.326606,
+    "ast_hash": "8d29dd5e456cba51adad2c8164f00420",
+    "semantic_hash": ""
+  },
+  "backend/controllers/health.controller.js": {
+    "mtime": 1789993924.8009033,
+    "seen": 1789999226.3266077,
+    "ast_hash": "5fbcec080abc6db54e04a754008f683e",
+    "semantic_hash": ""
+  },
+  "backend/controllers/lostFound.controller.js": {
+    "mtime": 1789993924.8009033,
+    "seen": 1789999226.3266087,
+    "ast_hash": "cb0c9c51e6f76419b2a6d73f193fc15a",
+    "semantic_hash": ""
+  },
+  "backend/controllers/notification.controller.js": {
+    "mtime": 1789993924.8009033,
+    "seen": 1789999226.3266096,
+    "ast_hash": "f1a1308f3a7d37bba103ada303759d31",
+    "semantic_hash": ""
+  },
+  "backend/controllers/pet.controller.js": {
+    "mtime": 1789993924.8009033,
+    "seen": 1789999226.326611,
+    "ast_hash": "1fc66184ea3d81b06b3acde4727c3f60",
+    "semantic_hash": ""
+  },
+  "backend/controllers/reminder.controller.js": {
+    "mtime": 1789993924.8009033,
+    "seen": 1789999226.326612,
+    "ast_hash": "9d7f5650a41e25e51561dfd7473ee985",
+    "semantic_hash": ""
+  },
+  "backend/controllers/user.controller.js": {
+    "mtime": 1789993924.8009033,
+    "seen": 1789999226.3266137,
+    "ast_hash": "a519a25342ba49fa7bc8aeb6f20a0f18",
+    "semantic_hash": ""
+  },
+  "backend/controllers/vaccination.controller.js": {
+    "mtime": 1789993924.8009033,
+    "seen": 1789999226.3266149,
+    "ast_hash": "7fac529324078e751382fa08bb05d87a",
+    "semantic_hash": ""
+  },
+  "backend/controllers/veterinarian.controller.js": {
+    "mtime": 1789993924.8009033,
+    "seen": 1789999226.326616,
+    "ast_hash": "e4ee923223f76985af61cf80021f60c0",
+    "semantic_hash": ""
+  },
+  "backend/middleware/auth.js": {
+    "mtime": 1789993924.8009033,
+    "seen": 1789999226.3266172,
+    "ast_hash": "a57595c87f269f0c955d3a3aa1ace634",
+    "semantic_hash": ""
+  },
+  "backend/middleware/errorHandler.js": {
+    "mtime": 1789993924.8018918,
+    "seen": 1789999226.3266187,
+    "ast_hash": "238a56cdb4e16f80073067960dff529c",
+    "semantic_hash": ""
+  },
+  "backend/middleware/upload.js": {
+    "mtime": 1789993924.8018918,
+    "seen": 1789999226.3266196,
+    "ast_hash": "9ecaf8d2bbace4afcb79cce3f49e7723",
+    "semantic_hash": ""
+  },
+  "backend/models/Adoption.js": {
+    "mtime": 1789993924.8018918,
+    "seen": 1789999226.3266206,
+    "ast_hash": "d5b01f74a93045c9e98ce2111c4d42a3",
+    "semantic_hash": ""
+  },
+  "backend/models/Appointment.js": {
+    "mtime": 1789993924.8020191,
+    "seen": 1789999226.3266218,
+    "ast_hash": "b4388c7c086b9b15bde821d4d236c454",
+    "semantic_hash": ""
+  },
+  "backend/models/Breed.js": {
+    "mtime": 1789993924.8020191,
+    "seen": 1789999226.3266227,
+    "ast_hash": "0f78c02bf6aeffa8f2436b29fa70a3c2",
+    "semantic_hash": ""
+  },
+  "backend/models/CommunityPost.js": {
+    "mtime": 1789993924.8020191,
+    "seen": 1789999226.3266237,
+    "ast_hash": "298b092ca39a5fca25950d1eecc8fb8d",
+    "semantic_hash": ""
+  },
+  "backend/models/Favorite.js": {
+    "mtime": 1789993924.8020191,
+    "seen": 1789999226.3266249,
+    "ast_hash": "cd21ba4a21adf61f440479abe01157de",
+    "semantic_hash": ""
+  },
+  "backend/models/HealthRecord.js": {
+    "mtime": 1789993924.8020191,
+    "seen": 1789999226.3266258,
+    "ast_hash": "0148f67841d28f8ff78fa75effe876ca",
+    "semantic_hash": ""
+  },
+  "backend/models/LostFound.js": {
+    "mtime": 1789993924.8020191,
+    "seen": 1789999226.3266268,
+    "ast_hash": "6293012e6b429a0ff1ffd8bedd476267",
+    "semantic_hash": ""
+  },
+  "backend/models/Notification.js": {
+    "mtime": 1789993924.8020191,
+    "seen": 1789999226.3266277,
+    "ast_hash": "94fe71dc15e73d5937d38dc47251064f",
+    "semantic_hash": ""
+  },
+  "backend/models/Pet.js": {
+    "mtime": 1789993924.8020191,
+    "seen": 1789999226.326629,
+    "ast_hash": "28cccdace9824f543f829fe7486c3a67",
+    "semantic_hash": ""
+  },
+  "backend/models/Reminder.js": {
+    "mtime": 1789993924.8020191,
+    "seen": 1789999226.3266299,
+    "ast_hash": "73f440fa95f947360dc283d3f23b9322",
+    "semantic_hash": ""
+  },
+  "backend/models/User.js": {
+    "mtime": 1789993924.8020191,
+    "seen": 1789999226.3266308,
+    "ast_hash": "aa4578270b7891fd36d1bc2afced7ba3",
+    "semantic_hash": ""
+  },
+  "backend/models/Vaccination.js": {
+    "mtime": 1789993924.8020191,
+    "seen": 1789999226.326632,
+    "ast_hash": "e0f06d3e2b44e90de4755e77a713d1bc",
+    "semantic_hash": ""
+  },
+  "backend/models/Veterinarian.js": {
+    "mtime": 1789993924.8020191,
+    "seen": 1789999226.3266332,
+    "ast_hash": "dd7dbd4a3b975b956fb6e1c59f2da47f",
+    "semantic_hash": ""
+  },
+  "backend/package.json": {
+    "mtime": 1789993924.8056688,
+    "seen": 1789999226.3266342,
+    "ast_hash": "f5bf8ad7ddab2f82e748e781a249c74f",
+    "semantic_hash": ""
+  },
+  "backend/routes/admin.routes.js": {
+    "mtime": 1789993924.8056688,
+    "seen": 1789999226.3266358,
+    "ast_hash": "4aeded65bf9ad4e2a84a90510861d08d",
+    "semantic_hash": ""
+  },
+  "backend/routes/adoption.routes.js": {
+    "mtime": 1789993924.8071702,
+    "seen": 1789999226.3266368,
+    "ast_hash": "5f967fa255f88a7e008c46245f21b8c1",
+    "semantic_hash": ""
+  },
+  "backend/routes/ai.routes.js": {
+    "mtime": 1789993924.8071702,
+    "seen": 1789999226.3266382,
+    "ast_hash": "a22c0028fa954999723f5a6568301502",
+    "semantic_hash": ""
+  },
+  "backend/routes/appointment.routes.js": {
+    "mtime": 1789993924.8071702,
+    "seen": 1789999226.3266394,
+    "ast_hash": "cdb8c27a5f32aa1dd190fc75b71f90fd",
+    "semantic_hash": ""
+  },
+  "backend/routes/auth.routes.js": {
+    "mtime": 1789993924.8071702,
+    "seen": 1789999226.3266404,
+    "ast_hash": "0ca8267e53ef98e9bca88bd4f0558e8d",
+    "semantic_hash": ""
+  },
+  "backend/routes/breed.routes.js": {
+    "mtime": 1789993924.8071702,
+    "seen": 1789999226.326645,
+    "ast_hash": "5ebdc896f53a138c83e8b130177e233e",
+    "semantic_hash": ""
+  },
+  "backend/routes/community.routes.js": {
+    "mtime": 1789993924.8071702,
+    "seen": 1789999226.326646,
+    "ast_hash": "267c7c7015f2bd0f64255455cbad2628",
+    "semantic_hash": ""
+  },
+  "backend/routes/favorite.routes.js": {
+    "mtime": 1789993924.8071702,
+    "seen": 1789999226.326647,
+    "ast_hash": "ddc3815a1bebe208627c702ec61b10af",
+    "semantic_hash": ""
+  },
+  "backend/routes/health.routes.js": {
+    "mtime": 1789993924.8071702,
+    "seen": 1789999226.326648,
+    "ast_hash": "78f15178ea961c4210c54635e806aa38",
+    "semantic_hash": ""
+  },
+  "backend/routes/lostFound.routes.js": {
+    "mtime": 1789993924.8071702,
+    "seen": 1789999226.3266492,
+    "ast_hash": "a34f3642a1f1763db6843bb57bf1648e",
+    "semantic_hash": ""
+  },
+  "backend/routes/notification.routes.js": {
+    "mtime": 1789993924.8071702,
+    "seen": 1789999226.3266501,
+    "ast_hash": "2a1b8327a34fb34a0c72223054fa2a76",
+    "semantic_hash": ""
+  },
+  "backend/routes/pet.routes.js": {
+    "mtime": 1789993924.8071702,
+    "seen": 1789999226.326651,
+    "ast_hash": "26d5827c0518525dd3329b44d4be644d",
+    "semantic_hash": ""
+  },
+  "backend/routes/reminder.routes.js": {
+    "mtime": 1789993924.8071702,
+    "seen": 1789999226.3266525,
+    "ast_hash": "1fba7583f8e49cdd37bc351c2ede85bc",
+    "semantic_hash": ""
+  },
+  "backend/routes/user.routes.js": {
+    "mtime": 1789993924.8071702,
+    "seen": 1789999226.3266535,
+    "ast_hash": "e0bcd87c0c3e17748cef529207cbc8fd",
+    "semantic_hash": ""
+  },
+  "backend/routes/vaccination.routes.js": {
+    "mtime": 1789993924.8071702,
+    "seen": 1789999226.3266542,
+    "ast_hash": "5018f516a39a081207b41f73784e8b51",
+    "semantic_hash": ""
+  },
+  "backend/routes/veterinarian.routes.js": {
+    "mtime": 1789993924.8071702,
+    "seen": 1789999226.3266551,
+    "ast_hash": "67e1bba53cedb60fa7710d8d4d411054",
+    "semantic_hash": ""
+  },
+  "backend/server.js": {
+    "mtime": 1789993924.8071702,
+    "seen": 1789999226.3266563,
+    "ast_hash": "13dae66cdd6280c3d980220bdf37280e",
+    "semantic_hash": ""
+  },
+  "backend/test-email.js": {
+    "mtime": 1789993924.8071702,
+    "seen": 1789999226.3266573,
+    "ast_hash": "03c06eddf8d729e2f3bbb255abb1ead6",
+    "semantic_hash": ""
+  },
+  "backend/utils/seedData.js": {
+    "mtime": 1789993924.8071702,
+    "seen": 1789999226.3266582,
+    "ast_hash": "4ceb83d552a79080fb7ec87aab66f4a9",
+    "semantic_hash": ""
+  },
+  "frontend-react/.oxlintrc.json": {
+    "mtime": 1789997529.3380291,
+    "seen": 1789999226.3266594,
+    "ast_hash": "029f4905006c1fffd96bc863e2d98d3e",
+    "semantic_hash": ""
+  },
+  "frontend-react/package.json": {
+    "mtime": 1789998501.072914,
+    "seen": 1789999226.3266604,
+    "ast_hash": "8d3ac7425cae7bbeee698c2661b27d54",
+    "semantic_hash": ""
+  },
+  "frontend-react/src/App.tsx": {
+    "mtime": 1789999105.7521636,
+    "seen": 1789999226.3266616,
+    "ast_hash": "19dd7a16118e3606af272dea7bb61707",
+    "semantic_hash": ""
+  },
+  "frontend-react/src/contexts/ThemeContext.tsx": {
+    "mtime": 1789999128.6921015,
+    "seen": 1789999226.3266625,
+    "ast_hash": "d33a25db8026919247d2b76e377c8d4f",
+    "semantic_hash": ""
+  },
+  "frontend-react/src/contexts/theme.ts": {
+    "mtime": 1789999127.9141366,
+    "seen": 1789999226.326664,
+    "ast_hash": "da61ae6db6e0505700653b1830ca3634",
+    "semantic_hash": ""
+  },
+  "frontend-react/src/hooks/useTheme.ts": {
+    "mtime": 1789999129.8260498,
+    "seen": 1789999226.326665,
+    "ast_hash": "c7045e8eccadeb5ecea25a273fa32537",
+    "semantic_hash": ""
+  },
+  "frontend-react/src/layouts/areaLayouts.tsx": {
+    "mtime": 1789998515.1938694,
+    "seen": 1789999226.3266664,
+    "ast_hash": "9c3fbe27e51c2d8e01cb71d32a729b36",
+    "semantic_hash": ""
+  },
+  "frontend-react/src/lib/storage.ts": {
+    "mtime": 1789999097.40956,
+    "seen": 1789999226.3266673,
+    "ast_hash": "1e21c4de3d96533115a19035862018ca",
+    "semantic_hash": ""
+  },
+  "frontend-react/src/main.tsx": {
+    "mtime": 1789997529.3397007,
+    "seen": 1789999226.3266683,
+    "ast_hash": "787e5a07efeb2bf6209d5937195f2f68",
+    "semantic_hash": ""
+  },
+  "frontend-react/src/pages/NotFound.tsx": {
+    "mtime": 1789998526.3038356,
+    "seen": 1789999226.326669,
+    "ast_hash": "399619c07183b3929bf8297b6918b277",
+    "semantic_hash": ""
+  },
+  "frontend-react/src/pages/_stub/PageStub.tsx": {
+    "mtime": 1789998520.9418516,
+    "seen": 1789999226.3266702,
+    "ast_hash": "c9cddb65f5b2d8a06e1f0c9942b580f6",
+    "semantic_hash": ""
+  },
+  "frontend-react/src/router.tsx": {
+    "mtime": 1789998542.7097878,
+    "seen": 1789999226.3266711,
+    "ast_hash": "6f0074a999a26eda62facced912c41f5",
+    "semantic_hash": ""
+  },
+  "frontend-react/src/routes/guards.tsx": {
+    "mtime": 1789998510.3988843,
+    "seen": 1789999226.3266718,
+    "ast_hash": "1e83230823d95f40ad5a0bdadbff9734",
+    "semantic_hash": ""
+  },
+  "frontend-react/src/routes/routeConfig.tsx": {
+    "mtime": 1789998537.9008017,
+    "seen": 1789999226.3266733,
+    "ast_hash": "1fd21f65b35463e63b7d5f419af4fbc0",
+    "semantic_hash": ""
+  },
+  "frontend-react/tsconfig.app.json": {
+    "mtime": 1789997529.3398275,
+    "seen": 1789999226.326674,
+    "ast_hash": "5f2dafd737dea8a4ddcbb10f5113ac5a",
+    "semantic_hash": ""
+  },
+  "frontend-react/tsconfig.json": {
+    "mtime": 1789997529.3399403,
+    "seen": 1789999226.326675,
+    "ast_hash": "a3d39fa780ebff65444de257f291ce6c",
+    "semantic_hash": ""
+  },
+  "frontend-react/tsconfig.node.json": {
+    "mtime": 1789997529.3400571,
+    "seen": 1789999226.326676,
+    "ast_hash": "f9cb81ddcea69ffdab672fc8c48dca66",
+    "semantic_hash": ""
+  },
+  "frontend-react/vite.config.ts": {
+    "mtime": 1789997658.651414,
+    "seen": 1789999226.326677,
+    "ast_hash": "d21da1a00fcbc35382eb83df340aa6bc",
+    "semantic_hash": ""
+  },
+  "frontend/.vscode/settings.json": {
+    "mtime": 1789993924.8082166,
+    "seen": 1789999226.326678,
+    "ast_hash": "97da721fe2180efa57a5a1fa5c51b8e8",
+    "semantic_hash": ""
+  },
+  "frontend/admin/js/admin-adoptions.js": {
+    "mtime": 1789993924.8083453,
+    "seen": 1789999226.326679,
+    "ast_hash": "29200f4acddcb5211127e30ac47e5693",
+    "semantic_hash": ""
+  },
+  "frontend/admin/js/admin-community.js": {
+    "mtime": 1789993924.808649,
+    "seen": 1789999226.3266804,
+    "ast_hash": "dcd136a08b24a82dd9f73b965b9ecc35",
+    "semantic_hash": ""
+  },
+  "frontend/admin/js/admin-dashboard.js": {
+    "mtime": 1789993924.808649,
+    "seen": 1789999226.3266814,
+    "ast_hash": "89014d69d87638160baf8460786ec4f6",
+    "semantic_hash": ""
+  },
+  "frontend/admin/js/admin-lost-found.js": {
+    "mtime": 1789993924.808649,
+    "seen": 1789999226.3266823,
+    "ast_hash": "f67c318c3ee2b49a706054dce2c5ddc1",
+    "semantic_hash": ""
+  },
+  "frontend/admin/js/admin-pets.js": {
+    "mtime": 1789993924.808649,
+    "seen": 1789999226.3266833,
+    "ast_hash": "5b7497bbe4ad884f7a1187f10ac3958c",
+    "semantic_hash": ""
+  },
+  "frontend/admin/js/admin-users.js": {
+    "mtime": 1789993924.808649,
+    "seen": 1789999226.3266845,
+    "ast_hash": "7aeab9944cf735e6a5bba9408eccc059",
+    "semantic_hash": ""
+  },
+  "frontend/admin/js/admin.js": {
+    "mtime": 1789993924.808649,
+    "seen": 1789999226.3266857,
+    "ast_hash": "c8d344f9ad7418b45dd59593a8119ad5",
+    "semantic_hash": ""
+  },
+  "frontend/js/adoption.js": {
+    "mtime": 1789993925.0067217,
+    "seen": 1789999226.3266864,
+    "ast_hash": "18bb2abca9f549cd5328d247e1c47c81",
+    "semantic_hash": ""
+  },
+  "frontend/js/api.js": {
+    "mtime": 1789993925.0083404,
+    "seen": 1789999226.3266876,
+    "ast_hash": "5dc53cab9ed8669cd7212a82872bfa18",
+    "semantic_hash": ""
+  },
+  "frontend/js/appointments.js": {
+    "mtime": 1789993925.0083404,
+    "seen": 1789999226.3266885,
+    "ast_hash": "ca465b9d2a2817e0b33085776efe2467",
+    "semantic_hash": ""
+  },
+  "frontend/js/breed-details.js": {
+    "mtime": 1789993925.0083404,
+    "seen": 1789999226.3266907,
+    "ast_hash": "31b8d760a29277f9792ec81c9d3c3e84",
+    "semantic_hash": ""
+  },
+  "frontend/js/breeds.js": {
+    "mtime": 1789993925.0083404,
+    "seen": 1789999226.3266916,
+    "ast_hash": "8c5ef6f03f19ea87aefc7b9c92c3d2f1",
+    "semantic_hash": ""
+  },
+  "frontend/js/community.js": {
+    "mtime": 1789993925.0083404,
+    "seen": 1789999226.3266926,
+    "ast_hash": "a72cd2727c5ec30b90fe65ce80cb5514",
+    "semantic_hash": ""
+  },
+  "frontend/js/dashboard-data.js": {
+    "mtime": 1789993925.0083404,
+    "seen": 1789999226.3266935,
+    "ast_hash": "95d00cbc3bc39c8af7052f7cdc587fba",
+    "semantic_hash": ""
+  },
+  "frontend/js/dashboard.js": {
+    "mtime": 1789993925.0083404,
+    "seen": 1789999226.326695,
+    "ast_hash": "5735fd80555eb844209f7a8878c1a762",
+    "semantic_hash": ""
+  },
+  "frontend/js/forgot-password.js": {
+    "mtime": 1789993925.0083404,
+    "seen": 1789999226.3266964,
+    "ast_hash": "79df05fa8728195f37065313304f0dc6",
+    "semantic_hash": ""
+  },
+  "frontend/js/health.js": {
+    "mtime": 1789993925.0083404,
+    "seen": 1789999226.3266976,
+    "ast_hash": "1a74467fb8c04a41a4e0f0ea0e3b3ae6",
+    "semantic_hash": ""
+  },
+  "frontend/js/home.js": {
+    "mtime": 1789993925.0083404,
+    "seen": 1789999226.3266988,
+    "ast_hash": "902d4918ee4821b3e570dce2dd44d428",
+    "semantic_hash": ""
+  },
+  "frontend/js/login.js": {
+    "mtime": 1789993925.0083404,
+    "seen": 1789999226.3266997,
+    "ast_hash": "06f79cd8dda6afd652e2bdfb2258d7cf",
+    "semantic_hash": ""
+  },
+  "frontend/js/lost-found.js": {
+    "mtime": 1789993925.0083404,
+    "seen": 1789999226.3267007,
+    "ast_hash": "4952788ed0f40f8c10436ea5fe6159b7",
+    "semantic_hash": ""
+  },
+  "frontend/js/main.js": {
+    "mtime": 1789993925.008722,
+    "seen": 1789999226.3267019,
+    "ast_hash": "62b01230435c6f40f8bca378c4784726",
+    "semantic_hash": ""
+  },
+  "frontend/js/mypet.js": {
+    "mtime": 1789993925.008722,
+    "seen": 1789999226.3267028,
+    "ast_hash": "d30f7db13f9ed74d358c1314da9bee8e",
+    "semantic_hash": ""
+  },
+  "frontend/js/pet-id.js": {
+    "mtime": 1789993925.008722,
+    "seen": 1789999226.3267035,
+    "ast_hash": "a43ad77d5b7cd6d6d08d6e203435d3df",
+    "semantic_hash": ""
+  },
+  "frontend/js/petgpt.js": {
+    "mtime": 1789993925.008722,
+    "seen": 1789999226.3267047,
+    "ast_hash": "7f243851b6e23b31d6a36bd5a7f2a755",
+    "semantic_hash": ""
+  },
+  "frontend/js/reminders.js": {
+    "mtime": 1789993925.008722,
+    "seen": 1789999226.3267057,
+    "ast_hash": "d9a940e879a1963ff88e48b7d86a2f39",
+    "semantic_hash": ""
+  },
+  "frontend/js/reset-password.js": {
+    "mtime": 1789993925.008722,
+    "seen": 1789999226.3267066,
+    "ast_hash": "786d2fbdecdc81f176c3035afcb80e33",
+    "semantic_hash": ""
+  },
+  "frontend/js/settings.js": {
+    "mtime": 1789993925.008722,
+    "seen": 1789999226.326708,
+    "ast_hash": "85693dda67672251e73b483ec08791d8",
+    "semantic_hash": ""
+  },
+  "frontend/js/sidebar.js": {
+    "mtime": 1789993925.0097225,
+    "seen": 1789999226.326709,
+    "ast_hash": "b492ac618841e1eca4287be242adf354",
+    "semantic_hash": ""
+  },
+  "frontend/js/signup.js": {
+    "mtime": 1789993925.0097225,
+    "seen": 1789999226.3267097,
+    "ast_hash": "d485c52aa6a24d52b23cf60c133592fe",
+    "semantic_hash": ""
+  },
+  "frontend/js/theme.js": {
+    "mtime": 1789993925.0097225,
+    "seen": 1789999226.3267107,
+    "ast_hash": "e29148fb7e892b0aa667f9db193e999f",
+    "semantic_hash": ""
+  },
+  "frontend/js/verify-email.js": {
+    "mtime": 1789993925.0097225,
+    "seen": 1789999226.326712,
+    "ast_hash": "bb7d0a7d6e4dbf6b316ee53a46a00061",
+    "semantic_hash": ""
+  },
+  "AGENTS.md": {
+    "mtime": 1789995989.5250797,
+    "seen": 1789999226.3267126,
+    "ast_hash": "070d20cd89b1f80341235c4619ff0b42",
+    "semantic_hash": ""
+  },
+  "Step10-Report.md": {
+    "mtime": 1789993924.798667,
+    "seen": 1789999226.3267138,
+    "ast_hash": "2709e7c9af3fb5f21fa2172dc065f261",
+    "semantic_hash": ""
+  },
+  "docs/design.md": {
+    "mtime": 1789995731.0466483,
+    "seen": 1789999226.326715,
+    "ast_hash": "e71d57d513d393e4c18cc11b155cd8bd",
+    "semantic_hash": ""
+  },
+  "docs/migration.md": {
+    "mtime": 1789999192.8783333,
+    "seen": 1789999226.3267157,
+    "ast_hash": "26c4fc47e2271a860a9da59a22867166",
+    "semantic_hash": ""
+  },
+  "frontend-react/README.md": {
+    "mtime": 1789997529.3377068,
+    "seen": 1789999226.3267167,
+    "ast_hash": "10495bfcc6c568eca4dab6dd5df795d3",
+    "semantic_hash": ""
+  },
+  "frontend-react/index.html": {
+    "mtime": 1789997680.9648676,
+    "seen": 1789999226.3267176,
+    "ast_hash": "ff429409fd20c15c6cf774100d9cce33",
+    "semantic_hash": ""
+  },
+  "frontend/admin/adoptions.html": {
+    "mtime": 1789993924.8082166,
+    "seen": 1789999226.3267186,
+    "ast_hash": "940f66520d1700c84745619cae1a1e08",
+    "semantic_hash": ""
+  },
+  "frontend/admin/community.html": {
+    "mtime": 1789993924.8083453,
+    "seen": 1789999226.3267195,
+    "ast_hash": "16e966fbf7920bf8d553dee95773a6b3",
+    "semantic_hash": ""
+  },
+  "frontend/admin/dashboard.html": {
+    "mtime": 1789993924.8083453,
+    "seen": 1789999226.3267205,
+    "ast_hash": "dce319860917726bddbaa4c7eccef46e",
+    "semantic_hash": ""
+  },
+  "frontend/admin/lost-found.html": {
+    "mtime": 1789993924.808649,
+    "seen": 1789999226.3267214,
+    "ast_hash": "2c87a26c6655c3803e5ba2d5e024edf0",
+    "semantic_hash": ""
+  },
+  "frontend/admin/pets.html": {
+    "mtime": 1789993924.808649,
+    "seen": 1789999226.3267224,
+    "ast_hash": "628c2d6583b7e3fb11a8268ca55d9f81",
+    "semantic_hash": ""
+  },
+  "frontend/admin/users.html": {
+    "mtime": 1789993924.808649,
+    "seen": 1789999226.3267233,
+    "ast_hash": "1aaa9e6b23b7cef86e543049a8b67749",
+    "semantic_hash": ""
+  },
+  "frontend/index.html": {
+    "mtime": 1789993925.0067217,
+    "seen": 1789999226.3267243,
+    "ast_hash": "c46e3afc6a004350a0b48d5ac1b410b4",
+    "semantic_hash": ""
+  },
+  "frontend/pages/adoption.html": {
+    "mtime": 1789993925.0097225,
+    "seen": 1789999226.3267255,
+    "ast_hash": "cc49d9923084370c55bd330d9ab64ed5",
+    "semantic_hash": ""
+  },
+  "frontend/pages/appointments.html": {
+    "mtime": 1789993925.0109494,
+    "seen": 1789999226.3267262,
+    "ast_hash": "a8b435b092493b762b4cc6bcc87317b8",
+    "semantic_hash": ""
+  },
+  "frontend/pages/breed-details.html": {
+    "mtime": 1789993925.0109494,
+    "seen": 1789999226.3267272,
+    "ast_hash": "f135bb7e21a46d04c5973e92d84fb27d",
+    "semantic_hash": ""
+  },
+  "frontend/pages/breeds.html": {
+    "mtime": 1789993925.0109494,
+    "seen": 1789999226.326728,
+    "ast_hash": "812a010e494d8c79a598cdd17d2686cd",
+    "semantic_hash": ""
+  },
+  "frontend/pages/community.html": {
+    "mtime": 1789993925.0109494,
+    "seen": 1789999226.3267293,
+    "ast_hash": "c6a6558cf9446ec57ce156459591716c",
+    "semantic_hash": ""
+  },
+  "frontend/pages/dashboard.html": {
+    "mtime": 1789993925.0109494,
+    "seen": 1789999226.3267303,
+    "ast_hash": "1f1b60ece6c90373efe6910d4883c7e5",
+    "semantic_hash": ""
+  },
+  "frontend/pages/health.html": {
+    "mtime": 1789993925.0109494,
+    "seen": 1789999226.3267312,
+    "ast_hash": "31b4864451266358534ed4b38abc8709",
+    "semantic_hash": ""
+  },
+  "frontend/pages/login.html": {
+    "mtime": 1789993925.0109494,
+    "seen": 1789999226.3267324,
+    "ast_hash": "b56fb2ffb45116fbf638a91ec96bb743",
+    "semantic_hash": ""
+  },
+  "frontend/pages/lost-found.html": {
+    "mtime": 1789993925.0109494,
+    "seen": 1789999226.326733,
+    "ast_hash": "08f1bf2176561f08815e19c99c3f41cf",
+    "semantic_hash": ""
+  },
+  "frontend/pages/mypet.html": {
+    "mtime": 1789993925.0109494,
+    "seen": 1789999226.326734,
+    "ast_hash": "be054375d419ead8bba51ba56fa9aba4",
+    "semantic_hash": ""
+  },
+  "frontend/pages/pet-id.html": {
+    "mtime": 1789993925.0109494,
+    "seen": 1789999226.326735,
+    "ast_hash": "8cb4302c4b3d629b407451ca4b14284c",
+    "semantic_hash": ""
+  },
+  "frontend/pages/petgpt.html": {
+    "mtime": 1789993925.0109494,
+    "seen": 1789999226.3267362,
+    "ast_hash": "74651e84e8da2f2cf1edefa046112cca",
+    "semantic_hash": ""
+  },
+  "frontend/pages/reminders.html": {
+    "mtime": 1789993925.0109494,
+    "seen": 1789999226.3267372,
+    "ast_hash": "03c1099d832e605fc0d4c6040bee1355",
+    "semantic_hash": ""
+  },
+  "frontend/pages/settings.html": {
+    "mtime": 1789993925.0109494,
+    "seen": 1789999226.3267379,
+    "ast_hash": "19ebdf3acbf2efa665c93798b7cd9184",
+    "semantic_hash": ""
+  },
+  "frontend/pages/signup.html": {
+    "mtime": 1789993925.0109494,
+    "seen": 1789999226.3267388,
+    "ast_hash": "13600277d79668b3a4fccf7424314d5c",
+    "semantic_hash": ""
+  },
+  "frontend/pages/verify-email.html": {
+    "mtime": 1789993925.0109494,
+    "seen": 1789999226.32674,
+    "ast_hash": "e7258dc78b344fc6fcff30b0d32515e6",
+    "semantic_hash": ""
+  },
+  "frontend-react/public/assets/icons/ai.svg": {
+    "mtime": 1789997921.8043725,
+    "seen": 1789999226.326741,
+    "ast_hash": "83bdd820eb017b695e4226d82a8a7dd2",
+    "semantic_hash": ""
+  },
+  "frontend-react/public/assets/icons/allheart.svg": {
+    "mtime": 1789997921.8053725,
+    "seen": 1789999226.326742,
+    "ast_hash": "3e00e6538124bceef7e6546b7b91d59b",
+    "semantic_hash": ""
+  },
+  "frontend-react/public/assets/icons/community.svg": {
+    "mtime": 1789997921.8063726,
+    "seen": 1789999226.3267431,
+    "ast_hash": "000fb814696988d86af7099699b3e290",
+    "semantic_hash": ""
+  },
+  "frontend-react/public/assets/icons/health.svg": {
+    "mtime": 1789997921.806988,
+    "seen": 1789999226.326744,
+    "ast_hash": "9a2990549d4a57d5af3e7c11a6627512",
+    "semantic_hash": ""
+  },
+  "frontend-react/public/assets/icons/lost-found.svg": {
+    "mtime": 1789997921.8073726,
+    "seen": 1789999226.326745,
+    "ast_hash": "281c336cdc4e661c003cf25012d936e8",
+    "semantic_hash": ""
+  },
+  "frontend-react/public/assets/icons/nutrition.svg": {
+    "mtime": 1789997921.8083725,
+    "seen": 1789999226.3267462,
+    "ast_hash": "82000b1da60c6103d00c9d300bfe7c13",
+    "semantic_hash": ""
+  },
+  "frontend-react/public/assets/icons/paw.svg": {
+    "mtime": 1789997921.8094997,
+    "seen": 1789999226.326747,
+    "ast_hash": "309ae94be48f55bc0be04f5813a95a6f",
+    "semantic_hash": ""
+  },
+  "frontend-react/public/assets/icons/pet-adoption.svg": {
+    "mtime": 1789997921.8143725,
+    "seen": 1789999226.326748,
+    "ast_hash": "006cf320188d061c58c5491e987b3dca",
+    "semantic_hash": ""
+  },
+  "frontend-react/public/assets/icons/robot.svg": {
+    "mtime": 1789997921.8173723,
+    "seen": 1789999226.3267488,
+    "ast_hash": "83bdd820eb017b695e4226d82a8a7dd2",
+    "semantic_hash": ""
+  },
+  "frontend-react/public/assets/icons/shield.svg": {
+    "mtime": 1789997921.8183858,
+    "seen": 1789999226.32675,
+    "ast_hash": "7d89b5f04a486e6b5c15262164458995",
+    "semantic_hash": ""
+  },
+  "frontend-react/public/assets/icons/vaccination.svg": {
+    "mtime": 1789997921.8189945,
+    "seen": 1789999226.326751,
+    "ast_hash": "77799ba451b5575a799b7ce710f8646d",
+    "semantic_hash": ""
+  },
+  "frontend-react/public/assets/icons/vet-shield.svg": {
+    "mtime": 1789997921.8193724,
+    "seen": 1789999226.3267517,
+    "ast_hash": "09a9badd1bf4f02bcee02dc88a269412",
+    "semantic_hash": ""
+  },
+  "frontend-react/public/assets/icons/vet.svg": {
+    "mtime": 1789997921.8202615,
+    "seen": 1789999226.3267531,
+    "ast_hash": "4deeef1b955691879753c5962a92453b",
+    "semantic_hash": ""
+  },
+  "frontend-react/public/assets/images/Pet-gpt/Pet-AI.png": {
+    "mtime": 1789997921.821135,
+    "seen": 1789999226.3267539,
+    "ast_hash": "ef003c9603bc7c8faa1de8c0f3e80875",
+    "semantic_hash": ""
+  },
+  "frontend-react/public/assets/images/Pet-gpt/Petgpt-AI.png": {
+    "mtime": 1789997921.8213723,
+    "seen": 1789999226.3267548,
+    "ast_hash": "c683393905f4df7e60172e15fc5175b6",
+    "semantic_hash": ""
+  },
+  "frontend-react/public/assets/images/adoption/Hero-Page.png": {
+    "mtime": 1789997921.842372,
+    "seen": 1789999226.3267558,
+    "ast_hash": "4adafb301878d4bf19b0104ddc15eb94",
+    "semantic_hash": ""
+  },
+  "frontend-react/public/assets/images/adoption/Main.png": {
+    "mtime": 1789997921.8793714,
+    "seen": 1789999226.326757,
+    "ast_hash": "3c17696963e20d3b1be2c2e5a64915e5",
+    "semantic_hash": ""
+  },
+  "frontend-react/public/assets/images/adoption/Mainn-bg.png": {
+    "mtime": 1789997921.8873713,
+    "seen": 1789999226.326758,
+    "ast_hash": "ab51e1b56d678ba2ad34896d14cd52ab",
+    "semantic_hash": ""
+  },
+  "frontend-react/public/assets/images/adoption/Mainn.png": {
+    "mtime": 1789997921.9353707,
+    "seen": 1789999226.3267586,
+    "ast_hash": "f3064ae7c8db1abbbae1f2d7c9b1b287",
+    "semantic_hash": ""
+  },
+  "frontend-react/public/assets/images/adoption/pet1.jpg": {
+    "mtime": 1789997921.9363706,
+    "seen": 1789999226.3267596,
+    "ast_hash": "0e017c71fce49853bda0d2ea350920c5",
+    "semantic_hash": ""
+  },
+  "frontend-react/public/assets/images/adoption/pet2.jpg": {
+    "mtime": 1789997921.9373224,
+    "seen": 1789999226.3267608,
+    "ast_hash": "99c5f90ec301c361de4bef0d8b04cfff",
+    "semantic_hash": ""
+  },
+  "frontend-react/public/assets/images/adoption/pet3.jpg": {
+    "mtime": 1789997921.9380035,
+    "seen": 1789999226.3267617,
+    "ast_hash": "b0421d6abe164f0a14bf3107f3e481e1",
+    "semantic_hash": ""
+  },
+  "frontend-react/public/assets/images/adoption/pet4.jpg": {
+    "mtime": 1789997921.9383616,
+    "seen": 1789999226.3267627,
+    "ast_hash": "c3ee6cdc48a7efed8b08b0143106f247",
+    "semantic_hash": ""
+  },
+  "frontend-react/public/assets/images/adoption/pet5.jpg": {
+    "mtime": 1789997921.9383707,
+    "seen": 1789999226.3267639,
+    "ast_hash": "6f8d322e55ca796b559938ca8d476311",
+    "semantic_hash": ""
+  },
+  "frontend-react/public/assets/images/adoption/pet6.jpg": {
+    "mtime": 1789997921.9390662,
+    "seen": 1789999226.3267648,
+    "ast_hash": "e7813b8262b6f75a53b2cafdc3aee843",
+    "semantic_hash": ""
+  },
+  "frontend-react/public/assets/images/adoption/pet7.jpg": {
+    "mtime": 1789997921.9393706,
+    "seen": 1789999226.3267658,
+    "ast_hash": "9db510c6f806594fd936e5ef61344323",
+    "semantic_hash": ""
+  },
+  "frontend-react/public/assets/images/adoption/pet8.jpg": {
+    "mtime": 1789997921.939865,
+    "seen": 1789999226.3267667,
+    "ast_hash": "33e2b5f84ea8367680ed2089203c960e",
+    "semantic_hash": ""
+  },
+  "frontend-react/public/assets/images/dashboard/banner.png": {
+    "mtime": 1789997921.9403706,
+    "seen": 1789999226.326768,
+    "ast_hash": "eb8979b7873ab839172781ceee005228",
+    "semantic_hash": ""
+  },
+  "frontend-react/public/assets/images/dashboard/cute-pet.svg": {
+    "mtime": 1789997921.9413707,
+    "seen": 1789999226.3267689,
+    "ast_hash": "c53546362aeaf18e5af12d1a9ec2dbb7",
+    "semantic_hash": ""
+  },
+  "frontend-react/public/assets/images/dashboard/golden-retriever.png": {
+    "mtime": 1789997921.9573705,
+    "seen": 1789999226.3267698,
+    "ast_hash": "080c3acb68412dcee8073134d3037754",
+    "semantic_hash": ""
+  },
+  "frontend-react/public/assets/images/dashboard/pet-adopt.png": {
+    "mtime": 1789997921.9583704,
+    "seen": 1789999226.326771,
+    "ast_hash": "9c277be5f179cd2471b9b3226cfe8255",
+    "semantic_hash": ""
+  },
+  "frontend-react/public/assets/images/dashboard/pet-appointment.png": {
+    "mtime": 1789997921.9593704,
+    "seen": 1789999226.326772,
+    "ast_hash": "e871bd41ebd00e3a67c54b327d6990d9",
+    "semantic_hash": ""
+  },
+  "frontend-react/public/assets/images/dashboard/user-profile.svg": {
+    "mtime": 1789997922.0083697,
+    "seen": 1789999226.326773,
+    "ast_hash": "2b5512c866ed11a7580cbe02d0f8c649",
+    "semantic_hash": ""
+  },
+  "frontend-react/public/assets/images/hero/about-img.svg": {
+    "mtime": 1789997922.0213695,
+    "seen": 1789999226.3267741,
+    "ast_hash": "7aa308dd4a2ae7e3c57305509ac917ff",
+    "semantic_hash": ""
+  },
+  "frontend-react/public/assets/images/hero/about.png": {
+    "mtime": 1789997922.0233696,
+    "seen": 1789999226.326775,
+    "ast_hash": "a0c98b0634e5006614bbc195609bc307",
+    "semantic_hash": ""
+  },
+  "frontend-react/public/assets/images/hero/hero-pets.png": {
+    "mtime": 1789997922.0323694,
+    "seen": 1789999226.3267775,
+    "ast_hash": "eb6718b1ad10bdf0fd56b8f5eadfdea8",
+    "semantic_hash": ""
+  },
+  "frontend-react/public/assets/images/hero/pets-footer.svg": {
+    "mtime": 1789997922.0393693,
+    "seen": 1789999226.3267784,
+    "ast_hash": "4fc71a53eb00db520f9e3acfd5710336",
+    "semantic_hash": ""
+  },
+  "frontend-react/public/assets/images/login-pet.png": {
+    "mtime": 1789997922.0453691,
+    "seen": 1789999226.3267794,
+    "ast_hash": "c2b40e0c758025bd925ab0ee1a8a4029",
+    "semantic_hash": ""
+  },
+  "frontend-react/public/assets/images/lost-found/lost-found.png": {
+    "mtime": 1789997922.1063683,
+    "seen": 1789999226.3267803,
+    "ast_hash": "f1a8c131edff9b9b9aa6b551596be485",
+    "semantic_hash": ""
+  },
+  "frontend-react/public/assets/images/lost-found/petimg.png": {
+    "mtime": 1789997922.141368,
+    "seen": 1789999226.3267815,
+    "ast_hash": "2913e9f1d9b2a6ace28a45a43e468fa1",
+    "semantic_hash": ""
+  },
+  "frontend-react/public/assets/images/my-pet/cat.png": {
+    "mtime": 1789997922.1443677,
+    "seen": 1789999226.3267825,
+    "ast_hash": "0bfdc7b561980186441d6ba652a78b51",
+    "semantic_hash": ""
+  },
+  "frontend-react/public/assets/images/my-pet/dog.png": {
+    "mtime": 1789997922.1463678,
+    "seen": 1789999226.3267834,
+    "ast_hash": "80404fd8d9c09a5cfed9e62317d8311f",
+    "semantic_hash": ""
+  },
+  "frontend-react/public/assets/images/my-pet/dog1.png": {
+    "mtime": 1789997922.1473677,
+    "seen": 1789999226.3267844,
+    "ast_hash": "e1362136bf66d2411f6484cbf1df32ce",
+    "semantic_hash": ""
+  },
+  "frontend-react/public/assets/images/my-pet/pet-tip.png": {
+    "mtime": 1789997922.1483676,
+    "seen": 1789999226.3267853,
+    "ast_hash": "44759fd861ed0ac753f72a38df8e57f7",
+    "semantic_hash": ""
+  },
+  "frontend-react/public/assets/logos/Famipet.png": {
+    "mtime": 1789997922.1493678,
+    "seen": 1789999226.3267863,
+    "ast_hash": "3829c24e52e46b3c0515eba009b2c60f",
+    "semantic_hash": ""
+  },
+  "frontend-react/public/assets/logos/Logo.png": {
+    "mtime": 1789997922.1502726,
+    "seen": 1789999226.3267872,
+    "ast_hash": "d79f7f6ce462552057e5996e2b81c54d",
+    "semantic_hash": ""
+  },
+  "frontend-react/public/assets/logos/Logooo.png": {
+    "mtime": 1789997922.1503677,
+    "seen": 1789999226.3267884,
+    "ast_hash": "f5dcec353d7ebed12a9fb85332e4356e",
+    "semantic_hash": ""
+  },
+  "frontend/assets/icons/ai.svg": {
+    "mtime": 1789993924.8096697,
+    "seen": 1789999226.3267894,
+    "ast_hash": "83bdd820eb017b695e4226d82a8a7dd2",
+    "semantic_hash": ""
+  },
+  "frontend/assets/icons/allheart.svg": {
+    "mtime": 1789993924.8096697,
+    "seen": 1789999226.3267903,
+    "ast_hash": "3e00e6538124bceef7e6546b7b91d59b",
+    "semantic_hash": ""
+  },
+  "frontend/assets/icons/community.svg": {
+    "mtime": 1789993924.8116703,
+    "seen": 1789999226.3267918,
+    "ast_hash": "000fb814696988d86af7099699b3e290",
+    "semantic_hash": ""
+  },
+  "frontend/assets/icons/health.svg": {
+    "mtime": 1789993924.8126705,
+    "seen": 1789999226.3267927,
+    "ast_hash": "9a2990549d4a57d5af3e7c11a6627512",
+    "semantic_hash": ""
+  },
+  "frontend/assets/icons/lost-found.svg": {
+    "mtime": 1789993924.8136709,
+    "seen": 1789999226.3267937,
+    "ast_hash": "281c336cdc4e661c003cf25012d936e8",
+    "semantic_hash": ""
+  },
+  "frontend/assets/icons/nutrition.svg": {
+    "mtime": 1789993924.8186722,
+    "seen": 1789999226.3267949,
+    "ast_hash": "82000b1da60c6103d00c9d300bfe7c13",
+    "semantic_hash": ""
+  },
+  "frontend/assets/icons/paw.svg": {
+    "mtime": 1789993924.8186722,
+    "seen": 1789999226.3267958,
+    "ast_hash": "309ae94be48f55bc0be04f5813a95a6f",
+    "semantic_hash": ""
+  },
+  "frontend/assets/icons/pet-adoption.svg": {
+    "mtime": 1789993924.8196723,
+    "seen": 1789999226.3267968,
+    "ast_hash": "006cf320188d061c58c5491e987b3dca",
+    "semantic_hash": ""
+  },
+  "frontend/assets/icons/robot.svg": {
+    "mtime": 1789993924.821673,
+    "seen": 1789999226.3267977,
+    "ast_hash": "83bdd820eb017b695e4226d82a8a7dd2",
+    "semantic_hash": ""
+  },
+  "frontend/assets/icons/shield.svg": {
+    "mtime": 1789993924.8226733,
+    "seen": 1789999226.326799,
+    "ast_hash": "7d89b5f04a486e6b5c15262164458995",
+    "semantic_hash": ""
+  },
+  "frontend/assets/icons/vaccination.svg": {
+    "mtime": 1789993924.8246737,
+    "seen": 1789999226.3267996,
+    "ast_hash": "77799ba451b5575a799b7ce710f8646d",
+    "semantic_hash": ""
+  },
+  "frontend/assets/icons/vet-shield.svg": {
+    "mtime": 1789993924.8266742,
+    "seen": 1789999226.3268006,
+    "ast_hash": "09a9badd1bf4f02bcee02dc88a269412",
+    "semantic_hash": ""
+  },
+  "frontend/assets/icons/vet.svg": {
+    "mtime": 1789993924.8276746,
+    "seen": 1789999226.3268018,
+    "ast_hash": "4deeef1b955691879753c5962a92453b",
+    "semantic_hash": ""
+  },
+  "frontend/assets/images/Pet-gpt/Pet-AI.png": {
+    "mtime": 1789993924.829675,
+    "seen": 1789999226.3268027,
+    "ast_hash": "ef003c9603bc7c8faa1de8c0f3e80875",
+    "semantic_hash": ""
+  },
+  "frontend/assets/images/Pet-gpt/Petgpt-AI.png": {
+    "mtime": 1789993924.829675,
+    "seen": 1789999226.3268034,
+    "ast_hash": "c683393905f4df7e60172e15fc5175b6",
+    "semantic_hash": ""
+  },
+  "frontend/assets/images/adoption/Hero-Page.png": {
+    "mtime": 1789993924.8666847,
+    "seen": 1789999226.3268044,
+    "ast_hash": "4adafb301878d4bf19b0104ddc15eb94",
+    "semantic_hash": ""
+  },
+  "frontend/assets/images/adoption/Main.png": {
+    "mtime": 1789993924.909696,
+    "seen": 1789999226.3268056,
+    "ast_hash": "3c17696963e20d3b1be2c2e5a64915e5",
+    "semantic_hash": ""
+  },
+  "frontend/assets/images/adoption/Mainn-bg.png": {
+    "mtime": 1789993924.9126968,
+    "seen": 1789999226.3268065,
+    "ast_hash": "ab51e1b56d678ba2ad34896d14cd52ab",
+    "semantic_hash": ""
+  },
+  "frontend/assets/images/adoption/Mainn.png": {
+    "mtime": 1789993924.9287012,
+    "seen": 1789999226.3268075,
+    "ast_hash": "f3064ae7c8db1abbbae1f2d7c9b1b287",
+    "semantic_hash": ""
+  },
+  "frontend/assets/images/adoption/pet1.jpg": {
+    "mtime": 1789993924.9297013,
+    "seen": 1789999226.3268087,
+    "ast_hash": "0e017c71fce49853bda0d2ea350920c5",
+    "semantic_hash": ""
+  },
+  "frontend/assets/images/adoption/pet2.jpg": {
+    "mtime": 1789993924.9297013,
+    "seen": 1789999226.3268096,
+    "ast_hash": "99c5f90ec301c361de4bef0d8b04cfff",
+    "semantic_hash": ""
+  },
+  "frontend/assets/images/adoption/pet3.jpg": {
+    "mtime": 1789993924.9297013,
+    "seen": 1789999226.3268106,
+    "ast_hash": "b0421d6abe164f0a14bf3107f3e481e1",
+    "semantic_hash": ""
+  },
+  "frontend/assets/images/adoption/pet4.jpg": {
+    "mtime": 1789993924.9307017,
+    "seen": 1789999226.3268113,
+    "ast_hash": "c3ee6cdc48a7efed8b08b0143106f247",
+    "semantic_hash": ""
+  },
+  "frontend/assets/images/adoption/pet5.jpg": {
+    "mtime": 1789993924.9307017,
+    "seen": 1789999226.3268125,
+    "ast_hash": "6f8d322e55ca796b559938ca8d476311",
+    "semantic_hash": ""
+  },
+  "frontend/assets/images/adoption/pet6.jpg": {
+    "mtime": 1789993924.9307017,
+    "seen": 1789999226.3268135,
+    "ast_hash": "e7813b8262b6f75a53b2cafdc3aee843",
+    "semantic_hash": ""
+  },
+  "frontend/assets/images/adoption/pet7.jpg": {
+    "mtime": 1789993924.931702,
+    "seen": 1789999226.3268144,
+    "ast_hash": "9db510c6f806594fd936e5ef61344323",
+    "semantic_hash": ""
+  },
+  "frontend/assets/images/adoption/pet8.jpg": {
+    "mtime": 1789993924.931702,
+    "seen": 1789999226.3268156,
+    "ast_hash": "33e2b5f84ea8367680ed2089203c960e",
+    "semantic_hash": ""
+  },
+  "frontend/assets/images/dashboard/banner.png": {
+    "mtime": 1789993924.931702,
+    "seen": 1789999226.3268163,
+    "ast_hash": "eb8979b7873ab839172781ceee005228",
+    "semantic_hash": ""
+  },
+  "frontend/assets/images/dashboard/cute-pet.svg": {
+    "mtime": 1789993924.9347026,
+    "seen": 1789999226.3268173,
+    "ast_hash": "c53546362aeaf18e5af12d1a9ec2dbb7",
+    "semantic_hash": ""
+  },
+  "frontend/assets/images/dashboard/golden-retriever.png": {
+    "mtime": 1789993924.9367032,
+    "seen": 1789999226.3268182,
+    "ast_hash": "080c3acb68412dcee8073134d3037754",
+    "semantic_hash": ""
+  },
+  "frontend/assets/images/dashboard/pet-adopt.png": {
+    "mtime": 1789993924.9367032,
+    "seen": 1789999226.3268194,
+    "ast_hash": "9c277be5f179cd2471b9b3226cfe8255",
+    "semantic_hash": ""
+  },
+  "frontend/assets/images/dashboard/pet-appointment.png": {
+    "mtime": 1789993924.9377034,
+    "seen": 1789999226.3268201,
+    "ast_hash": "e871bd41ebd00e3a67c54b327d6990d9",
+    "semantic_hash": ""
+  },
+  "frontend/assets/images/dashboard/user-profile.svg": {
+    "mtime": 1789993924.9447052,
+    "seen": 1789999226.326821,
+    "ast_hash": "2b5512c866ed11a7580cbe02d0f8c649",
+    "semantic_hash": ""
+  },
+  "frontend/assets/images/hero/about-img.svg": {
+    "mtime": 1789993924.9537077,
+    "seen": 1789999226.326822,
+    "ast_hash": "7aa308dd4a2ae7e3c57305509ac917ff",
+    "semantic_hash": ""
+  },
+  "frontend/assets/images/hero/about.png": {
+    "mtime": 1789993924.9547079,
+    "seen": 1789999226.3268232,
+    "ast_hash": "a0c98b0634e5006614bbc195609bc307",
+    "semantic_hash": ""
+  },
+  "frontend/assets/images/hero/hero-pets.png": {
+    "mtime": 1789993924.9677114,
+    "seen": 1789999226.3268242,
+    "ast_hash": "eb6718b1ad10bdf0fd56b8f5eadfdea8",
+    "semantic_hash": ""
+  },
+  "frontend/assets/images/hero/pets-footer.svg": {
+    "mtime": 1789993924.9707122,
+    "seen": 1789999226.3268251,
+    "ast_hash": "4fc71a53eb00db520f9e3acfd5710336",
+    "semantic_hash": ""
+  },
+  "frontend/assets/images/login-pet.png": {
+    "mtime": 1789993924.9707122,
+    "seen": 1789999226.3268263,
+    "ast_hash": "c2b40e0c758025bd925ab0ee1a8a4029",
+    "semantic_hash": ""
+  },
+  "frontend/assets/images/lost-found/lost-found.png": {
+    "mtime": 1789993924.9827154,
+    "seen": 1789999226.326827,
+    "ast_hash": "f1a8c131edff9b9b9aa6b551596be485",
+    "semantic_hash": ""
+  },
+  "frontend/assets/images/lost-found/petimg.png": {
+    "mtime": 1789993924.9967191,
+    "seen": 1789999226.326828,
+    "ast_hash": "2913e9f1d9b2a6ace28a45a43e468fa1",
+    "semantic_hash": ""
+  },
+  "frontend/assets/images/my-pet/cat.png": {
+    "mtime": 1789993924.9967191,
+    "seen": 1789999226.326829,
+    "ast_hash": "0bfdc7b561980186441d6ba652a78b51",
+    "semantic_hash": ""
+  },
+  "frontend/assets/images/my-pet/dog.png": {
+    "mtime": 1789993925.00072,
+    "seen": 1789999226.32683,
+    "ast_hash": "80404fd8d9c09a5cfed9e62317d8311f",
+    "semantic_hash": ""
+  },
+  "frontend/assets/images/my-pet/dog1.png": {
+    "mtime": 1789993925.0017204,
+    "seen": 1789999226.3268309,
+    "ast_hash": "e1362136bf66d2411f6484cbf1df32ce",
+    "semantic_hash": ""
+  },
+  "frontend/assets/images/my-pet/pet-tip.png": {
+    "mtime": 1789993925.0027206,
+    "seen": 1789999226.3268318,
+    "ast_hash": "44759fd861ed0ac753f72a38df8e57f7",
+    "semantic_hash": ""
+  },
+  "frontend/assets/logos/Famipet.png": {
+    "mtime": 1789993925.0027206,
+    "seen": 1789999226.3268325,
+    "ast_hash": "3829c24e52e46b3c0515eba009b2c60f",
+    "semantic_hash": ""
+  },
+  "frontend/assets/logos/Logo.png": {
+    "mtime": 1789993925.0042558,
+    "seen": 1789999226.3268337,
+    "ast_hash": "d79f7f6ce462552057e5996e2b81c54d",
+    "semantic_hash": ""
+  },
+  "frontend/assets/logos/Logooo.png": {
+    "mtime": 1789993925.0047212,
+    "seen": 1789999226.3268347,
+    "ast_hash": "f5dcec353d7ebed12a9fb85332e4356e",
+    "semantic_hash": ""
+  }
+}

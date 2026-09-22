@@ -1,0 +1,18 @@
+flowchart TD
+    A["Notifications and reminders service interactions"] --> B["Appointment booked<br/>(appointment.controller)"]
+    A --> C["Appointment rescheduled<br/>(updateAppointment)"]
+    A --> D["Appointment cancelled<br/>(deleteAppointment)"]
+    A --> E["Adoption decision<br/>(updateAdoptionStatus)"]
+
+    B --> F["Notification 'Appointment Booked'"]
+    B --> G["Reminder 'Appointment - Type' created (dedupe check)"]
+    C --> H["Matching reminder date/time synchronised"]
+    D --> I["status = cancelled"]
+    D --> J["Matching reminders isActive = false"]
+    E --> K["Notification 'Adoption Request {status}'"]
+
+    F --> L[(Notification)]
+    G --> M[(Reminder)]
+    H --> M
+    J --> M
+    K --> L

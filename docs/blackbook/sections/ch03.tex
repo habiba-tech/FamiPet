@@ -1,0 +1,242 @@
+\famichapter{Requirements and Scope}{This chapter specifies the functional and
+non-functional requirements of FamiPet, the user roles and their permissions, the
+scope of the system, and the use cases that the implementation supports.}{ch:req}
+
+\section{Actors and Roles}
+
+The system distinguishes three actors, defined by the actual implementation.
+
+\begin{table}[htbp]
+\centering
+\begin{tabular}{@{}p{2.5cm}p{3.2cm}p{8.6cm}@{}}
+\toprule
+\textbf{Role} & \textbf{Stored as} & \textbf{Permissions enforced by the backend} \\
+\midrule
+Visitor & no account & Browse public content: pets, breeds, veterinarian
+directory, community posts, and lost-and-found reports. Cannot create or modify
+any resource. \\
+\addlinespace
+Registered user & \texttt{User.role = "user"} & All visitor permissions plus
+account management, pet management with QR identity, health records,
+vaccinations, appointments, reminders, favorites, community posts, lost-and-found
+reports, adoption applications, notifications, and the AI assistant. \\
+\addlinespace
+Administrator & \texttt{User.role = "admin"} & All user permissions plus the
+admin panel: dashboard statistics, user management and blocking, pet moderation,
+adoption approval/rejection, community and lost-and-found moderation, and breed
+and veterinarian catalogue administration. \\
+\bottomrule
+\end{tabular}
+\caption{User roles and permissions.}
+\label{tab:roles}
+\end{table}
+
+The role is stored in the \texttt{User} document and is never accepted from the
+client. The \texttt{protect} middleware authenticates the request from the bearer
+token, and the \texttt{adminOnly} middleware verifies
+\texttt{req.user.role === "admin"} before any administrative route executes
+(Section~\ref{sec:security}).
+
+\section{Functional Requirements}
+
+The functional requirements below are grouped by subsystem. Each requirement is
+directly supported by a verified controller and route in the backend.
+
+\begin{center}
+\begin{longtable}{@{}p{1.1cm}p{3.4cm}p{10.0cm}@{}}
+\toprule
+\textbf{ID} & \textbf{Subsystem} & \textbf{Requirement} \\
+\midrule
+FR-01 & Authentication & The system shall allow a user to register with name,
+e-mail, and password; store the password as a bcrypt hash; and require e-mail
+verification before the account can log in. \\
+FR-02 & Authentication & The system shall issue a signed JWT on successful
+login and require it as a bearer token on protected routes. \\
+FR-03 & Authentication & The system shall support password reset through a
+time-limited, single-use token sent by e-mail, and password change with the
+current password. \\
+FR-04 & Profile & The user shall be able to read and update own profile
+(name, phone, address, city, avatar). \\
+FR-05 & Pets & The user shall be able to create, list, view, update, and delete
+own pets, and only own pets for protected operations. \\
+FR-06 & Pets & On creation, the system shall generate a unique digital pet
+identifier and a QR code encoding public pet information. \\
+FR-07 & Pets & Public listing shall support filtering by species, breed,
+gender, and status, full-text search, and sorting. \\
+FR-08 & Health & The user shall be able to create, read, update, and delete
+health records for own pets. \\
+FR-09 & Vaccinations & The user shall be able to create, read, update, delete,
+and list upcoming vaccinations for own pets. \\
+FR-10 & Appointments & The user shall be able to book, list, update, and cancel
+appointments for own pets with an active veterinarian. \\
+FR-11 & Appointments & The system shall reject a double booking when the same
+veterinarian already has a pending or confirmed appointment at the same
+date and time. \\
+FR-12 & Appointments & Booking an appointment shall automatically create a
+notification and a non-duplicate reminder for the owner. \\
+FR-13 & Reminders & The user shall be able to create, list, update, complete,
+and delete reminders; reminders are scoped to the owner. \\
+FR-14 & Notifications & The user shall be able to list, mark as read, mark all
+as read, and delete own notifications, and read the unread count. \\
+FR-15 & Adoption & A user shall be able to apply to adopt an available pet with
+contact and motivation details, and a duplicate pending request for the same pet
+shall be rejected. \\
+FR-16 & Adoption & An administrator shall be able to approve or reject an
+adoption request; approval automatically marks the pet as adopted and sets its
+status to \texttt{adopted}. \\
+FR-17 & Adoption & Any status change of an adoption request shall create a
+notification for the applicant. \\
+FR-18 & Favorites & The user shall be able to add and remove favorite pets; the
+same user and pet pair must not be duplicated. \\
+FR-19 & Community & Any visitor shall be able to read active posts; a signed-in
+user shall be able to create, update, and delete own posts, and like and comment
+on posts. \\
+FR-20 & Lost and Found & A signed-in user shall be able to create, update, and
+delete lost/found reports, and visitors shall be able to view active reports. \\
+FR-21 & AI assistant & A signed-in user shall be able to ask the PetGPT
+assistant questions; the answer shall consider the user's pets and fall back to
+safe generic guidance when the AI service is unavailable. \\
+FR-22 & AI advice & A signed-in user shall be able to request rule-based advice
+for an own pet based on its vaccination status, age, and weight. \\
+FR-23 & Admin & The administrator shall be able to view dashboard statistics,
+list and block users, delete pets, moderate community and lost-and-found content,
+approve or reject adoptions, and manage breeds and veterinarians. \\
+FR-24 & E-mail & The system shall send verification, resend-verification, and
+password-reset e-mails through Nodemailer, and construct links using the origin
+of the request. \\
+\bottomrule
+\end{longtable}
+\end{center}
+
+The functional requirements table above is enforced through the route handlers
+and controllers described in Chapters~5--9.
+
+\section{Non-Functional Requirements}
+
+\begingroup
+\renewcommand{\arraystretch}{1.25}
+\begin{table}[htbp]
+\centering
+\begin{tabular}{@{}p{3.0cm}p{11.5cm}@{}}
+\toprule
+\textbf{Category} & \textbf{Requirement} \\
+\midrule
+Security & Passwords stored as bcrypt hashes (cost factor 12); tokens (e-mail
+verification, password reset) are single-use, time-limited, and stored only in
+SHA-256 hashed form. \\
+Access control & All protected operations are scoped to the authenticated user;
+administrative operations are additionally gated by role. \\
+Reliability & The system must not rely on the availability of external services:
+AI and image-hosting failures degrade gracefully to stored, safe alternatives. \\
+Validation & The backend validates required fields, e-mail format, password
+length, resource ownership, and invalid IDs and returns appropriate HTTP errors
+(400, 401, 403, 404, 500). \\
+Performance & JSON responses are compressed with \texttt{compression};
+appointment double-booking is prevented by a database-backed conflict query with
+compound indexing on the veterinarian, date, and time. \\
+Usability & The frontend is responsive and supports both light and dark theme
+variants; migrated React pages are verified at 390, 768, and 1440 pixels. \\
+Maintainability & The backend follows a layered structure
+(routes, controllers, models, middleware, config) and a phase-based migration
+roadmap with verification before each commit. \\
+\bottomrule
+\end{tabular}
+\caption{Non-functional requirements.}
+\label{tab:nfr}
+\end{table}
+\endgroup
+
+\section{System Scope}
+
+The implemented scope of the system is the authenticated pet-care and adoption
+workflow described by the functional requirements above, with administration
+capabilities. Outside the current scope are features mentioned in configuration
+or documentation but not present in the implementation, including:
+
+\begin{itemize}
+    \item the OpenAI adapter advertised in \texttt{backend/.env.example}
+    (\texttt{PETGPT\_PROVIDER=openai}); the implemented assistant uses only the
+    Google Gemini provider;
+    \item background job processing: the \texttt{node-cron} and
+    \texttt{socket.io} packages are declared dependencies but are not used by any
+    application code, so no scheduled jobs, queues, or workers exist;
+    \item real-time push notifications (notifications are database-bound and
+    read through the API);
+    \item the React migration phases 22--29 (AI redesign, API integration layer,
+    authentication consolidation, UI completion, visual/functional regression,
+    Docker/Nginx integration, and removal of the vanilla frontend).
+\end{itemize}
+
+\section{Use Cases}
+
+The use cases consolidate the functional requirements. The catalogue is organised
+by actor.
+
+\subsection{Visitor and Registered User Use Cases}
+
+\begin{center}
+\begin{longtable}{@{}p{2.0cm}p{3.6cm}p{8.9cm}@{}}
+\toprule
+\textbf{Use case} & \textbf{Requirement} & \textbf{Description and key flow} \\
+\midrule
+UC-01 Register & FR-01 & Submit name, e-mail, password; backend normalizes the
+e-mail, validates format, hashes the password, stores a hashed verification
+token, and e-mails a verification link. \\
+UC-02 Verify e-mail & FR-01 & Following a clicked link, the token is hashed and
+matched; the account becomes verified and the token is cleared. \\
+UC-03 Login & FR-02, FR-03 & Credentials are compared against the stored hash;
+blocked and unverified accounts are rejected; a JWT is returned. \\
+UC-04 Reset password & FR-03 & A link with a single-use token is e-mailed; the
+new password is hashed and the token cleared. \\
+UC-05 Manage profile & FR-04 & Read or update own profile fields. \\
+UC-06 Manage pets & FR-05, FR-06, FR-07 & Create pets (QR identity generated),
+list own pets, view public pets, update or delete only own pets. \\
+UC-07 Manage health & FR-08, FR-09 & Create and manage health records and
+vaccinations for own pets. \\
+UC-08 Book appointments & FR-10--FR-12 & Book with slot conflict check; automatic
+notification and reminder; reschedule or cancel keeps the reminder in sync. \\
+UC-09 Manage reminders & FR-13 & Create, complete, and manage own care reminders. \\
+UC-10 Manage notifications & FR-14 & View, mark read, and manage own
+notifications. \\
+UC-11 Apply for adoption & FR-15--FR-17 & Submit an adoption application; track
+requests; receive notifications on approval or rejection. \\
+UC-12 Favourites & FR-18 & Toggle pets in a personal favourites list. \\
+UC-13 Community & FR-19 & Read, create, update, delete posts; like and comment. \\
+UC-14 Lost and found & FR-20 & Create, update, resolve, and delete own reports;
+view active reports. \\
+UC-15 AI assistant & FR-21, FR-22 & Ask the pet-care assistant; request advice
+for an own pet. \\
+\bottomrule
+\end{longtable}
+\end{center}
+
+\subsection{Administrator Use Cases}
+
+\begin{center}
+\begin{longtable}{@{}p{2.4cm}p{3.2cm}p{8.9cm}@{}}
+\toprule
+\textbf{Use case} & \textbf{Requirement} & \textbf{Description} \\
+\midrule
+UC-16 Dashboard & FR-23 & Aggregate user, pet, adoption, lost-and-found, and
+community statistics. \\
+UC-17 User management & FR-23 & List users, view recent users, block/
+unblock, and delete users. \\
+UC-18 Pet moderation & FR-23 & List all pets with owner information; delete pet
+records. \\
+UC-19 Adoption moderation & FR-16, FR-17 & Approve or reject adoption
+applications; approval flips the pet to \texttt{adopted}. \\
+UC-20 Content moderation & FR-23 & Activate/deactivate and delete community
+posts; resolve and delete lost-and-found reports. \\
+UC-21 Catalogue management & FR-23 & Create, update, and delete breeds and
+veterinarians. \\
+\bottomrule
+\end{longtable}
+\end{center}
+
+\section{Actors in the Implemented Workflow}
+
+The system context and actor interactions are summarized in the context diagram
+of Chapter~1. Community, lost-and-found, and veterinarian reading endpoints are
+public, which matches the two-level access model: authenticated creation and
+ownership-scoped management for content, and public read access to active
+community, lost-and-found, and veterinary records.

@@ -1,0 +1,26 @@
+flowchart TD
+    subgraph ASK["PetGPT chat - POST /api/ai/ask"]
+        A["validate question present"] --> B["load up to 5 of the user's own pets<br/>(name, species, breed) as context"]
+        B --> C["callGemini(question, petContext)"]
+        C --> D{"GEMINI_API_KEY set?<br/>response ok?"}
+        D -- "yes" --> E["parse candidates[0].content.parts text"]
+        E --> H["answer from Gemini"]
+        D -- "no / fail / 25s timeout (AbortController)" --> F["fallbackAnswer(question)<br/>keyword heuristics: dog, cat, vaccination,<br/>diet, exercise"]
+        F --> H
+        H --> I["200 { question, answer }"]
+    end
+
+    subgraph ADV["Pet advice - POST /api/ai/advice"]
+        A2["validate petId ObjectId"] --> B2["Pet.findOne({ _id, owner: req.user.id })"]
+        B2 -- "not owned" --> X["404"]
+        B2 -- "found" --> C2["rule-based checks"]
+        C2 --> D2["not vaccinated -> advice line"]
+        C2 --> E2["age < 1 -> young pet advice"]
+        C2 --> F2["weight 0/empty -> record weight advice"]
+        C2 --> G2["all ok -> preventive care line"]
+        D2 --> R
+        E2 --> R
+        F2 --> G2
+        G2 --> R["200 { pet summary, advice[] }"]
+        R["DISCLAIMER: informational only; veterinary consultation advised"]
+    end

@@ -1,0 +1,22 @@
+flowchart LR
+    subgraph NODE["Node.js host machine"]
+        BE["Backend process (Express)<br/>ports 5000 (API) + 5502 (static fallback)"]
+        FE["React development client<br/>(Vite dev server / Live Server)"]
+        UP[("uploads/ directory<br/>community, lost-found, avatar images")]
+        UF[["node-cron, socket.io (installed, unused)"]]
+    end
+
+    subgraph CLOUD["External services"]
+        MONG[("MongoDB<br/>mongodb://localhost:27017/animal_planet")]
+        SMTP["SMTP (Gmail) via Nodemailer"]
+        GEM["Gemini API - REST HTTPS"]
+        CLD["Cloudinary - HTTPS upload"]
+    end
+
+    FE -- "HTTP/JSON, CORS allowed origins" --> BE
+    BE -- "static images" --> UP
+    BE -- "Odm + connection" --> MONG
+    BE -- "sendEmail()" --> SMTP
+    BE -- "fetch() with key" --> GEM
+    BE -- "cloudinary.uploader" --> CLD
+    BE -. "optional live/background workers" .-> UF

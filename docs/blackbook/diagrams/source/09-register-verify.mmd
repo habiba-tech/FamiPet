@@ -1,0 +1,23 @@
+sequenceDiagram
+    autonumber
+    participant U as User / Client
+    participant C as auth.controller
+    participant U2 as User model
+    participant E as Email service (Nodemailer)
+
+    U->>C: POST /api/auth/register {name, email, password, phone}
+    C->>C: validate required fields, password min 6, email format
+    C->>U2: User.findOne({ email })
+    U2-->>C: existing? -> 400
+    C->>C: generate 32-byte token, store sha256 + 24h expiry
+    C->>U2: User.create(...) -> bcrypt hash (pre-save hook, cost 12)
+    C->>E: sendEmail(verify-link with raw token)
+    E-->>C: false? delete user, 500
+    C-->>U: 201 { user (unverified) }
+    Note over U,E: User opens emailed link
+    U->>C: GET /api/auth/verify-email/:token
+    C->>C: sha256(token)
+    C->>U2: findOne({ emailVerificationToken, expire > now })
+    C->>U2: set isVerified = true, clear token fields, save
+    C-->>U: 200 { verified }
+    U->>C: POST /api/auth/login -> 200 { token, user }
