@@ -2,7 +2,7 @@ import { Icon } from '../../components/shared/Icon'
 import { useState, type FormEvent } from 'react'
 import { Link } from 'react-router-dom'
 import { forgotPassword } from '../../api/auth'
-import type { ApiError } from '../../api/client'
+import { getErrorMessage } from '../../lib/errors'
 import { AuthLeftPanel } from '../../components/auth/AuthLeftPanel'
 import { Divider } from '../../components/auth/Divider'
 import { InputBox } from '../../components/auth/InputBox'
@@ -38,7 +38,7 @@ export function ForgotPasswordPage() {
       setEmailError('If the email is registered, a reset link has been sent. Please check your inbox.')
     } catch (err) {
       setStatus('idle')
-      setEmailError((err as ApiError).message || 'Something went wrong. Please try again.')
+      setEmailError(getErrorMessage(err, 'Something went wrong. Please try again.'))
     }
   }
 

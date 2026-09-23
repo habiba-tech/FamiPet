@@ -7,7 +7,9 @@
 // `general` (TYPE_TO_CATEGORY), so it re-reads as a Discussion.
 
 import type { CommunityComment, CommunityPost } from '../../../api/community'
-import { API_BASE } from '../../../api/client'
+
+// Shared backend-media resolution (uploads → API origin, absolute → passthrough).
+export { assetUrl } from '../../../lib/image'
 
 export const CATEGORY_TO_TYPE: Record<string, string> = {
   general: 'discussion',
@@ -74,15 +76,6 @@ export interface PostView {
 }
 
 export const FALLBACK_AVATAR = '/assets/images/dashboard/user-profile.svg'
-
-// Resolve backend-relative upload paths (/uploads/...) to the API origin so
-// <img> renders them; absolute URLs (cloudinary/localhost) pass through.
-export function assetUrl(src: string | null | undefined): string {
-  if (!src) return ''
-  if (src.startsWith('http://') || src.startsWith('https://')) return src
-  if (src.startsWith('/uploads/')) return API_BASE.replace(/\/api$/, '') + src
-  return src
-}
 
 function authorId(post: CommunityPost): string | null {
   const u = post.user

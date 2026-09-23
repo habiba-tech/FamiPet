@@ -3,6 +3,7 @@ import { useState, type FormEvent } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { resendVerification } from '../../api/auth'
 import type { ApiError } from '../../api/client'
+import { getErrorMessage } from '../../lib/errors'
 import { AuthLeftPanel } from '../../components/auth/AuthLeftPanel'
 import { Divider } from '../../components/auth/Divider'
 import { InputBox } from '../../components/auth/InputBox'
@@ -60,7 +61,7 @@ export function LoginPage() {
       setStatus('idle')
 
       const apiErr = err as ApiError
-      const msg = apiErr.message || 'Login failed. Please try again.'
+      const msg = getErrorMessage(err, 'Login failed. Please try again.')
 
       if (apiErr.data && apiErr.data.isVerified === false) {
         setPasswordError('Please verify your email before logging in.')
@@ -84,7 +85,7 @@ export function LoginPage() {
       await resendVerification(email.trim())
       setResend({ visible: true, busy: false, text: 'Verification email sent! Check your inbox.' })
     } catch (err) {
-      setResend({ visible: true, busy: false, text: (err as Error).message || 'Could not send verification email.' })
+      setResend({ visible: true, busy: false, text: getErrorMessage(err, 'Could not send verification email.') })
     }
   }
 

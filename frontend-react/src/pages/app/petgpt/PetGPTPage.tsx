@@ -28,6 +28,7 @@ import {
 import { getMyPets } from '../../../api/pets'
 import { Icon } from '../../../components/shared/Icon'
 import { useAuth } from '../../../hooks/useAuth'
+import { getErrorMessage, isApiError } from '../../../lib/errors'
 import { toPetView } from '../mypet/petBase'
 import { QuickActions, type PetChip } from './QuickActions'
 import { VeterinarianPanel } from './VeterinarianPanel'
@@ -293,11 +294,10 @@ export function PetGPTPage() {
         writeSS(SS_PENDING, nextPending)
       }
     } catch (err) {
-      const e = err as { status?: number; isNetwork?: boolean; message?: string }
-      if (e.isNetwork) setToast('Unable to reach the server. Please check your connection.')
-      else if (e.status === 429) setToast('You have reached the rate limit. Please try again shortly.')
-      else if (e.status === 404) setToast('That conversation is no longer available.')
-      else setToast(e.message || 'Something went wrong.')
+      if (isApiError(err) && err.isNetwork) setToast('Unable to reach the server. Please check your connection.')
+      else if (isApiError(err) && err.status === 429) setToast('You have reached the rate limit. Please try again shortly.')
+      else if (isApiError(err) && err.status === 404) setToast('That conversation is no longer available.')
+      else setToast(getErrorMessage(err, 'Something went wrong.'))
     } finally {
       setSending(false)
     }
@@ -333,8 +333,8 @@ export function PetGPTPage() {
         })
       }
     } catch (err) {
-      const e = err as { status?: number; isNetwork?: boolean; message?: string }
-      setToast(e.isNetwork ? 'Unable to reach the server.' : e.status === 429 ? 'Rate limit reached — try again shortly.' : (e.message || 'Something went wrong.'))
+      const e = isApiError(err) ? err : null
+      setToast(e?.isNetwork ? 'Unable to reach the server.' : e?.status === 429 ? 'Rate limit reached — try again shortly.' : getErrorMessage(err, 'Something went wrong.'))
     } finally {
       setRetryingId(null)
     }

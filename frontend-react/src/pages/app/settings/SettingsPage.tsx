@@ -27,7 +27,7 @@ import { useAuth } from '../../../hooks/useAuth'
 import { useTheme } from '../../../hooks/useTheme'
 import { Icon } from '../../../components/shared/Icon'
 import { ageText, breedName, petImage } from '../../../lib/formatters'
-import type { ApiError } from '../../../api/client'
+import { getErrorMessage } from '../../../lib/errors'
 
 const DEFAULT_AVATAR = '/assets/images/dashboard/user-profile.svg'
 
@@ -216,9 +216,7 @@ export function SettingsPage() {
       setProfileBtnSaved(true)
       setTimeout(() => setProfileBtnSaved(false), 1500)
     } catch (err) {
-      setProfileError(
-        (err as ApiError)?.data?.message || 'Could not save profile. Please try again.',
-      )
+      setProfileError(getErrorMessage(err, 'Could not save profile. Please try again.'))
     } finally {
       setProfileSaving(false)
     }
@@ -262,7 +260,7 @@ export function SettingsPage() {
       setNewPassword('')
       setConfirmPassword('')
     } catch (err) {
-      setPwdMsg('general', (err as ApiError)?.data?.message || 'Could not update password. Please try again.')
+      setPwdMsg('general', getErrorMessage(err, 'Could not update password. Please try again.'))
     } finally {
       setPwdUpdating(false)
     }

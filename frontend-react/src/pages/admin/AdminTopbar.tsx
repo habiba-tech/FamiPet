@@ -2,19 +2,17 @@
 // (title + emoji + subtitle + user chip). Each page renders its own topbar
 // inside `main.admin-main`, exactly like the Vanilla pages.
 
-import { API_BASE, getUser } from '../../api/client'
+import { getUser } from '../../api/client'
 import { Icon } from '../../components/shared/Icon'
+import { assetUrl } from '../../lib/image'
 
 const DEFAULT_AVATAR = '/assets/images/dashboard/user-profile.svg'
 
-// Resolve backend-relative upload paths (/uploads/...) to the API origin so the
-// chip <img> renders them; absolute URLs pass through. The bundled placeholder
-// SVG is never a user's actual avatar (SettingsPage parity).
+// Resolve backend-relative upload paths (/uploads/...) via the shared assetUrl
+// (API origin); the bundled placeholder SVG is never a user's actual avatar
+// (SettingsPage parity).
 function topbarAvatar(value: string | null | undefined): string {
-  if (value && !String(value).includes('user-profile.svg')) {
-    if (value.startsWith('/uploads/')) return API_BASE.replace(/\/api$/, '') + value
-    return value
-  }
+  if (value && !String(value).includes('user-profile.svg')) return assetUrl(value)
   return DEFAULT_AVATAR
 }
 

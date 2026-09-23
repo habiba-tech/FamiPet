@@ -198,7 +198,7 @@ tree verified.
 | 20    | Settings                       | [x]    | `ed4d6cb`   |
 | 21    | Admin panel                    | [x]    | `d18c336`   |
 | 22    | AI / PetGPT (redesign)         | [x]    | `d26e955`    |
-| 23    | API integration layer          | [ ]    | —            |
+| 23    | API integration layer          | [x]    | (this push)  |
 | 24    | Auth/state management          | [ ]    | —            |
 | 25    | UI/UX completion & stabilization| [ ]    | —            |
 | 26    | Visual regression              | [ ]    | —            |
@@ -1502,6 +1502,58 @@ Implemented (commit + push under Phase 20, real backend only — no fake data):
   parity for a sample flow; `VITE_API_URL` override works.
 - **Completion criteria:** single typed client; no helper drift.
 - **Rollback/safety:** infra beneath pages; pages still work via old helper until swap.
+
+**Implemented (commit + push under Phase 23, real backend only — no fake data):**
+
+- `src/api/client.ts` is now the single network origin: `API_BASE` is overridable
+  with `VITE_API_URL` (dev/build time; defaults to `http://localhost:5000/api`,
+  trailing `/`-stripped), plus `apiOrigin()` (`API_BASE.replace(/\/api$/, '')`)
+  for the multer `/uploads` surface. `ApiError` lives in `src/lib/errors.ts` and
+  is re-exported from `client.ts` so the existing `import type { ApiError } from
+  '../api/client'` call sites keep working. Grep audit: zero raw `fetch` outside
+  `client.ts`; the only remaining `API_BASE`/origin-string references are inside
+  `client.ts`.
+- New `src/lib/errors.ts` — `ApiError`, `toApiError`, `getErrorMessage(err,
+  fallback)` (behaviour-identical to the hand-rolled
+  `(err instanceof Error && err.message) || fallback` pattern; an ApiError's
+  `message` is the backend `data.message` verbatim), and `isApiError(err)` type
+  guard (any client-thrown Error carries `status`: `0` for network failures,
+  `response.code` otherwise).
+- New `src/lib/image.ts` — canonical `assetUrl(src)` (empty → `''`, absolute
+  `http(s)` and non-`/uploads/` paths pass through, `/uploads/…` resolved via
+  `apiOrigin()`). De-duplicated the three identical `assetUrl` copies
+  (`communityBase.ts`, `lostFoundBase.ts`, `AdminTopbar.tsx`); `communityBase`
+  and `lostFoundBase` re-export it so page components are untouched.
+- Adopted `getErrorMessage` at the mixing sites: `LoginPage`, `SignupPage`,
+  `ForgotPasswordPage`, `ResetPasswordPage`, `VerifyEmailPage`, `SettingsPage`
+  (both profile and password catches; dropped the now-unused `ApiError` casts/
+  imports). `PetGPTPage` now uses `isApiError(...)` + `getErrorMessage(...)`
+  instead of re-declaring the error shape inline (`{ status?, isNetwork?,
+  message? }`).
+- Deliberate non-changes (documented, to avoid drift/churn without value):
+  no generic `useFetcher` hook — every page has page-specific load/mutation
+  flows, so a shared fetcher would be dead code or a risky rewrite; the ~20
+  uniform `(err instanceof Error && err.message) || fallback` sites across
+  feature pages were left as-is (already consistent); `petImage()` in
+  `lib/formatters.ts` unchanged.
+- **Verification:** `npm run lint` (oxlint, zero new issues — only the two
+  pre-existing `react(set-state-in-effect)` warnings), `tsc -b`, and `vite build`
+  all clean. Live API flows against the running backend (:5000, Mongo `petDB`)
+  via two freshly-created verified test users (created directly in Mongo with the
+  model's bcrypt pre-save hook, then cleaned up): `auth/login` tokens issued and
+  `auth/me` hydrated; A creates pet (201, real Breed ref + auto QR/petUid);
+  `/pets/my` reflects it; QR endpoint returns the QR data; public `GET /pets/:id`
+  works without auth; B's `PUT`/`DELETE` on A's pet → `403`, A's `PUT` → 200
+  (ownership boundary green); multer avatar upload (FormData) → absolute
+  `/uploads/...` URL, uploaded PNG served `200 image/png`; A deletes pet → 200,
+  re-GET → 404; unauthenticated `/pets/my` → 401; `GET /veterinarians` → seeded
+  vets. `VITE_API_URL` override proven at build time: default base absent from
+  the bundle, override present (`dist/` is git-ignored). **Not verifiable on the
+  local checkout:** the PetGPT conversation/job contract (202 + polling) only
+  exists on the `main` backend; this `react-migration` backend serves the legacy
+  single-turn `/ai/ask` + `/ai/advice`, and no AI provider is configured — the
+  AI flows ride on the Phase 22 E2E and are unaffected by this phase (the PetGPT
+  change here is compile-checked error handling only).
 
 ### Phase 24 — Authentication / state management (consolidation)
 - **Objective:** single AuthContext + ThemeContext implementation, storage-key constants,
