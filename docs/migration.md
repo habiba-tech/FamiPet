@@ -199,7 +199,7 @@ tree verified.
 | 21    | Admin panel                    | [x]    | `d18c336`   |
 | 22    | AI / PetGPT (redesign)         | [x]    | `d26e955`    |
 | 23    | API integration layer          | [x]    | `f53b399`   |
-| 24    | Auth/state management          | [x]    | `(this push)` |
+| 24    | Auth/state management          | [x]    | `f8d4f8b`    |
 | 25    | UI/UX completion & stabilization| [ ]    | —            |
 | 26    | Visual regression              | [ ]    | —            |
 | 27    | Functional regression          | [ ]    | —            |
