@@ -20,4 +20,13 @@ router.post("/ask", protect, aiLimiter, askPetGPT);
 // Get advice for a pet
 router.post("/advice", protect, aiLimiter, getPetAdvice);
 
+// Persistent conversations (Phase 2), mounted under /api/ai/conversations
+router.use("/conversations", require("./conversation.routes"));
+
+// User-owned provider/API-key configuration (Phase 3)
+router.use("/providers", require("./provider.routes"));
+
+// Durable generation job status (Phase 4)
+router.use("/jobs", require("./job.routes"));
+
 module.exports = router;
