@@ -198,7 +198,7 @@ tree verified.
 | 20    | Settings                       | [x]    | `ed4d6cb`   |
 | 21    | Admin panel                    | [x]    | `d18c336`   |
 | 22    | AI / PetGPT (redesign)         | [x]    | `d26e955`    |
-| 23    | API integration layer          | [x]    | (this push)  |
+| 23    | API integration layer          | [x]    | `f53b399`   |
 | 24    | Auth/state management          | [ ]    | —            |
 | 25    | UI/UX completion & stabilization| [ ]    | —            |
 | 26    | Visual regression              | [ ]    | —            |
