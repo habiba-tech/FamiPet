@@ -1,0 +1,142 @@
+{"level":"info","message":"🚀 Server running on http://localhost:5000","timestamp":"2026-09-22T11:14:24.632Z"}
+{"level":"info","message":"🌐 Frontend available at http://localhost:5502 (fallback)","timestamp":"2026-09-22T11:14:24.636Z"}
+{"level":"info","message":"✅ MongoDB Connected","timestamp":"2026-09-22T11:14:24.659Z"}
+{"level":"info","message":"=================================","timestamp":"2026-09-22T11:14:30.255Z"}
+{"level":"info","message":"📧 SENDING VERIFICATION EMAIL","timestamp":"2026-09-22T11:14:30.255Z"}
+{"level":"info","message":"Email:","timestamp":"2026-09-22T11:14:30.257Z"}
+{"level":"info","message":"=================================","timestamp":"2026-09-22T11:14:30.257Z"}
+{"level":"info","message":"✅ Verification email sent to:","timestamp":"2026-09-22T11:14:32.901Z"}
+{"level":"info","message":"=================================","timestamp":"2026-09-22T11:14:34.218Z"}
+{"level":"info","message":"📧 SENDING VERIFICATION EMAIL","timestamp":"2026-09-22T11:14:34.218Z"}
+{"level":"info","message":"Email:","timestamp":"2026-09-22T11:14:34.218Z"}
+{"level":"info","message":"=================================","timestamp":"2026-09-22T11:14:34.218Z"}
+{"level":"info","message":"✅ Verification email sent to:","timestamp":"2026-09-22T11:14:36.898Z"}
+{"level":"error","message":"Auth Error:","timestamp":"2026-09-22T11:14:37.200Z"}
+{"level":"info","message":"=================================","timestamp":"2026-09-22T11:14:38.003Z"}
+{"level":"info","message":"📧 SENDING VERIFICATION EMAIL","timestamp":"2026-09-22T11:14:38.003Z"}
+{"level":"info","message":"Email:","timestamp":"2026-09-22T11:14:38.003Z"}
+{"level":"info","message":"=================================","timestamp":"2026-09-22T11:14:38.003Z"}
+{"level":"info","message":"✅ Verification email sent to:","timestamp":"2026-09-22T11:14:40.694Z"}
+{"level":"info","message":"🚀 Server running on http://localhost:5000","timestamp":"2026-09-22T11:16:39.629Z"}
+{"level":"info","message":"🌐 Frontend available at http://localhost:5502 (fallback)","timestamp":"2026-09-22T11:16:39.634Z"}
+{"level":"info","message":"✅ MongoDB Connected","timestamp":"2026-09-22T11:16:39.666Z"}
+{"level":"info","message":"=================================","timestamp":"2026-09-22T11:16:48.129Z"}
+{"level":"info","message":"📧 SENDING VERIFICATION EMAIL","timestamp":"2026-09-22T11:16:48.129Z"}
+{"level":"info","message":"Email:","timestamp":"2026-09-22T11:16:48.130Z"}
+{"level":"info","message":"=================================","timestamp":"2026-09-22T11:16:48.131Z"}
+{"level":"info","message":"✅ Verification email sent to:","timestamp":"2026-09-22T11:16:51.540Z"}
+{"level":"info","message":"=================================","timestamp":"2026-09-22T11:16:52.891Z"}
+{"level":"info","message":"📧 SENDING VERIFICATION EMAIL","timestamp":"2026-09-22T11:16:52.891Z"}
+{"level":"info","message":"Email:","timestamp":"2026-09-22T11:16:52.891Z"}
+{"level":"info","message":"=================================","timestamp":"2026-09-22T11:16:52.891Z"}
+{"level":"info","message":"✅ Verification email sent to:","timestamp":"2026-09-22T11:16:56.447Z"}
+{"level":"error","message":"Auth Error:","timestamp":"2026-09-22T11:16:56.752Z"}
+{"level":"info","message":"=================================","timestamp":"2026-09-22T11:16:57.545Z"}
+{"level":"info","message":"📧 SENDING VERIFICATION EMAIL","timestamp":"2026-09-22T11:16:57.546Z"}
+{"level":"info","message":"Email:","timestamp":"2026-09-22T11:16:57.546Z"}
+{"level":"info","message":"=================================","timestamp":"2026-09-22T11:16:57.546Z"}
+{"level":"info","message":"✅ Verification email sent to:","timestamp":"2026-09-22T11:17:00.780Z"}
+{"level":"info","message":"🚀 Server running on http://localhost:5000","timestamp":"2026-09-22T12:31:12.300Z"}
+{"level":"info","message":"🌐 Frontend available at http://localhost:5502 (fallback)","timestamp":"2026-09-22T12:31:12.304Z"}
+{"level":"info","message":"✅ MongoDB Connected","timestamp":"2026-09-22T12:31:12.361Z"}
+{"level":"info","message":"=================================","timestamp":"2026-09-22T12:31:42.407Z"}
+{"level":"info","message":"📧 SENDING VERIFICATION EMAIL","timestamp":"2026-09-22T12:31:42.407Z"}
+{"level":"info","message":"Email:","timestamp":"2026-09-22T12:31:42.409Z"}
+{"level":"info","message":"=================================","timestamp":"2026-09-22T12:31:42.410Z"}
+{"level":"info","message":"✅ Verification email sent to:","timestamp":"2026-09-22T12:31:45.243Z"}
+{"level":"info","message":"=================================","timestamp":"2026-09-22T12:31:47.523Z"}
+{"level":"info","message":"📧 SENDING VERIFICATION EMAIL","timestamp":"2026-09-22T12:31:47.523Z"}
+{"level":"info","message":"Email:","timestamp":"2026-09-22T12:31:47.524Z"}
+{"level":"info","message":"=================================","timestamp":"2026-09-22T12:31:47.524Z"}
+{"level":"info","message":"✅ Verification email sent to:","timestamp":"2026-09-22T12:31:50.157Z"}
+{"level":"error","message":"Auth Error:","timestamp":"2026-09-22T12:31:50.718Z"}
+{"level":"error","message":"Auth Error:","timestamp":"2026-09-22T12:31:51.800Z"}
+{"level":"info","message":"🚀 Server running on http://localhost:5000","timestamp":"2026-09-22T12:32:36.117Z"}
+{"level":"info","message":"🌐 Frontend available at http://localhost:5502 (fallback)","timestamp":"2026-09-22T12:32:36.123Z"}
+{"level":"info","message":"✅ MongoDB Connected","timestamp":"2026-09-22T12:32:36.167Z"}
+{"level":"info","message":"=================================","timestamp":"2026-09-22T12:32:51.519Z"}
+{"level":"info","message":"📧 SENDING VERIFICATION EMAIL","timestamp":"2026-09-22T12:32:51.520Z"}
+{"level":"info","message":"Email:","timestamp":"2026-09-22T12:32:51.520Z"}
+{"level":"info","message":"=================================","timestamp":"2026-09-22T12:32:51.521Z"}
+{"level":"info","message":"✅ Verification email sent to:","timestamp":"2026-09-22T12:32:54.675Z"}
+{"level":"info","message":"=================================","timestamp":"2026-09-22T12:32:57.158Z"}
+{"level":"info","message":"📧 SENDING VERIFICATION EMAIL","timestamp":"2026-09-22T12:32:57.158Z"}
+{"level":"info","message":"Email:","timestamp":"2026-09-22T12:32:57.158Z"}
+{"level":"info","message":"=================================","timestamp":"2026-09-22T12:32:57.158Z"}
+{"level":"info","message":"✅ Verification email sent to:","timestamp":"2026-09-22T12:33:00.315Z"}
+{"level":"error","message":"Auth Error:","timestamp":"2026-09-22T12:33:00.912Z"}
+{"level":"info","message":"=================================","timestamp":"2026-09-22T12:33:02.498Z"}
+{"level":"info","message":"📧 SENDING VERIFICATION EMAIL","timestamp":"2026-09-22T12:33:02.499Z"}
+{"level":"info","message":"Email:","timestamp":"2026-09-22T12:33:02.499Z"}
+{"level":"info","message":"=================================","timestamp":"2026-09-22T12:33:02.499Z"}
+{"level":"info","message":"✅ Verification email sent to:","timestamp":"2026-09-22T12:33:05.627Z"}
+{"level":"info","message":"🚀 Server running on http://localhost:5000","timestamp":"2026-09-22T12:34:26.291Z"}
+{"level":"info","message":"🌐 Frontend available at http://localhost:5502 (fallback)","timestamp":"2026-09-22T12:34:26.296Z"}
+{"level":"info","message":"✅ MongoDB Connected","timestamp":"2026-09-22T12:34:26.337Z"}
+{"level":"info","message":"=================================","timestamp":"2026-09-22T12:34:35.160Z"}
+{"level":"info","message":"📧 SENDING VERIFICATION EMAIL","timestamp":"2026-09-22T12:34:35.161Z"}
+{"level":"info","message":"Email:","timestamp":"2026-09-22T12:34:35.161Z"}
+{"level":"info","message":"=================================","timestamp":"2026-09-22T12:34:35.162Z"}
+{"level":"info","message":"✅ Verification email sent to:","timestamp":"2026-09-22T12:34:38.092Z"}
+{"level":"info","message":"=================================","timestamp":"2026-09-22T12:34:40.854Z"}
+{"level":"info","message":"📧 SENDING VERIFICATION EMAIL","timestamp":"2026-09-22T12:34:40.855Z"}
+{"level":"info","message":"Email:","timestamp":"2026-09-22T12:34:40.855Z"}
+{"level":"info","message":"=================================","timestamp":"2026-09-22T12:34:40.855Z"}
+{"level":"info","message":"✅ Verification email sent to:","timestamp":"2026-09-22T12:34:43.208Z"}
+{"level":"error","message":"Auth Error:","timestamp":"2026-09-22T12:34:43.801Z"}
+{"level":"info","message":"=================================","timestamp":"2026-09-22T12:34:45.226Z"}
+{"level":"info","message":"📧 SENDING VERIFICATION EMAIL","timestamp":"2026-09-22T12:34:45.226Z"}
+{"level":"info","message":"Email:","timestamp":"2026-09-22T12:34:45.226Z"}
+{"level":"info","message":"=================================","timestamp":"2026-09-22T12:34:45.226Z"}
+{"level":"info","message":"✅ Verification email sent to:","timestamp":"2026-09-22T12:34:48.841Z"}
+{"level":"info","message":"🚀 Server running on http://localhost:5000","timestamp":"2026-09-22T12:47:05.109Z"}
+{"level":"info","message":"🌐 Frontend available at http://localhost:5502 (fallback)","timestamp":"2026-09-22T12:47:05.114Z"}
+{"level":"info","message":"✅ MongoDB Connected","timestamp":"2026-09-22T12:47:05.136Z"}
+{"level":"info","message":"=================================","timestamp":"2026-09-22T12:47:24.739Z"}
+{"level":"info","message":"📧 SENDING VERIFICATION EMAIL","timestamp":"2026-09-22T12:47:24.740Z"}
+{"level":"info","message":"Email:","timestamp":"2026-09-22T12:47:24.741Z"}
+{"level":"info","message":"=================================","timestamp":"2026-09-22T12:47:24.741Z"}
+{"level":"info","message":"✅ Verification email sent to:","timestamp":"2026-09-22T12:47:27.685Z"}
+{"level":"info","message":"=================================","timestamp":"2026-09-22T12:47:30.100Z"}
+{"level":"info","message":"📧 SENDING VERIFICATION EMAIL","timestamp":"2026-09-22T12:47:30.100Z"}
+{"level":"info","message":"Email:","timestamp":"2026-09-22T12:47:30.100Z"}
+{"level":"info","message":"=================================","timestamp":"2026-09-22T12:47:30.100Z"}
+{"level":"info","message":"✅ Verification email sent to:","timestamp":"2026-09-22T12:47:32.705Z"}
+{"level":"error","message":"Auth Error:","timestamp":"2026-09-22T12:47:33.319Z"}
+{"level":"info","message":"=================================","timestamp":"2026-09-22T12:47:34.924Z"}
+{"level":"info","message":"📧 SENDING VERIFICATION EMAIL","timestamp":"2026-09-22T12:47:34.924Z"}
+{"level":"info","message":"Email:","timestamp":"2026-09-22T12:47:34.924Z"}
+{"level":"info","message":"=================================","timestamp":"2026-09-22T12:47:34.924Z"}
+{"code":"EENVELOPE","command":"DATA","level":"error","message":"Email send error: Data command failed: 550-5.4.5 Daily user sending limit exceeded. For more information on Gmail\n550-5.4.5 sending limits go to\n550 5.4.5  https://support.google.com/a/answer/166852 d9443c01a7336-2df5cf83512sm9298685ad.5 - gsmtp","response":"550-5.4.5 Daily user sending limit exceeded. For more information on Gmail\n550-5.4.5 sending limits go to\n550 5.4.5  https://support.google.com/a/answer/166852 d9443c01a7336-2df5cf83512sm9298685ad.5 - gsmtp","responseCode":550,"stack":"Error: Data command failed: 550-5.4.5 Daily user sending limit exceeded. For more information on Gmail\n550-5.4.5 sending limits go to\n550 5.4.5  https://support.google.com/a/answer/166852 d9443c01a7336-2df5cf83512sm9298685ad.5 - gsmtp\n    at SMTPConnection._formatError (C:\\Users\\User\\OneDrive\\Documents\\FamiPet\\backend\\node_modules\\nodemailer\\dist\\cjs\\smtp-connection\\index.js:817:19)\n    at SMTPConnection._actionDATA (C:\\Users\\User\\OneDrive\\Documents\\FamiPet\\backend\\node_modules\\nodemailer\\dist\\cjs\\smtp-connection\\index.js:1638:34)\n    at SMTPConnection.<anonymous> (C:\\Users\\User\\OneDrive\\Documents\\FamiPet\\backend\\node_modules\\nodemailer\\dist\\cjs\\smtp-connection\\index.js:1607:26)\n    at SMTPConnection._processResponse (C:\\Users\\User\\OneDrive\\Documents\\FamiPet\\backend\\node_modules\\nodemailer\\dist\\cjs\\smtp-connection\\index.js:1001:20)\n    at SMTPConnection._onData (C:\\Users\\User\\OneDrive\\Documents\\FamiPet\\backend\\node_modules\\nodemailer\\dist\\cjs\\smtp-connection\\index.js:769:14)\n    at SMTPConnection._onSocketData (C:\\Users\\User\\OneDrive\\Documents\\FamiPet\\backend\\node_modules\\nodemailer\\dist\\cjs\\smtp-connection\\index.js:176:44)\n    at TLSSocket.emit (node:events:509:20)\n    at addChunk (node:internal/streams/readable:568:12)\n    at readableAddChunkPushByteMode (node:internal/streams/readable:519:3)\n    at Readable.push (node:internal/streams/readable:399:5)","timestamp":"2026-09-22T12:47:37.320Z"}
+{"level":"error","message":"Auth Error:","timestamp":"2026-09-22T12:47:37.344Z"}
+{"level":"info","message":"🚀 Server running on http://localhost:5000","timestamp":"2026-09-22T12:50:00.431Z"}
+{"level":"info","message":"🌐 Frontend available at http://localhost:5502 (fallback)","timestamp":"2026-09-22T12:50:00.436Z"}
+{"level":"info","message":"✅ MongoDB Connected","timestamp":"2026-09-22T12:50:00.462Z"}
+{"level":"info","message":"=================================","timestamp":"2026-09-22T12:50:09.779Z"}
+{"level":"info","message":"📧 SENDING VERIFICATION EMAIL","timestamp":"2026-09-22T12:50:09.779Z"}
+{"level":"info","message":"Email:","timestamp":"2026-09-22T12:50:09.781Z"}
+{"level":"info","message":"=================================","timestamp":"2026-09-22T12:50:09.781Z"}
+{"level":"info","message":"✅ Verification email sent to:","timestamp":"2026-09-22T12:50:09.782Z"}
+{"level":"info","message":"=================================","timestamp":"2026-09-22T12:50:12.289Z"}
+{"level":"info","message":"📧 SENDING VERIFICATION EMAIL","timestamp":"2026-09-22T12:50:12.290Z"}
+{"level":"info","message":"Email:","timestamp":"2026-09-22T12:50:12.290Z"}
+{"level":"info","message":"=================================","timestamp":"2026-09-22T12:50:12.290Z"}
+{"level":"info","message":"✅ Verification email sent to:","timestamp":"2026-09-22T12:50:12.291Z"}
+{"level":"error","message":"Auth Error:","timestamp":"2026-09-22T12:50:12.929Z"}
+{"level":"info","message":"=================================","timestamp":"2026-09-22T12:50:14.375Z"}
+{"level":"info","message":"📧 SENDING VERIFICATION EMAIL","timestamp":"2026-09-22T12:50:14.375Z"}
+{"level":"info","message":"Email:","timestamp":"2026-09-22T12:50:14.375Z"}
+{"level":"info","message":"=================================","timestamp":"2026-09-22T12:50:14.375Z"}
+{"level":"info","message":"✅ Verification email sent to:","timestamp":"2026-09-22T12:50:14.376Z"}
+{"level":"error","message":"Auth Error:","timestamp":"2026-09-22T17:53:15.736Z"}
+{"level":"info","message":"PetGPT: out-of-scope question blocked for user 6ab2c08aba3e225f01272345.","timestamp":"2026-09-22T17:53:16.340Z"}
+{"level":"error","message":"Auth Error:","timestamp":"2026-09-22T17:53:21.589Z"}
+{"level":"info","message":"🚀 Server running on http://localhost:5000","timestamp":"2026-09-22T17:54:10.875Z"}
+{"level":"info","message":"🌐 Frontend available at http://localhost:5502 (fallback)","timestamp":"2026-09-22T17:54:10.878Z"}
+{"level":"info","message":"✅ MongoDB Connected","timestamp":"2026-09-22T17:54:10.905Z"}
+{"level":"error","message":"Auth Error:","timestamp":"2026-09-22T18:00:43.674Z"}
+{"level":"info","message":"PetGPT: out-of-scope question blocked for user 6ab2c24a986174a6d9ba851e.","timestamp":"2026-09-22T18:00:44.091Z"}
+{"level":"error","message":"Auth Error:","timestamp":"2026-09-22T18:00:49.246Z"}
+{"level":"error","message":"Auth Error:","timestamp":"2026-09-22T18:06:23.605Z"}
+{"level":"info","message":"PetGPT: out-of-scope question blocked for user 6ab2c39e37f9203e6233ceb2.","timestamp":"2026-09-22T18:06:24.022Z"}
+{"level":"error","message":"Auth Error:","timestamp":"2026-09-22T18:06:29.247Z"}
