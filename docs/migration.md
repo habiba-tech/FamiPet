@@ -199,7 +199,7 @@ tree verified.
 | 21    | Admin panel                    | [x]    | `d18c336`   |
 | 22    | AI / PetGPT (redesign)         | [x]    | `d26e955`    |
 | 23    | API integration layer          | [x]    | `f53b399`   |
-| 24    | Auth/state management          | [ ]    | —            |
+| 24    | Auth/state management          | [x]    | `(this push)` |
 | 25    | UI/UX completion & stabilization| [ ]    | —            |
 | 26    | Visual regression              | [ ]    | —            |
 | 27    | Functional regression          | [ ]    | —            |
@@ -1569,6 +1569,60 @@ Implemented (commit + push under Phase 20, real backend only — no fake data):
   vice versa); guard matrix tested for anon/user/admin.
 - **Completion criteria:** one auth/theme code path, guard matrix green.
 - **Rollback/safety:** centralized; old-site session keys make fallback seamless.
+
+**Implemented (commit + push under Phase 24, real backend — no fake data):**
+
+- **Audit fixed a real state bug:** the hydration `401` catch in `AuthContext`
+  only cleared React state but left the stale `famipetToken`/`famipetUser`/
+  `annProfile` in `localStorage`. After a token expiry that meant every cold
+  load replayed a bogus session until the next 401. Now the catch calls
+  `logoutStoredAuth()` (the api.js 401-with-token path) before clearing the
+  in-memory state — storage, in-memory state, and sessionStorage are cleared
+  together. The `user` initial state is now gated on `getToken()` (no phantom
+  user when there is no token).
+- **Removed a redirect race:** `LoginPage` previously fired its own
+  `setTimeout(navigate(dest), 800)` after login while `RedirectIfAuthed` also
+  bounced the already-authenticated page — deep-link logins flashed the
+  dashboard, then jumped late. Login now just completes the API call and lets
+  `RedirectIfAuthed` redirect deterministically.
+- **Deep links now landed correctly:** `RedirectIfAuthed` honors
+  `location.state?.from` (set by `RequireAuth`/`RequireAdmin`) so a login that
+  started at a protected deep link returns there instead of the dashboard.
+  Sanitized: `from` must be a real path, and `/login` itself is ignored.
+- **Deliberate parity non-changes (no drift vs the Vanilla site + api.js):** the
+  canonical `client.ts` 401-with-token behavior (logout + hard redirect to
+  `/login`) is kept as the default — `setOnUnauthorized` remains unwired;
+  `logout()` clears `famipetToken`/`famipetUser`/`annProfile` + `sessionStorage`
+  and leaves `famipetTheme` alone (theme survives logout — verified); no
+  refresh-token/QoL endpoints invented; `SignupPage` and `ResetPasswordPage`
+  flows unchanged (register→/login, reset stores backend-issued token if any);
+  `/auth/me` is the only hydration request. Feature pages that read
+  `getUser()/isAdmin()` directly (`AdminTopbar`, `ComposePostModal`,
+  `CommunityPage`, `LostFoundPage`, `ReportFormModal`) are safe because the 401
+  path now clears storage; `SettingsPage` still syncs context via `setUser()`
+  after profile/avatar saves.
+- **Verification:** `npm run lint` (oxlint, no new issues — only the two
+  pre-existing `react(set-state-in-effect)` warnings), `tsc -b`, and `vite build`
+  clean. Live browser verification (headless Chrome + raw CDP, real backend
+  :5000/Mongo `petDB`, three freshly-created verified users A/B/admin, cleaned
+  up after): 35/35 checks — unauth deep link → `/login` clean; login A →
+  dashboard with token+user persisted and sidebar identity; refresh after
+  deep-link settings still case-splash → `/auth/me` hits the backend and state
+  restores; logout clears all four keys, sessionStorage, and preserves theme;
+  A→B switch shows B's name+pet (`AceB`), hides A's (`AceA`), stored user is B;
+  non-admin `/app/admin` → dashboard with no admin content; mid-session expired
+  JWT → 401 via the canonical client → storage cleared + `/login`; garbage token
+  + stale stored user on cold load → hydration 401 clears both → `/login`;
+  deep-link login returns to `/app/mypet`; authed `/login` → dashboard; admin
+  deep-link login lands `/app/admin`, `/app/admin/users` authorized, both admin
+  and user sidebar logouts work; 390 px mobile emulation: the **authenticated**
+  app shell (dashboard/mypet/settings) has **no** horizontal overflow. One
+  pre-existing, auth-independent issue surfaced and deliberately NOT fixed in
+  this phase: the unauthenticated `/login` page overflows at 390 px
+  (`scrollWidth 470 > 390`) due to the Phase 7 `login.css` `.login-container`
+  grid + `.login-card` min-content — `/signup`, the landing page, and the app
+  shell are all clean at 390, no CSS changed in Phase 24, and Phase 25
+  (responsive/mobile + overflow polish) owns it.
 
 ### Phase 25 — UI/UX completion & stabilization
 - **Objective:** final UI/UX pass across all migrated pages — Landing page completion,

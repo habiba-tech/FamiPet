@@ -12,12 +12,16 @@ import { AuthContext } from './auth'
 // Auth session state, mirroring api.js: token + user live in localStorage
 // (`famipetToken`/`famipetUser`), login persists both, logout clears them along
 // with `annProfile` and sessionStorage (theme survives). On mount a stored
-// token is re-validated with GET /auth/me; only a 401 clears the session, so an
-// offline reload keeps the cached session (parity with the Vanilla app).
+// token is re-validated with GET /auth/me; a 401 clears the ENTIRE stored
+// session exactly like api.js does on any 401-with-token, so a revoked/expired
+// token can never leave a stale user behind for the next reload or user. An
+// offline reload (network error, non-401) keeps the cached session (parity).
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [token, setTokenState] = useState<string>(() => getToken())
-  const [user, setUserState] = useState<AuthUser | null>(() => getUser() as AuthUser | null)
+  const [user, setUserState] = useState<AuthUser | null>(() =>
+    getToken() ? (getUser() as AuthUser | null) : null,
+  )
   const [loading, setLoading] = useState<boolean>(() => !!getToken())
 
   useEffect(() => {
@@ -40,6 +44,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       .catch((err: { status?: number }) => {
         if (cancelled) return
         if (err.status === 401) {
+          // Expired/revoked token: mirror the api.js 401-with-token rule —
+          // logoutStoredAuth() also clears annProfile + sessionStorage.
+          logoutStoredAuth()
           setUserState(null)
           setTokenState('')
         }
