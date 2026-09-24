@@ -200,7 +200,7 @@ tree verified.
 | 22    | AI / PetGPT (redesign)         | [x]    | `d26e955`    |
 | 23    | API integration layer          | [x]    | `f53b399`   |
 | 24    | Auth/state management          | [x]    | `f8d4f8b`    |
-| 25    | UI/UX completion & stabilization| [x]    | `(this push)` |
+| 25    | UI/UX completion & stabilization| [x]    | `aa8cf8d`    |
 | 26    | Visual regression              | [ ]    | —            |
 | 27    | Functional regression          | [ ]    | —            |
 | 28    | Docker/Nginx integration       | [ ]    | —            |
