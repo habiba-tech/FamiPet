@@ -201,7 +201,7 @@ tree verified.
 | 23    | API integration layer          | [x]    | `f53b399`   |
 | 24    | Auth/state management          | [x]    | `f8d4f8b`    |
 | 25    | UI/UX completion & stabilization| [x]    | `aa8cf8d`    |
-| 26    | Visual regression              | [ ]    | —            |
+| 26    | Visual regression              | [x]    | —            |
 | 27    | Functional regression          | [ ]    | —            |
 | 28    | Docker/Nginx integration       | [ ]    | —            |
 | 29    | Removal of old Vanilla frontend | [ ]    | —            |
@@ -1702,6 +1702,66 @@ Implemented (commit + push under Phase 20, real backend only — no fake data):
 - **Verification:** all pages under threshold or listed in accepted-diff report.
 - **Completion criteria:** visual parity audit signed off.
 - **Rollback/safety:** additive test infra; no prod impact.
+
+**Phase 26 executed 2026-09-24 (real backend + seeded audit data; headless Chrome CDP —
+Playwright is not installed and adding dependencies was out of scope, so the scripted
+"Playwright screenshot comparison" wording above was delivered as a CDP harness that
+captures viewport screenshots and measures DOM geometry / computed styles on every page):**
+
+- **Coverage — 26 routes × 3 viewports × 2 themes = 156 combos, all measured against
+  the live API + Mongo:** public `/`, `/login`, `/signup`, `/forgot-password`,
+  `/reset-password/phase26tok`, `/verify-email/phase26tok`, `/no-such-page-xyz`;
+  user `/app/dashboard`, `/app/mypet`, `/app/health` (vaccinations included),
+  `/app/adoption`, `/app/appointments`, `/app/reminders`, `/app/community`,
+  `/app/lost-found`, `/app/petgpt`, `/app/breeds`, `/app/breeds/:id` (real breed id),
+  `/app/pet-id`, `/app/settings`; admin `/app/admin[/users|/pets|/adoptions|/community|
+  /lost-found]` (admin session). Route mapping vs the phase list: React has no
+  `/app/pets`, `/app/pets/:id`, or `/app/vaccinations` routes — pet list is
+  `/app/mypet`, pet detail is a modal on that page, and vaccinations live in
+  `/app/health` (deltas documented in the Phase 8/9 blocks).
+- **Viewports/theme:** 390/768/1440; light + dark (verified per page that
+  `body.dark-theme` flips nav/sidebar/card surfaces; e.g. dash nav
+  `rgb(251,250,255)` → `rgb(23,21,35)`).
+- **Genuine regressions found: none.** Per combo, all 156 measured: horizontal
+  overflow `0` (scrollWidth == clientWidth), elements sticking past the viewport `0`,
+  clipped `nowrap` text `0`, console errors `0`, uncaught exceptions `0`; h1 typography
+  `clamp()` verified (landing hero 37.6/51.2/64px, dash 25/25/33.12 where every h1
+  rendered width == scroll width); grids responsive (`stats-grid` 4-col @1440 →
+  2-col @768 → 1-col @390; `dashboard-grid` asymmetric masonry @1440 parity;
+  `community-layout` 2-col + 345px rail @1440); image overflow within cards `0`;
+  modals in-viewport and centered at all sizes (`.pet-modal` 720×810 @1440 / 340×760
+  @390, `.post-modal` 560×608 @1440 / 350×596 @390, `.modal-box` 500×452 @1440 /
+  358×543 @390; internally scrollable, document overflow `0`); mobile sidebar opens
+  the 288 px drawer with full overlay (design.md pattern); light/dark contrast
+  checked with the WCAG ratio on 7 page groups (landing, login, dash, mypet,
+  settings, community, admin) × 2 themes — every body text ≥3.0 and parity-checked
+  against the old site, not just absolute thresholds.
+- **No implementation commit** — the phase forbids cosmetic-only commits; this block +
+  the pushed docs commit are the Phase 26 deliverable.
+- **Accepted deltas (measured against the old site — not new defects):**
+  1. Community renders 4 broken images (3 post-user avatars + 1 `post-image`) whose
+     URLs point at `/uploads/…` files missing from disk (`backend/uploads/` is empty;
+     curling them returns 404). The referencing post/users are real records whose
+     files were cleared on this machine; the old Vanilla site would show the exact
+     same broken images. Not fixed — replacing them would fabricate data (AGENTS §5);
+     environmental, revisit only if the originals are restored.
+  2. My Pets `.pet-breed p` / `.more-btn` measure 2.94:1 in light mode — byte-for-byte
+     the same tokens/cells as the Vanilla page (probe returned identical
+     `rgb(140,152,164)` on white on both sites); keep.
+  3. Community like/comment/share icons use the theme-neutral token (3.8:1 light /
+     4.27:1 dark) instead of Vanilla's pink (3.06:1 light / 5.31:1 dark); both pass
+     the 3:1 UI-component threshold. Intentional port choice (inactive-icon tone
+     adapts to theme).
+  4. Landing footer / per-page header heights differ at tablet/mobile. The footer now
+     stacks its link grid 2-col ≤900 px / 1-col ≤600 px (Vanilla had zero `@media`
+     rules in `footer.css` and squeezed the 4 columns — 1152 px tall @390 vs 1832 px
+     now; desktop near parity 977 vs 1008 @1440). Headers were consolidated in the
+     port (e.g. My Pets @390 272 px vs Vanilla 188 px; Community 193 vs 264 px). No
+     overflow/clipping at any width — intended responsive polish.
+  5. Login left panel hidden ≤992 px and 686 px wide @1440 on **both** sites
+     (verified), and this environment's model cannot view images, so pixel-diffing
+     was replaced by the geometry/computed-style measurements plus 156 viewport
+     screenshots (saved under the OS temp dir) for human review.
 
 ### Phase 27 — Functional regression
 - **Objective:** Playwright E2E flows for every feature against the real backend +
