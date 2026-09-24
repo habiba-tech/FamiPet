@@ -201,7 +201,7 @@ tree verified.
 | 23    | API integration layer          | [x]    | `f53b399`   |
 | 24    | Auth/state management          | [x]    | `f8d4f8b`    |
 | 25    | UI/UX completion & stabilization| [x]    | `aa8cf8d`    |
-| 26    | Visual regression              | [x]    | —            |
+| 26    | Visual regression              | [x]    | `6b689d0`   |
 | 27    | Functional regression          | [ ]    | —            |
 | 28    | Docker/Nginx integration       | [ ]    | —            |
 | 29    | Removal of old Vanilla frontend | [ ]    | —            |
