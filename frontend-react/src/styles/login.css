@@ -33,7 +33,7 @@ body:has(.login-page) {
     justify-content: center;
     padding: 40px 25px;
     position: relative;
-    /* overflow-x: hidden; Stops background shapes from making a side-scrollbar */
+    overflow-x: hidden; /* Stops background shapes from making a side-scrollbar */
     box-sizing: border-box;
 }
 
@@ -72,7 +72,7 @@ body:has(.login-page) {
     max-width: 1250px;
     height: auto;
     display: grid;
-    grid-template-columns: 1.1fr 0.9fr;
+    grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.9fr);
     align-items: center;
     background: rgba(255, 255, 255, 0.55);
     backdrop-filter: blur(20px);
@@ -503,11 +503,25 @@ body:has(.login-page) {
 ========================================== */
 @media (max-width: 968px) {
     .login-container {
-        grid-template-columns: 1fr;
+        grid-template-columns: minmax(0, 1fr);
         max-width: 500px;
     }
     .login-left {
         display: none; /* Hides left side on small screens smoothly */
+    }
+}
+
+@media (max-width: 600px) {
+    .login-page {
+        padding: 25px 16px;
+    }
+
+    .login-right {
+        padding: 30px 16px;
+    }
+
+    .login-card {
+        padding: 30px 22px;
     }
 }
 
