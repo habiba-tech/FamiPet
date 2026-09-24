@@ -200,7 +200,7 @@ tree verified.
 | 22    | AI / PetGPT (redesign)         | [x]    | `d26e955`    |
 | 23    | API integration layer          | [x]    | `f53b399`   |
 | 24    | Auth/state management          | [x]    | `f8d4f8b`    |
-| 25    | UI/UX completion & stabilization| [ ]    | —            |
+| 25    | UI/UX completion & stabilization| [x]    | `(this push)` |
 | 26    | Visual regression              | [ ]    | —            |
 | 27    | Functional regression          | [ ]    | —            |
 | 28    | Docker/Nginx integration       | [ ]    | —            |
@@ -1643,6 +1643,51 @@ Implemented (commit + push under Phase 20, real backend only — no fake data):
 - **Verification:** full-page screenshots at the 4 widths, diff against old site.
 - **Completion criteria:** responsive parity across all pages at all breakpoints.
 - **Rollback/safety:** additive CSS; wander minimal.
+
+**Implemented (commit + push under Phase 25, real backend — no fake data):**
+
+- **Landing page completed.** `/` now renders `src/pages/landing/LandingPage.tsx`
+  (replacing the Phase 22 PageStub) inside the existing `LandingLayout`
+  (Navbar + Footer + BackToTop, all previously ported). The five sections —
+  hero, services (6), about, why-us (4), join-us/CTA — mirror the Vanilla
+  `frontend/index.html` structure 1:1; the two data grids statically render the
+  same service/why items `frontend/js/home.js` injected, reusing the same
+  `/assets/icons/*.svg` + `/assets/images/hero/*` files. New
+  `src/styles/landing.css` ports `frontend/css/home.css` scoped under `.landing`
+  (so nothing leaks into the authenticated pages, which reuse `.hero*`,
+  `.section-*`, `.service-*` names page-scoped); Vanilla's undefined vars
+  (`--section-bg`, `--primary-color`, `--heading-color`, `--text-color`) resolve
+  to the React tokens. Mobile rules added at 1100/768/600/480 (hero stacks,
+  grids 4→2→1, about/cta single column, typography clamping); the audit
+  confirmed no horizontal overflow at 1440/768/390.
+- **Auth horizontal overflow fixed** (pre-existing — explicitly tracked for this
+  phase at the end of the Phase 24 block). `login.css`:
+  `.login-page { overflow-x: hidden }` restored (clips the decorative blur
+  circles that bled 80 px past the right edge on desktop/tablet), grid tracks use
+  `minmax(0, xfr)` so the 440 px `.login-card` can no longer force the
+  `.login-container` wider than the viewport, and `≤968px` uses
+  `minmax(0, 1fr)` plus tighter card/panel padding `≤600px`. `/login` and
+  `/forgot-password` now measure clean (scrollWidth == clientWidth) at
+  1440/768/390 in both themes; `.login-left` remains visible at desktop; no
+  regression on signup/reset-password/verify-email.
+- **My Pets / app / admin formatting verified with real DB data.** Seeded two
+  real pets to the audit user through the backend API and measured
+  `/app/mypet`: 2×564 px grid at 1440, single column at 768/390, pet portraits
+  `object-fit: cover`, name/details rendered, empty state when a user has no
+  pets, zero horizontal overflow. Full shell audit (headless Chrome CDP against
+  the real backend): 36/36 app-route measurements (12 routes × 3 widths) and
+  18/18 admin-route measurements clean; landing sections present; anchor nav
+  (scroll-padding-top) and theme toggle (`famipetTheme` persistence + body
+  `dark-theme`) verified; no console errors; `npm run lint`, `tsc -b`, and
+  `vite build` all pass. Landing stays light-first in dark theme exactly as the
+  Vanilla landing (no dark overrides existed there; navbar/footer/theme toggle
+  parity unchanged).
+- Note: the roadmap's "tokenized breakpoints in `tailwind.config`" wording
+  predates the Tailwind 4 CSS-first setup (no `tailwind.config` file exists —
+  tokens live in `src/index.css`/`global.css` `@theme`); breakpoint parity was
+  delivered directly in the ported per-section CSS. Verification skipped
+  screenshot diffing (Phase 26 owns that) in favor of DOM geometry/overflow
+  measurement.
 
 ### Phase 26 — Visual regression
 - **Objective:** scripted Playwright screenshot comparison: old site (5502) vs new
