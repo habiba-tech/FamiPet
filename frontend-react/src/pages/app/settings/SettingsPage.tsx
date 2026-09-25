@@ -20,6 +20,7 @@ import { useEffect, useRef, useState, type ChangeEvent, type Ref } from 'react'
 import { Link } from 'react-router-dom'
 import { changePassword, updateProfile, uploadAvatar } from '../../../api/settings'
 import { getMe, type AuthUser } from '../../../api/auth'
+import { normalizeUser } from '../../../api/client'
 import { getAppointments } from '../../../api/appointments'
 import { getNotifications, markAllNotificationsRead, type AppNotification } from '../../../api/notifications'
 import { getMyPets, type Pet } from '../../../api/pets'
@@ -209,7 +210,10 @@ export function SettingsPage() {
       })
       const u = res.user
       if (u) {
-        setUser(u as AuthUser)
+        // PUT /auth/profile echoes the raw user doc (`_id`); persist a
+        // normalized user so `.id` stays available to other consumers.
+        const normalized = normalizeUser(u as Parameters<typeof normalizeUser>[0])
+        setUser((normalized || (u as AuthUser)) as AuthUser)
         setAvatarUrl(realAvatar((u.avatar as string) || persistedAvatar))
       }
       setProfileSaved(true)

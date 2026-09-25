@@ -127,7 +127,10 @@ export function RemindersPage() {
   const openMenu = (e: React.MouseEvent) => {
     e.stopPropagation()
     const btn = e.currentTarget as HTMLElement
-    const id = String(btn.dataset.id || '')
+    // The trigger button sets data-menu-id={rem.id}, which React maps to
+    // dataset.menuId (dataset "id" is never set). Reading dataset.menuId keeps
+    // the menu id synced with the reminder card.
+    const id = String(btn.dataset.menuId || '')
     if (menu?.id === id) {
       setMenu(null)
       return

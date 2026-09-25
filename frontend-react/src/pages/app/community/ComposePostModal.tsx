@@ -165,7 +165,7 @@ export function ComposePostModal({ initialType, onClose, onPublished }: ComposeP
         </div>
 
         <div className={`post-image-preview${preview ? '' : ' hidden'}`}>
-          <img src={preview} alt="Selected post image" />
+          {preview && <img src={preview} alt="Selected post image" />}
         </div>
 
         {error && <p className="modal-error">{error}</p>}

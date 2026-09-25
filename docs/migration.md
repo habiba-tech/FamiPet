@@ -1777,6 +1777,57 @@ captures viewport screenshots and measures DOM geometry / computed styles on eve
 - **Completion criteria:** full functional sign-off matrix green.
 - **Rollback/safety:** E2E on dev DB; no change to old stack.
 
+**Executed — functional regression sign-off (all suites green):**
+
+Regression harnesses drove the React app over CDP against the real backend + seeded
+`petDB`, with per-page console-error/exception/network-failure collection:
+
+| Suite | Scope | Result |
+| --- | --- | --- |
+| S1 | Auth (registry/login/logout/verify/guards) | 13/13 PASS |
+| S2A | Core CRUD (my pets/add pet/breeds popover/QR/Pet Booths/adoption listing) | 10/10 PASS |
+| S2B | Social/settings (community like + post, favorites, lost & found, notifications read-all, save profile) | 14/14 PASS |
+| S3 | Admin (stats, block/unblock, adoption approval, pet delete, community unpublish/publish/delete, lost & found resolve/delete, non-admin guards UI+API) | 22/22 PASS |
+| S4 | Ownership/isolation multi-user (A creates → A can read; B cannot mutate/owner-read; public pet view is listing-only; favorites live only on A's user doc) | 19/19 PASS |
+| S5 | PetGPT graceful degradation + real veterinarian directory | 4/4 PASS |
+
+All suites: **0 console errors, 0 page exceptions** across every Phase-27 page (the
+ComposePostModal `src=""` warning — profile/avatar empty-source — was fully eliminated).
+
+**Genuine React regressions found and fixed (8):**
+1. `PetFormModal`: native `required` on the breed `<select>` blocked custom-breed create;
+   `customBreed` now prefilled when editing a pet whose breed isn't in the preset list.
+2. `RemindersPage`: menu opened from `dataset.id` instead of `dataset.menuId` → the action
+   menu could never open.
+3. Community like: `ToggleLikeResponse` + `handleLike` now read `res.likesCount`/`res.liked`
+   (coerced union) so the liked state is restored after reload.
+4. User-shape normalization: backend `/auth/me` exposes `_id`-only, React expects `id`;
+   `normalizeUser` + `AuthContext.getMe` + `SettingsPage.saveProfile` keep `id` (+ `isOwner`,
+   delete controls, initial liked state) consistent across reloads.
+5. `PostCard`: avatar `src={assetUrl(post.avatar) || FALLBACK_AVATAR}` (empty-avatar src).
+6. `adoptionBase`: pet image falls back to `FALLBACK_IMAGE` when `images[0]` is an empty string.
+7. `ComposePostModal`: preview `<img>` only rendered when a preview exists (`{preview && <img …>}`)
+   — this was the last remaining `src=""` console warning.
+8. `adoptionBase` image fallback guards empty-string entries (same root cause as 6).
+
+**Multi-user ownership results (AGENTS §14):** A creates pet/health/vaccination/appointment/
+reminder/community post/lost-report/favorite; B cannot soft-read A's pet (owner-scoped list),
+edit/deactivate A's pet, read A's health record, complete A's reminder, delete A's post or
+report (all 403/404), and B's appointments/reminders/notifications never leak A's records.
+`GET /pets/:id` is intentionally **public** (view counter) and only exposes listing-grade
+information. Favorites persist on `User.favorites` (only A's user doc after A's toggle) —
+there is no `GET /favorites` route.
+
+**Documented limitation (backend contract, no frontend workarounds):** PetGPT renders only the
+designed degradation state — `/ai/conversations*` and `/ai/jobs*` do not exist on the current
+backend branch (origin/main contract), returning `404 {"success":false,"message":"Route not found"}`;
+the page shows the chat-rail failure + Retry, sending a message surfaces a toast, and the real
+vet directory + Quick Actions still work. No fake replies or client-side fallback data.
+Backend observation, left untouched: public `GET /users/:id` leaks favorites/pets/contact info.
+
+**Verification:** `npm run lint` clean (only the 2 pre-existing warnings); `npm run build`
+(`tsc -b && vite build`) clean.
+
 ### Phase 28 — Docker / Nginx integration
 - **Objective:** productionize the React app: multi-stage build (`node:*-alpine` build →
   `nginx:*-alpine` static), SPA `try_files … /index.html`, `/api` + `/uploads` proxied to

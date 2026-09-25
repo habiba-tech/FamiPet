@@ -72,6 +72,18 @@ export function setUser(user: StoredUser | null): void {
   }
 }
 
+// Backend auth endpoints disagree on the user shape: login/register return
+// `publicUser` (with `id`), while GET /auth/me and PUT /auth/profile return the
+// raw mongoose doc (with `_id`, no `id`). Consumers read `user.id`, so any
+// stored user must carry `id`. Normalize `_id` → `id` so reloads / profile
+// saves never leave localStorage with a user that breaks `.id` lookups.
+export function normalizeUser(user: StoredUser | null | undefined): StoredUser | null {
+  if (!user) return user ?? null
+  if (user.id) return user
+  const id = user._id
+  return typeof id === 'string' && id ? { ...user, id } : user
+}
+
 export function isLoggedIn(): boolean {
   return !!getToken()
 }

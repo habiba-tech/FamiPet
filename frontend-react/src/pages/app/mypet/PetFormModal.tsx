@@ -41,7 +41,14 @@ export function PetFormModal({ editing, onClose, onSaved }: Props) {
   const [name, setName] = useState(editing?.name || '')
   const [species, setSpecies] = useState(editing?.species || '')
   const [breed, setBreed] = useState(editing?.breed || '')
-  const [customBreed, setCustomBreed] = useState('')
+  // When editing, a breed that isn't a preset option for the species is a
+  // custom breed and must be prefilled, or effectiveBreed would be empty and
+  // the form could never save.
+  const [customBreed, setCustomBreed] = useState(
+    editing && editing.breed && editing.breed !== 'Other' && !(BREEDS[editing.species] || []).includes(editing.breed)
+      ? editing.breed
+      : '',
+  )
   const [gender, setGender] = useState(editing?.gender || '')
   const [age, setAge] = useState(editing?.age.replace(/\s*(Year|Years|yr|yrs)?$/i, '').trim() || '')
   const [weight, setWeight] = useState(editing?.weight.replace(/\s*kg$/i, '').trim() || '')
@@ -186,7 +193,7 @@ export function PetFormModal({ editing, onClose, onSaved }: Props) {
                 <label>
                   Breed <span>*</span>
                 </label>
-                <select value={showCustomBreed ? '' : breed} onChange={(e) => setBreed(e.target.value)} required>
+                <select value={showCustomBreed ? '' : breed} onChange={(e) => setBreed(e.target.value)}>
                   {breedOptions.map((b, i) => (
                     <option key={i} value={b}>
                       {b || (speciesBreeds ? 'Choose breed' : species ? 'Enter or choose breed' : 'Choose species first')}

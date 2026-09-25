@@ -34,6 +34,9 @@ export interface CommunityResponse {
 
 export interface ToggleLikeResponse {
   success?: boolean
+  message?: string
+  likesCount?: number
+  liked?: boolean
   likes?: (string | { _id?: string; name?: string })[]
 }
 

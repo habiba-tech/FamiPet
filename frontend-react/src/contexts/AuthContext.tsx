@@ -4,8 +4,10 @@ import {
   getToken,
   getUser,
   logoutStoredAuth,
+  normalizeUser,
   setToken,
   setUser as setStoredUser,
+  type StoredUser,
 } from '../api/client'
 import { AuthContext } from './auth'
 
@@ -36,9 +38,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     getMe()
       .then((data) => {
         if (cancelled) return
-        if (data.user) {
-          setUserState(data.user as AuthUser)
-          setStoredUser(data.user as AuthUser)
+        // GET /auth/me returns the raw mongoose doc (`_id`), not `publicUser`
+        // (`id`); normalize so the stored user keeps an `id` consumers rely on.
+        const me = normalizeUser(data.user as StoredUser | null)
+        if (me) {
+          setUserState(me as AuthUser)
+          setStoredUser(me)
         }
       })
       .catch((err: { status?: number }) => {

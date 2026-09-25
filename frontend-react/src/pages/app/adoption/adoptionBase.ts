@@ -61,7 +61,7 @@ export function toAdoptionPet(p: Pet): AdoptionPetView {
     typeLabel: label,
     breed: (typeof p.breed === 'object' && p.breed) ? p.breed.name || '' : (typeof p.breed === 'string' ? p.breed : ''),
     age: `${p.age} ${p.age === 1 ? 'Year' : 'Years'}`,
-    image: (p.images && p.images.length) ? p.images[0] : FALLBACK_IMAGE,
+    image: (p.images && p.images.length && p.images[0]) ? p.images[0] : FALLBACK_IMAGE,
     vaccinated: !!p.vaccinated,
     createdAt: p.createdAt ? new Date(p.createdAt).getTime() : 0,
     ownerName: (typeof p.owner === 'object' && p.owner) ? p.owner.name || '' : '',
