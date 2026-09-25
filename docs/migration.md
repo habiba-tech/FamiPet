@@ -203,7 +203,7 @@ tree verified.
 | 25    | UI/UX completion & stabilization| [x]    | `aa8cf8d`    |
 | 26    | Visual regression              | [x]    | `6b689d0`   |
 | 27    | Functional regression          | [x]    | `93828fa`   |
-| 28    | Docker/Nginx integration       | [ ]    | —            |
+| 28    | Docker/Nginx integration       | [x]    | `44f69cc`   |
 | 29    | Removal of old Vanilla frontend | [ ]    | —            |
 
 Status legend: `[ ]` not started · `[~]` in progress · `[x]` completed and pushed ·
@@ -1843,6 +1843,78 @@ Backend observation, left untouched: public `GET /users/:id` leaks favorites/pet
   load; CORS not needed same-origin (and backend `isDevOrigin` still passes if separated).
 - **Completion criteria:** one-command production stack, E2E green inside container.
 - **Rollback/safety:** new artifacts only; backend untouched.
+
+**Executed — Docker / Nginx integration validated (production stack through the existing
+deployment architecture):**
+
+New artifacts (backend + entry-nginx images untouched, reused from the deployment repo):
+
+* `frontend-react/Dockerfile` — multi-stage: `node:26-alpine` build (lockfile `npm ci`,
+  `tsc -b && vite build`, `ARG VITE_API_URL=/api` baked into the bundle) → `nginx:alpine`
+  runtime serving only `dist/` on **5502** (legacy CLIENT_URL port parity) with the same
+  HEALTHCHECK the legacy frontend image used.
+* `frontend-react/nginx.conf` — `listen 5502`, SPA `try_files $uri $uri/ /index.html`,
+  `/assets/` hashed bundles `immutable; max-age=30d`, HTML `no-cache` revalidate,
+  gzip, `server_tokens off`, nosniff / SAMEORIGIN / strict-origin-when-cross-origin.
+  Deliberately **no CSP** (Google Fonts/Lucide/Cloudinary + inline styles — same
+  decision as the legacy frontend config).
+* `frontend-react/.dockerignore` — keeps `node_modules`/`dist`/`.env` out of the image.
+* `frontend-react/docker-compose.yml` — mirrors the live deployment `habiba/Fami-Pet`
+  compose exactly (service names `nginx`/`frontend`/`backend`/`mongodb`/`cloudflared`,
+  `famipet-frontend-net` + `famipet-backend-net` isolation, backend hardening, uploads +
+  mongodb volumes), except the `frontend` service builds the React app. Validation
+  published the entry nginx on **`18080:80`** so the live stack kept `:80/:8080`.
+* `frontend-react/.env.example` + gitignore rule — local compose `.env` stays out of git
+  (`${JWT_SECRET:?}` required at up-time; nothing baked into images).
+
+Architecture verified unchanged: browser → `famipet-nginx:production` (entry proxy:
+`/api*` + `/uploads*` → `backend:5000`, `/` → `frontend:5502`) → React static / backend →
+local `mongo:8`. The React container publishes no host port (internal-only, like legacy).
+
+Start command on a fresh DB: `docker compose up -d --build` then
+`docker compose exec backend node utils/seedData.js` (needs `SEED_ADMIN_PASSWORD`).
+
+**Validated routes (real deployed stack, browser E2E over CDP at http://localhost:18080):**
+| Check | Result |
+| --- | --- |
+| `/`, `/login`, `/signup`, `/forgot-password` render React | PASS |
+| Deep links `/verify-email/:token`, `/reset-password/:token` render (no 404) | PASS |
+| Unknown route → React NotFound page (SPA fallback serves index.html) | PASS |
+| `/app/breeds/:id` direct load + **refresh persists** (nginx serves index.html) | PASS |
+| Login (seeded user) → `/app/dashboard` greeting + no console/exception errors | PASS |
+| `GET /api/pets/my` — real seeded pet (Labrador) through proxied API | PASS |
+| Community posts render (seeded) | PASS |
+| PetGPT page degrades gracefully in production too (missing `/ai/*` backend routes) | PASS |
+| `/assets/index-*.js` 200 `application/javascript`, `immutable` cache | PASS |
+| Security headers on HTML+assets (`Server: nginx` no version, nosniff/SAMEORIGIN/Referrer, no CSP) | PASS |
+| `POST /api/users/avatar` through nginx → file written to uploads volume → `GET /uploads/<file>` 200 `image/png` | PASS |
+| `GET /api/auth/me` 401 unauthenticated / 200 with JWT; `/api/status` `"db":"connected"` | PASS |
+| Container logs (nginx + backend) — 0 errors; all services healthy | PASS |
+
+**Build facts / observations:**
+* Deployed bundle bakes `API_BASE = '/api'` (relative, same-origin through nginx) with
+  **zero** `localhost` references — verified in the emitted JS. `VITE_API_URL=/api` is
+  the documented default and is required for a same-origin deployment.
+* The Linux image build deterministically emits `assets/index-LyznC6wS.js` (620.5 kB).
+  A local *Windows-host* `npm run build` of the identical source/lockfile emits a
+  different but functionally identical bundle (`index-…`, 1015.7 kB) — cross-platform
+  rolldown build variance, not a code or config difference; the deployed artifact is the
+  image build. Pre-existing >500 kB chunk warning only (both platforms).
+* Browser `ERR_BLOCKED_BY_ORB` observed only for the seed's external Unsplash pet
+  images (cross-origin embeds, Chrome enforcement superimposed by `imagesrc` policy) —
+  identical on dev and live origins; no app asset or `/uploads` file is affected.
+* Pre-existing backend behavior, left untouched (identical on the live stack, not a
+  migration regression): uploaded file URLs are built from `req.get('host')`, so through
+  the entry proxy they resolve as `<protocol>://<host>/uploads/<file>` (the client also
+  revives `/uploads/...` via `assetUrl`). No Cloudflare/DNS configuration was changed;
+  end-to-end HTTPS-through-CNAME could not be exercised from this environment (the
+  named tunnel keeps serving the legacy stack to `famipet.catlium.in`) — documented
+  limitation.
+
+**Verification:** `npm run lint` clean (same 2 pre-existing warnings); `npm run build`
+clean; `docker compose up -d --build` one-command stack green; browser E2E 15/15 PASS;
+upload → `/uploads` fetch chain verified end-to-end; isolated stack torn down
+(`down -v`, host-test Chrome stopped) with the live deployment untouched.
 
 ### Phase 29 — Removal of the old Vanilla frontend (ONLY after Phases 26+27 green)
 - **Objective:** remove `frontend/` vanilla files; repoint anything that referenced them
