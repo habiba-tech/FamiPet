@@ -1,0 +1,166 @@
+# =========================================================
+# FAMIPET - REACT DEPLOYMENT COMPOSE (Phase 28)
+# Mirrors the existing production compose layout (habiba/Fami-Pet
+# docker-compose.yml) so the deployed architecture is unchanged:
+#
+#   cloudflared -> nginx (entry proxy, single published host port)
+#                    /api* + /uploads* -> backend:5000 (private)
+#                    /                 -> frontend:5502 (private)
+#   backend  -> mongodb (private), volumes for uploads + data
+#
+# The ONLY architectural change is the `frontend` service: it now
+# builds the migrated React app (./Dockerfile) instead of serving the
+# legacy static pages. The backend and nginx images are the EXISTING
+# production images (famipet-backend:production / famipet-nginx:production),
+# unchanged, from the deployment repo's compose build.
+#
+# Run (isolated; the existing deployed stack keeps host :80/:8080):
+#   docker compose up -d --build
+#   # seed real representative data into the fresh local db (optional):
+#   docker compose exec backend node utils/seedData.js
+#   # app at http://localhost:18080
+#
+# Required variables come from a gitignored frontend-react/.env
+# (see .env.example). No secret is baked into any image or committed.
+# =========================================================
+
+services:
+
+  # -------- FRONTEND (React SPA, nginx, :5502) --------
+  frontend:
+    build:
+      context: .
+      args:
+        VITE_API_URL: ${VITE_API_URL:-/api}
+    image: famipet-frontend-react:production
+    container_name: famipet-frontend-react
+    restart: unless-stopped
+    init: true
+    security_opt:
+      - no-new-privileges:true
+    # Internal only: reached exclusively by the nginx reverse proxy over
+    # the Docker network. No host port is published (legacy parity).
+    expose:
+      - "5502"
+    networks:
+      - famipet-frontend-net
+    mem_limit: 128m
+    cpus: 0.5
+
+  # -------- BACKEND (Node.js + Express, unchanged image) --------
+  backend:
+    image: famipet-backend:production
+    container_name: famipet-backend-react-validation
+    restart: unless-stopped
+    init: true
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    read_only: true
+    tmpfs:
+      - /tmp
+    environment:
+      # DB resolves via the Compose service name (legacy override parity).
+      - MONGODB_URI=mongodb://mongodb:27017/petDB
+      # nginx owns the frontend here; disable the backend's built-in fallback.
+      - SERVE_FRONTEND_FALLBACK=false
+      - PORT=5000
+      - CLIENT_URL=${CLIENT_URL:-http://localhost:18080}
+      - FRONTEND_URL=${FRONTEND_URL:-http://localhost:18080}
+      - JWT_SECRET=${JWT_SECRET:?set JWT_SECRET in the gitignored frontend-react/.env (see .env.example)}
+      - JWT_EXPIRE=${JWT_EXPIRE:-30d}
+      - NODE_ENV=${NODE_ENV:-development}
+    expose:
+      - "5000"
+    volumes:
+      - backend_uploads:/app/uploads
+    networks:
+      - famipet-backend-net
+    depends_on:
+      mongodb:
+        condition: service_healthy
+    mem_limit: 1g
+    cpus: 1.0
+
+  # -------- MONGODB (local database, as used by the app) --------
+  mongodb:
+    image: mongo:8
+    container_name: famipet-mongodb-p28
+    restart: unless-stopped
+    init: true
+    security_opt:
+      - no-new-privileges:true
+    volumes:
+      - mongodb_data:/data/db
+    expose:
+      - "27017"
+    networks:
+      - famipet-backend-net
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.runCommand({ ping: 1 }).ok"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    mem_limit: 2g
+    cpus: 1.0
+
+  # -------- NGINX (single public entry point / reverse proxy, unchanged) --------
+  nginx:
+    image: famipet-nginx:production
+    container_name: famipet-nginx-p28
+    restart: unless-stopped
+    init: true
+    security_opt:
+      - no-new-privileges:true
+    # Published for this validation on :18080 (the live stack keeps :80/:8080).
+    ports:
+      - "18080:80"
+    networks:
+      - famipet-frontend-net
+      - famipet-backend-net
+    depends_on:
+      frontend:
+        condition: service_healthy
+      backend:
+        condition: service_healthy
+    mem_limit: 128m
+    cpus: 0.5
+
+  # -------- CLOUDFLARED (outbound-only tunnel; gated behind profile) --------
+  # Same as the live deployment: public hostname -> http://nginx:80 is
+  # configured in the Cloudflare dashboard for the named tunnel. Not
+  # started by a plain `up` (an empty TUNNEL_TOKEN cannot cause a restart
+  # loop). Enable with: docker compose --profile tunnel up -d cloudflared
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    container_name: famipet-cloudflared-p28
+    restart: unless-stopped
+    init: true
+    security_opt:
+      - no-new-privileges:true
+    profiles:
+      - tunnel
+    command: tunnel run
+    environment:
+      - TUNNEL_TOKEN=${TUNNEL_TOKEN:-}
+    networks:
+      - famipet-frontend-net
+    depends_on:
+      nginx:
+        condition: service_healthy
+    mem_limit: 128m
+    cpus: 0.5
+
+# -------- NETWORKS (isolation: frontend vs backend+db, legacy parity) --------
+networks:
+  famipet-frontend-net:
+    driver: bridge
+  famipet-backend-net:
+    driver: bridge
+
+# -------- PERSISTENT VOLUMES --------
+volumes:
+  mongodb_data:
+  backend_uploads:
