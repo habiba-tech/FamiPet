@@ -1916,6 +1916,60 @@ clean; `docker compose up -d --build` one-command stack green; browser E2E 15/15
 upload → `/uploads` fetch chain verified end-to-end; isolated stack torn down
 (`down -v`, host-test Chrome stopped) with the live deployment untouched.
 
+### Final Dockerization — production-ready frontend + backend (post Phase 28)
+
+Concise close-out of the production Docker work. The existing Phase-28 artifacts
+(`frontend-react/Dockerfile|nginx.conf|.dockerignore|docker-compose.yml|.env.example`)
+and every previously built image remain **as-is**, kept for reference/rollback.
+
+**Final artifacts (new, `docker-final/` — clearly named so nothing prior is touched):**
+| Path | Purpose |
+| --- | --- |
+| `docker-final/docker-compose.production.yml` | final compose (project `famipet-final`) |
+| `docker-final/frontend/Dockerfile` | React multi-stage: `node:26-alpine` build (`npm ci`, `tsc -b && vite build`, `ARG VITE_API_URL=/api`) → `nginx:alpine` (dist only, port 5502, healthcheck) |
+| `docker-final/frontend/nginx.conf` | SPA `try_files … /index.html`, `/assets/` immutable, gzip, security headers, no CSP (same posture as legacy + Phase 28) |
+| `docker-final/backend/Dockerfile` | Express backend: node:26-alpine, `npm ci --omit=dev` (no build step — plain CJS), non-root `node` user, `/app/uploads`+`/app/logs`, healthcheck vs existing `GET /api/status`, `CMD node server.js` |
+| `docker-final/nginx/Dockerfile` | entry reverse proxy (nginx:alpine, healthcheck on `/`) |
+| `docker-final/nginx/nginx.conf` | byte-equivalent of the deployed proxy: `/api*`+`/uploads*`→`backend:5000`, `/`→`frontend:5502`, CF-aware XFF/proto maps, headers, no CSP/HSTS |
+| `docker-final/.env.example` + `docker-final/.gitignore` | compose-level vars (CLIENT_URL/FRONTEND_URL/VITE_API_URL/TUNNEL_TOKEN); local `.env` never committed |
+| `backend/.dockerignore` | excludes `.env`, node_modules, uploads, logs from the backend build context |
+
+**Architecture (identical to the live deployment, self-contained in this repo):**
+cloudflared (optional profile) → `nginx` (single published entry) → `frontend` (React, :5502)
++ `backend` (:5000) → `mongodb` (mongo:8, internal). Networks `famipet-frontend-net` +
+`famipet-backend-net`; volumes `mongodb_data`, `backend_uploads`; backend hardened
+(non-root, `cap_drop: ALL`, `read_only`, `tmpfs /tmp`, tini). Backend env comes from the
+gitignored `../backend/.env` (same file the deployed stack uses); only `MONGODB_URI`
+(service name), `SERVE_FRONTEND_FALLBACK=false` and the public origins are overridden.
+No secret is baked into any image (verified: backend image env is stock Node base only).
+
+**Run:**
+```
+docker compose -f docker-final/docker-compose.production.yml up -d --build     # app at http://localhost:18081
+docker compose -f docker-final/docker-compose.production.yml exec -e SEED_ADMIN_PASSWORD=... backend node utils/seedData.js
+docker compose -f docker-final/docker-compose.production.yml down -v
+```
+
+**Validation (isolated project `famipet-final`, published host port `18081:80`; the live
+stack kept `:80/:8080` untouched):** images built (frontend 135 MB, backend 372 MB, nginx
+93.6 MB), all 4 services healthy; frontend 200; SPA deep links (login/signup/forgot-password/
+verify-email/:token/reset-password/:token/app/dashboard/app/breeds/:id) all 200 + breed
+detail refresh persists; unknown route → React NotFound; `/api/status` via proxy OK;
+401 without token / login+me 200; `GET /api/pets/my` returned seeded pets (MongoDB
+connectivity); avatar upload → real file in uploads volume → `GET /uploads/<file>` 200
+image/png; browser E2E over CDP **15/15 PASS, 0 console errors** (only benign ORB blocks
+for the seed's external Unsplash images), 0 errors in nginx/backend logs; bundle has
+`API_BASE='/api'` baked with **zero** `localhost:5000`/dev refs.
+
+**Accepted notes/deviations:** (1) `SERVE_FRONTEND_FALLBACK=false` is a no-op in this
+repo's `server.js` (the fallback listener always binds the CLIENT_URL port — an
+unpublished in-container port while nginx owns hosting; application code untouched).
+(2) This repo's `GET /api/status` returns `{status:"OK",message:…}` (no `db` field);
+MongoDB connectivity is therefore verified explicitly via authenticated data reads.
+(3) Backend has no test/lint/typecheck scripts (only `start`/`dev`/`seed`) — nothing extra
+to run. (4) External Cloudflare/DNS HTTPS flow is unchanged (dashboard-configured tunnel;
+not exercised from here). (5) Health checks reuse existing app endpoints only.
+
 ### Phase 29 — Removal of the old Vanilla frontend (ONLY after Phases 26+27 green)
 - **Objective:** remove `frontend/` vanilla files; repoint anything that referenced them
   to the React build; update docs.
