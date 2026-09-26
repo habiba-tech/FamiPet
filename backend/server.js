@@ -34,6 +34,12 @@ app.use(cors({
   },
   credentials: true
 }));
+// PetGPT /api/ai bodies are small (message/title/idempotencyKey/provider config).
+// Bound them tightly BEFORE the app-wide 50mb parser so an oversized AI body is
+// rejected at 413 and never parsed into memory. body-parser skips the later
+// app-wide parse once req._body is set. (Phase 7 hardening.)
+app.use('/api/ai', express.json({ limit: '32kb' }));
+app.use('/api/ai', express.urlencoded({ extended: false, limit: '32kb' }));
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 app.use(morgan('dev'));
@@ -45,6 +51,11 @@ app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/animal_planet')
   .then(() => console.log('✅ MongoDB Connected'))
   .catch(err => console.error('❌ MongoDB Error:', err));
+
+// Durable AI generation worker (Phase 4): in-process poller that picks
+// up queued GenerationJobs and runs them independent of any HTTP request
+// lifecycle. Mongoose buffers queries until the DB connection resolves.
+require('./jobs/generation.worker').startWorker();
 
 // Health Check (registered before the protected /api/health records router)
 app.get('/api/status', (req, res) => {
@@ -93,9 +104,27 @@ app.use((req, res) => {
 });
 
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => {
+const server = app.listen(PORT, () => {
   console.log(`🚀 Server running on http://localhost:${PORT}`);
 });
+
+// Graceful shutdown (Phase 7): a SIGINT/SIGTERM stops the HTTP server, lets the
+// durable generation worker finish/abandon its in-flight tick cleanly, then
+// closes MongoDB before exit. No job is cut off mid-provider-exchange; anything
+// left in "processing" is recovered by the worker reaper on next boot.
+function shutdown(signal) {
+  console.log(`Received ${signal} — shutting down gracefully.`);
+  server.close(() => {
+    require("./jobs/generation.worker")
+      .stopWorker()
+      .then(() => mongoose.disconnect())
+      .then(() => process.exit(0));
+  });
+  // If a long provider exchange never settles, stop waiting after 10s.
+  setTimeout(() => process.exit(1), 10000).unref();
+}
+process.on("SIGINT", () => shutdown("SIGINT"));
+process.on("SIGTERM", () => shutdown("SIGTERM"));
 
 // ---------------------------------------------------------
 // FRONTEND FALLBACK LISTENER

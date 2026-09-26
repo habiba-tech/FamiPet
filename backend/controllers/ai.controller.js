@@ -1,56 +1,8 @@
 const mongoose = require("mongoose");
 const Pet = require("../models/Pet");
-
-const GEMINI_MODEL = "gemini-1.5-flash";
-
-async function callGemini(question, petContext) {
-  const apiKey = process.env.GEMINI_API_KEY;
-  if (!apiKey) return null;
-
-  const system =
-    "You are PetGPT, a friendly pet-care assistant inside the FamiPet app. " +
-    "Answer clearly and helpfully in 2-4 sentences. Focus on pet health, care, " +
-    "nutrition, behavior, and veterinary advice.";
-
-  const userPets =
-    petContext && petContext.length
-      ? "The user's pets: " +
-        petContext.map((p) => `${p.name} (${p.species}${p.breed ? ", " + p.breed : ""})`).join("; ") +
-        ". "
-      : "";
-
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), 25000);
-
-  try {
-    const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${encodeURIComponent(apiKey)}`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        signal: controller.signal,
-        body: JSON.stringify({
-          systemInstruction: { parts: [{ text: system }] },
-          contents: [{ parts: [{ text: userPets + "User asks: " + question }] }],
-        }),
-      }
-    );
-
-    if (!response.ok) return null;
-
-    const data = await response.json();
-    const text = (data && data.candidates && data.candidates[0] && data.candidates[0].content &&
-      data.candidates[0].content.parts)
-      ? data.candidates[0].content.parts.map((p) => p.text).filter(Boolean).join(" ").trim()
-      : "";
-
-    return text || null;
-  } catch (error) {
-    return null;
-  } finally {
-    clearTimeout(timer);
-  }
-}
+const { AI_CONFIG, outOfScopeResponse } = require("../config/ai");
+const { generatePetGPTResponse } = require("../ai");
+const { loadPetContext } = require("../ai/pet-context");
 
 function fallbackAnswer(question) {
   const q = question.toLowerCase();
@@ -71,44 +23,46 @@ function fallbackAnswer(question) {
   return answer;
 }
 
-exports.askPetGPT = async (req, res) => {
+// Legacy single-turn endpoint (kept working and stateless for existing
+// clients / the React migration). Persistent chat lives on the
+// /api/ai/conversations routes instead.
+async function askPetGPT(req, res) {
   try {
-    const { question } = req.body;
+    const raw = req.body && req.body.question;
+    const question = String(raw === undefined || raw === null ? "" : raw).trim();
 
-    if (!question || !question.trim()) {
+    if (!question) {
       return res.status(400).json({
         success: false,
         message: "Question is required.",
       });
     }
 
-    let petContext = [];
-    try {
-      const pets = await Pet.find({ owner: req.user._id })
-        .select("name species breed")
-        .populate("breed", "name")
-        .limit(5)
-        .lean();
-
-      petContext = pets.map((p) => ({
-        name: p.name,
-        species: p.species,
-        breed: p.breed && p.breed.name ? p.breed.name : undefined,
-      }));
-    } catch (error) {
-      petContext = [];
+    if (question.length > AI_CONFIG.maxQuestionLength) {
+      return res.status(400).json({
+        success: false,
+        message: `Question is too long. Maximum length is ${AI_CONFIG.maxQuestionLength} characters.`,
+      });
     }
 
-    let answer = await callGemini(question, petContext);
+    const scope = outOfScopeResponse(question);
+    if (scope) {
+      console.log(`PetGPT: out-of-scope question blocked for user ${req.user._id}.`);
+      return res.json({ success: true, question, answer: scope });
+    }
+
+    let petContext = await loadPetContext(req.user._id);
+
+    let answer = await generatePetGPTResponse(question, petContext);
     if (!answer) answer = fallbackAnswer(question);
 
     res.json({ success: true, question, answer });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
-};
+}
 
-exports.getPetAdvice = async (req, res) => {
+async function getPetAdvice(req, res) {
   try {
     const { petId } = req.body;
 
@@ -151,4 +105,6 @@ exports.getPetAdvice = async (req, res) => {
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
-};
+}
+
+module.exports = { fallbackAnswer, loadPetContext, askPetGPT, getPetAdvice };
