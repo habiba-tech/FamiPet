@@ -1,7 +1,7 @@
 flowchart LR
     subgraph NODE["Node.js host machine"]
-        BE["Backend process (Express)<br/>ports 5000 (API) + 5502 (static fallback)"]
-        FE["React development client<br/>(Vite dev server / Live Server)"]
+        BE["Backend process (Express)<br/>port 5000 (API), serves client build"]
+        FE["React web client (Vite dev server)"]
         UP[("uploads/ directory<br/>community, lost-found, avatar images")]
         UF[["node-cron, socket.io (installed, unused)"]]
     end

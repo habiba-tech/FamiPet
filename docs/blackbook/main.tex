@@ -27,10 +27,32 @@
 \usepackage{ragged2e}
 \usepackage{enumitem}
 \setlist{topsep=2pt,itemsep=2pt,parsep=0pt,leftmargin=1.5em}
+\usepackage{seqsplit}
+\newcommand{\path}[1]{\texttt{\seqsplit{#1}}}
 \usepackage{caption}
 \captionsetup{font=small,labelfont=bf,labelsep=period,skip=6pt}
 \usepackage{amsmath}
 \usepackage{microtype}
+
+% ---------------------------------------------------------------
+% References: bibtex-driven. The stock \bibliography inputs the .bbl
+% under the \jobname and emits its own "Bibliography" \chapter heading;
+% \famibid writes the bibstyle/bibdata hints to the aux so bibtex runs,
+% then calls the stock \bibliography while locally swallowing any
+% \chapter (the REFERENCES opener already opened the heading) so the
+% .bbl's list appears directly beneath it without a second heading.
+% ---------------------------------------------------------------
+\makeatletter
+\def\famigobblechapter{\@ifstar{\@gobble}{\@gobble}}
+\newcommand{\famibid}[1]{%
+  \immediate\write\@auxout{\string\bibstyle{ieeetr}}%
+  \begingroup
+  \let\chapter\famigobblechapter
+  \let\famigobblechapter\@undefined
+  \bibliography{#1}%
+  \endgroup
+}
+\makeatother
 
 % ---------------------------------------------------------------
 % Headers / footers: page number bottom, odd-right, even-left
@@ -111,6 +133,12 @@
 \listoftables
 \clearpage
 
+% ---------------- GLOSSARY (front matter) ----------------
+\renewcommand{\sectionmark}[1]{}
+\famichapterstar{Glossary of Terms and Abbreviations}{Definitions of the
+technical terms and abbreviations used throughout this black book.}{ch:glossary}
+\input{sections/glossary}
+
 % ---------------- MAIN MATTER ----------------
 {\pagestyle{empty}\cleardoublepage}
 \pagenumbering{arabic}
@@ -132,13 +160,7 @@
 % ---------------- REFERENCES ----------------
 \famichapterstar{References}{The sources cited in this black book. All references
 relate to verified technologies, documentation and literature used in the project.}{ch:refs}
-\bibliographystyle{ieeetr}
-\bibliography{references}
-
-% ---------------- GLOSSARY ----------------
-\famichapterstar{Glossary of Terms and Abbreviations}{Definitions of the technical
-terms and abbreviations used throughout this black book.}{ch:glossary}
-\input{sections/glossary}
+\famibid{references}
 
 % ---------------- APPENDICES ----------------
 \input{appendices/appendix_a}

@@ -1,0 +1,75 @@
+\famichapter{Conclusion and Future Scope}{This chapter summarises what was
+delivered, what the verification showed, and the planned future work.}{ch:conclusion}
+
+\section{Summary of the Delivered System}
+
+FamiPet delivers a complete, authenticated pet-care and adoption platform. The
+backend, built with Node.js, Express, MongoDB, and Mongoose, exposes sixteen
+route modules that cover account management with e-mail verification and secure
+password recovery; pet management with a unique digital pet identity and QR
+code; health records and vaccinations; veterinary appointment booking with
+double-booking protection and automatic notification and reminder creation;
+care reminders; favourites; community posts with likes and comments; lost-and-found
+reports; adoption applications with administrator approval; a per-user
+notification hub; and an AI pet-care assistant grounded in the user's real pet
+records.
+
+The system enforces the rules of the project brief on the backend: user identity
+comes from the signed token, every user-scoped query binds to the authenticated
+user, administrative actions are gated by role, data is persisted in MongoDB
+and read back through the API, and validation errors are returned as explicit
+HTTP responses. The Step 10 verification campaign confirmed persistence,
+ownership isolation, role-based 403s, bcrypt password hashing, JWT handling,
+CORS behaviour, and a clean browser sweep over all 31 screens.
+
+\section{Observations}
+
+Three implementation choices deserve emphasis because they affect future work.
+First, the AI assistant is the only feature that depends on an external paid
+service; it falls back to deterministic guidance when the service is
+unavailable, so the platform never breaks. Second, notifications and reminders
+are produced synchronously by the controllers, which keeps the system simple and
+fully consistent at request time, at the cost of no background scheduling or
+real-time push. Third, the React client consumes the backend API as the single
+source of truth, so the pages always present exactly the persisted state the
+backend returns.
+
+\section{Future Scope}
+
+The planned future work is recorded in the roadmap. The items below are planned,
+not implemented.
+
+\begin{center}
+\begin{longtable}{@{}p{5.2cm}p{9.4cm}@{}}
+\caption{Planned future work.}
+\label{tab:planned}\\
+\toprule
+\textbf{Area} & \textbf{Planned work} \\
+\midrule
+API integration layer & Phase 23: formal typed API client for the React app. \\
+Auth and state management & Phase 24: consolidation of authentication and state
+management across migrated pages. \\
+UI/UX completion & Phase 25: finish the remaining interface surfaces. \\
+Visual regression & Phase 26: pixel-level regression for the frontend UI. \\
+Functional regression & Phase 27: end-to-end regression across all features. \\
+Docker / Nginx & Phase 28: containerization and reverse-proxy deployment. \\
+Client consolidation & Phase 29: decommission the legacy browser client once
+regression phases are green. \\
+Background scheduling & Considered: convert reminders into scheduled jobs and add
+push notifications using the unused \texttt{node-cron} and \texttt{socket.io}
+dependencies. \\
+Provider expansion & Considered: implement the OpenAI adapter described in
+\texttt{.env.example} as an alternative AI provider behind the Google default. \\
+\bottomrule
+\end{longtable}
+\end{center}
+
+\section{Closing Statement}
+
+The black book documents the FamiPet project as it exists in the repository:
+its requirements, architecture, data model, security, features, implementation,
+testing evidence, and development process. Implemented, planned, and considered
+items have been clearly distinguished throughout. The system is feature-complete
+on the backend, and the React frontend implements the delivered roadmap phases;
+the backend remains the source of truth for all
+data and authorization.

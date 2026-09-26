@@ -1,0 +1,74 @@
+\section*{Terms}
+
+\begin{center}
+\begin{longtable}{@{}p{3.4cm}p{11.2cm}@{}}
+\toprule
+\textbf{Term} & \textbf{Definition} \\
+\midrule
+API & Application Programming Interface; in FamiPet, the HTTP/REST surface of
+the backend under \texttt{/api/*}. \\
+Bcrypt & A password-hashing function; FamiPet uses cost factor 12 and verifies
+login passwords against the stored hash. \\
+Bearer token & The JWT sent in the \texttt{Authorization: Bearer} header on
+protected requests. \\
+Controller & Backend module implementing validation, ownership checks, and
+business effects for one subsystem. \\
+CORS & Cross-Origin Resource Sharing; the backend origin guard that allows only
+the configured client, localhost, and private LAN origins. \\
+CRUD & Create, Read, Update, Delete; the basic data operations exposed by the
+API. \\
+Digital pet identity & The unique \texttt{petUid} plus the QR code generated for
+each pet. \\
+Document & A record in MongoDB, represented in code by a Mongoose model. \\
+E2E & End-to-end; testing through the real browser and HTTP surface. \\
+JWT & JSON Web Token (RFC 7519); the signed token that authenticates requests. \\
+Mongoose & The object-document mapper used by the backend to define schemas,
+indexes, and queries on MongoDB. \\
+Multer & Middleware that parses multipart image uploads, restricted to JPEG, PNG,
+and WebP, up to 5\,MB. \\
+Nodemailer & The e-mail library used to send verification and password-reset
+messages over SMTP. \\
+ObjectId & MongoDB's 24-character hexadecimal document identifier. \\
+ODM & Object-Document Mapper; conversion layer between MongoDB documents and
+JavaScript objects. \\
+Owner-scoped query & A database query that binds results to the authenticated
+user (\texttt{user: req.user.\_id}). \\
+petUid & The unique digital pet identifier embedded in the QR code. \\
+Populate & Mongoose operation that replaces a referenced \texttt{ObjectId} with
+the referenced document. \\
+protect / adminOnly & The authentication and role middleware pair. \\
+QR code & Quick Response code; encodes the public pet identity payload as a PNG
+data URL. \\
+REST & Representational State Transfer; the API style used by the platform. \\
+Scheduler & A mechanism that would run periodic jobs; declared in dependencies
+but not implemented. \\
+SHA-256 & The hash used to store e-mail verification and password-reset tokens,
+so plaintext tokens are never stored. \\
+SMTP & Simple Mail Transfer Protocol, the transport used by Nodemailer. \\
+\bottomrule
+\end{longtable}
+\addtocounter{table}{-1}
+\end{center}
+
+\section*{Abbreviations}
+
+\begin{center}
+\begin{longtable}{@{}p{3.4cm}p{11.2cm}@{}}
+\toprule
+\textbf{Abbreviation} & \textbf{Meaning} \\
+\midrule
+HTTP(S) & HyperText Transfer Protocol (Secure) \\
+JSON & JavaScript Object Notation \\
+HTML & HyperText Markup Language \\
+CSS & Cascading Style Sheets \\
+URI & Uniform Resource Identifier \\
+DB & Database \\
+LAN & Local Area Network \\
+AI & Artificial Intelligence \\
+QA & Quality Assurance \\
+UI & User Interface \\
+UX & User Experience \\
+\bottomrule
+\end{longtable}
+\addtocounter{table}{-1}
+\end{center}

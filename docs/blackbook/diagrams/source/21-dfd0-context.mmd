@@ -1,0 +1,13 @@
+flowchart LR
+    END["END USER<br/>visitor / registered / admin"]
+    EMAIL["E-mail service<br/>(SMTP via Nodemailer)"]
+    AI["AI service<br/>(Google Gemini, REST)"]
+    SYS(("0. FamiPet<br/>platform"))
+
+    END -->|"HTTP request (REST / JSON / JWT)"| SYS
+    SYS -->|"HTTP response (JSON)"| END
+    SYS -->|"verification / reset e-mail"| EMAIL
+    SYS -->|"pet-care prompt"| AI
+    AI -->|"generated answer"| SYS
+
+    style SYS fill:#e6e6e6,stroke:#000000,stroke-width:2px

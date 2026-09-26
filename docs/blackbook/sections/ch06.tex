@@ -4,8 +4,8 @@ indexes that protect data integrity.}{ch:data}
 
 \section{Database Design}
 
-FamiPet uses MongoDB as its primary store. The schema is defined in thirteen
-Mongoose models, all located in \texttt{backend/models/}. Figure~\ref{fig:er}
+FamiPet uses MongoDB~\cite{mongodb} as its primary store. The schema is defined
+in thirteen Mongoose~\cite{mongoose} models, all located in \texttt{backend/models/}. Figure~\ref{fig:er}
 shows the entity--relationship view of the store. Dashed lines mark references
 whose target documents are populated through Mongoose \texttt{populate}.
 
@@ -31,6 +31,8 @@ documents that record read state.
 
 \begin{center}
 \begin{longtable}{@{}p{3.0cm}p{3.3cm}p{8.3cm}@{}}
+\caption{Mongoose models and collections.}
+\label{tab:models}\\
 \toprule
 \textbf{Model} & \textbf{Collection} & \textbf{Key fields} \\
 \midrule
@@ -49,11 +51,11 @@ isActive. \\
 Adoption & \texttt{adoptions} & pet, user, fullName, phone, address, occupation,
 experienceWithPets, reasonForAdoption, status (Pending/Approved/Rejected). \\
 Appointment & \texttt{appointments} & user, pet, veterinarian, date, time, type
-(checkup/vaccination/surgery/emergency/grooming/consultation), status
-(pending/confirmed/completed/cancelled/no-show), symptoms, notes, prescription,
-diagnosis, fee, isPaid. \\
+(\path{checkup/vaccination/surgery/emergency/grooming/consultation}), status
+(\path{pending/confirmed/completed/cancelled/no-show}), symptoms, notes,
+prescription, diagnosis, fee, isPaid. \\
 Notification & \texttt{notifications} & user, title, message, type
-(adoption/appointment/vaccination/health/system/other), isRead. \\
+(\path{adoption/appointment/vaccination/health/system/other}), isRead. \\
 Reminder & \texttt{reminders} & user, pet, title, type (feeding/medicine/
 vaccination/grooming/appointment/exercise/custom), description, date, time,
 frequency (once/daily/weekly/monthly), isActive, isCompleted. \\

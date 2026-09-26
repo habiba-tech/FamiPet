@@ -1,0 +1,15 @@
+flowchart LR
+    P43(("4.3 slot<br/>conflict check"))
+    Q1(("4.3.1 build query<br/>vet + date + time"))
+    Q2(("4.3.2 fetch matching<br/>appointments"))
+    DEC{status contained in<br/>pending / confirmed?}
+    D3[(Appointment)]
+
+    P43 --> Q1 --> Q2 --> D3
+    D3 --> DEC
+    DEC -- yes --> ERR["return 400<br/>already booked"]
+    DEC -- no --> OK["proceed to 4.4"]
+
+    style P43 fill:#e6e6e6,stroke:#000000
+    style Q1 fill:#f0f0f0,stroke:#000000
+    style Q2 fill:#f0f0f0,stroke:#000000

@@ -12,13 +12,12 @@ medication and care reminders, participate in a community, report lost or found
 animals, and apply to adopt pets listed on the platform. An administrator can
 moderate content, manage users, and process adoption requests.
 
-The system is built as a client--server application. The backend is a Node.js
-application written with Express that exposes a REST API and persists all data in
-MongoDB through the Mongoose object-document mapper. The frontend is a web
-application written in JavaScript. At the time this black book was prepared, the
-frontend is being migrated to a React and TypeScript implementation inside
-\texttt{frontend-react} as an incremental, phase-by-phase effort; the backend
-remains the source of truth for all data and business rules.
+The system is built as a client--server application. The backend is a Node.js~\cite{nodejs}
+application written with Express~\cite{express} that exposes a REST API and persists all data in
+MongoDB through the Mongoose object-document mapper. The frontend is a React and
+TypeScript web application built with Vite and Tailwind CSS; it communicates with
+the backend over HTTP, and the backend remains the source of truth for all data
+and business rules.
 
 \section{Purpose of this Document}
 
@@ -41,8 +40,8 @@ from the actual implementation:
 
 Every statement about behaviour, data, security, and testing in this document is
 derived from the verified implementation in the repository. Planned work, such as
-the remaining React migration phases, is explicitly identified as planned rather
-than as delivered functionality.
+the remaining roadmap phases described in Chapter~\ref{ch:conclusion}, is
+explicitly identified as planned rather than as delivered functionality.
 
 \section{System Context}
 
@@ -59,8 +58,9 @@ care assistance, and image processing.
     \label{fig:system-context}
 \end{figure}
 
-The context diagram shows four external parties. The \emph{Web client} interacts
-with the platform through the public HTTP API; the \emph{MongoDB} database stores
+The context diagram shows four external parties. The \emph{React web client}
+interacts with the platform through the public HTTP API; the \emph{MongoDB}
+database stores
 all records; the \emph{e-mail service} (Nodemailer over SMTP) delivers account
 verification and password-reset messages; and the \emph{Google Gemini} AI service
 provides the conversational pet-care assistant. Uploaded images are stored on
@@ -78,4 +78,5 @@ describes authentication, authorization, and security. Chapter~8 explains the
 core features and their workflows. Chapter~9 describes the implementation
 structure. Chapter~10 records the testing and validation evidence. Chapter~11
 documents the development process. Chapter~12 presents the conclusion and future
-scope. References, a glossary, and appendices conclude the black book.
+scope. The list of terms and abbreviations appears before the main matter;
+references and two appendices conclude the black book.

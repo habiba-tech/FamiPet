@@ -44,6 +44,8 @@ directly supported by a verified controller and route in the backend.
 
 \begin{center}
 \begin{longtable}{@{}p{1.1cm}p{3.4cm}p{10.0cm}@{}}
+\caption{Functional requirements.}
+\label{tab:fr}\\
 \toprule
 \textbf{ID} & \textbf{Subsystem} & \textbf{Requirement} \\
 \midrule
@@ -137,7 +139,7 @@ compound indexing on the veterinarian, date, and time. \\
 Usability & The frontend is responsive and supports both light and dark theme
 variants; migrated React pages are verified at 390, 768, and 1440 pixels. \\
 Maintainability & The backend follows a layered structure
-(routes, controllers, models, middleware, config) and a phase-based migration
+(routes, controllers, models, middleware, config) and a phase-based development
 roadmap with verification before each commit. \\
 \bottomrule
 \end{tabular}
@@ -154,17 +156,18 @@ capabilities. Outside the current scope are features mentioned in configuration
 or documentation but not present in the implementation, including:
 
 \begin{itemize}
-    \item the OpenAI adapter advertised in \texttt{backend/.env.example}
-    (\texttt{PETGPT\_PROVIDER=openai}); the implemented assistant uses only the
+    \item the OpenAI adapter advertised in \path{backend/.env.example}
+    (\path{PETGPT\_PROVIDER=openai}); the implemented assistant uses only the
     Google Gemini provider;
     \item background job processing: the \texttt{node-cron} and
     \texttt{socket.io} packages are declared dependencies but are not used by any
     application code, so no scheduled jobs, queues, or workers exist;
     \item real-time push notifications (notifications are database-bound and
     read through the API);
-    \item the React migration phases 22--29 (AI redesign, API integration layer,
-    authentication consolidation, UI completion, visual/functional regression,
-    Docker/Nginx integration, and removal of the vanilla frontend).
+    \item the remaining roadmap phases 23--29 (API integration layer,
+    authentication consolidation, UI completion, visual and functional
+    regression, and Docker/Nginx integration, followed by
+    client consolidation).
 \end{itemize}
 
 \section{Use Cases}
@@ -176,6 +179,8 @@ by actor.
 
 \begin{center}
 \begin{longtable}{@{}p{2.0cm}p{3.6cm}p{8.9cm}@{}}
+\caption{Visitor and registered-user use cases.}
+\label{tab:uc-user}\\
 \toprule
 \textbf{Use case} & \textbf{Requirement} & \textbf{Description and key flow} \\
 \midrule
@@ -214,6 +219,8 @@ for an own pet. \\
 
 \begin{center}
 \begin{longtable}{@{}p{2.4cm}p{3.2cm}p{8.9cm}@{}}
+\caption{Administrator use cases.}
+\label{tab:uc-admin}\\
 \toprule
 \textbf{Use case} & \textbf{Requirement} & \textbf{Description} \\
 \midrule

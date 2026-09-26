@@ -1,0 +1,124 @@
+\famichapter{Testing and Validation}{This chapter records the testing performed
+on FamiPet and the evidence available in the repository. Tests are reported as
+they were executed; no unverified result is claimed.}{ch:testing}
+
+\section{Testing Approach}
+
+The project does not ship an in-repository automated test suite. Runtime
+verification was performed through dedicated browser and persistence test
+scripts against a live backend and database, and the complete evidence was
+written to \texttt{Step10-Report.md} (dated 09-09-2026), following the
+structured, evidence-oriented reporting convention of~\cite{ieee}. That campaign ran
+against the backend at \texttt{localhost:5000} and the frontend at
+\texttt{localhost:5502}. The campaign covered four areas: a headless-Chrome
+sweep of all screens, an end-to-end persistence verification of every feature,
+an administrator test, and a security boundary test.
+
+\section{Browser Sweep}
+
+All 31 interface screens were scanned in a headless Chrome session at the exact
+frontend origin: 6 public screens, 13 user screens, and 6 admin screens, plus
+repeated views for breed details and pet health. The sweep reported zero
+console errors, zero page errors, and zero failed API calls across every page.
+
+\section{Database Persistence Verification}
+
+The table below records the persistence evidence per feature. Each row reflects
+an end-to-end check: the API call created the record, the record was found in
+the database, the read-back through the API rendered in the UI, and where
+applicable deletion or cleanup was verified.
+
+\begin{center}
+\begin{longtable}{@{}p{3.4cm}p{3.6cm}p{7.6cm}@{}}
+\caption{Database persistence evidence.}
+\label{tab:persistence}\\
+\toprule
+\textbf{Feature} & \textbf{Result} & \textbf{Verified evidence} \\
+\midrule
+Register + e-mail verify & PASS & 201; SHA-256 token and expiry stored; login
+works after verification. \\
+Login / profile update & PASS & Name and city persisted; \texttt{/auth/me}
+reflects them. \\
+Change / reset password & PASS & New bcrypt \texttt{\$2a\$12\$} hash stored;
+login with the new password succeeds. \\
+Profile picture & PASS & Avatar URL persisted on the user document and the image
+renders in the browser. \\
+Pets CRUD + QR & PASS & Document and \texttt{qrCode} persisted; shown in
+\texttt{/pets/my} as a PNG data URL; delete works. \\
+Favourites & PASS & Persisted in the user favourites collection; toggling off
+returns the count to zero. \\
+Adoption request & PASS & Created in \texttt{Pending} state; listed in
+\texttt{/adoptions/my}; admin approval works. \\
+Appointment & PASS & Document persisted; booking automatically created a
+notification and a reminder; cancellation deactivated the reminder. \\
+Reminders & PASS & Created, listed, and completion persisted. \\
+Community post (image) & PASS & Post and image URL persisted; like increments,
+comment added, public read works; delete works. \\
+Lost and found (image) & PASS & Created \texttt{active}; document and image
+persisted; listing and status resolution work. \\
+Health records & PASS & Created, read, updated, deleted. \\
+Vaccinations & PASS & Created, read, upcoming list, updated, deleted. \\
+Notifications & PASS & Appointment auto-notification persisted; read /
+read-all persisted. \\
+Breeds & PASS & 12 breeds with full data displayed as cards and details. \\
+\bottomrule
+\end{longtable}
+\end{center}
+
+\section{Administrator Tests}
+
+The administrator campaign executed against the admin panel and confirmed:
+dashboard statistics (9 users, 12 pets, 11 available, 1 adopted, pending
+adoptions, lost-and-found summaries), the users list and recent users, pets
+management with owner information, adoption approval (status becomes
+\texttt{Approved}, the pet is automatically marked adopted, and a notification
+is sent to the applicant), lost-and-found status resolution and restore, and
+community post deactivation and deletion. All passed.
+
+\section{Security Tests}
+
+\begin{center}
+\begin{longtable}{@{}p{3.6cm}p{3.4cm}p{7.6cm}@{}}
+\caption{Security test evidence.}
+\label{tab:security-tests}\\
+\toprule
+\textbf{Scenario} & \textbf{Result} & \textbf{Observed behaviour} \\
+\midrule
+Regular user calls admin routes & PASS & Nine administrative/privileged
+endpoints each returned 403 for a regular account. \\
+Ownership isolation & PASS & A user could not read, update (404), or cancel
+(404) another user's appointment; APIs are owner-scoped. \\
+Password hashing & PASS & bcrypt \texttt{\$2a\$12\$} hashes verified directly in
+the database for both user and admin accounts. \\
+Invalid token & PASS & Garbage JWT returns 401; missing token returns 401 on
+protected routes. \\
+CORS & PASS & Only the accept-origin guard permits requests; preflight OPTIONS
+returns 204 with Authorization and Content-Type allowed. \\
+Secret handling & PASS & No API keys in frontend files; keys live only in the
+git-ignored \texttt{backend/.env}; only placeholder \texttt{.env.example} is
+committed; no secrets in repository history. \\
+\bottomrule
+\end{longtable}
+\end{center}
+
+\section{Defects Found and Fixed}
+
+The campaign surfaced one real defect: uploaded images were blocked by the
+browser (\texttt{ERR\_BLOCKED\_BY\_RESPONSE.NotSameOrigin}). The cause was
+Helmet's default \texttt{Cross-Origin-Resource-Policy: same-origin}, which
+prevented the frontend origin from embedding images served by the backend.
+The fix set \path{crossOriginResourcePolicy: \{ policy: "cross-origin" \}} in
+\path{backend/server.js}. After the fix, avatar and
+community images rendered (\texttt{naturalWidth > 0}) and the full screen sweep
+was re-run with zero issues. This is the only backend change recorded; the fix
+is part of the current implementation described in Chapter~\ref{ch:arch}.
+
+\section{Test Artifacts}
+
+The automated scripts used for the campaign (\texttt{step10-auth.js},
+\texttt{step10-data.js}, \texttt{step10-admin.js}, \texttt{step10-pages.js})
+reported zero failures across the auth flow, database persistence, admin and
+security suites, and the 31-page browser sweep. The script files lived in a
+temporary working directory used for the evaluation and are not part of the
+repository; the results are recorded in \texttt{Step10-Report.md} in the
+repository root.

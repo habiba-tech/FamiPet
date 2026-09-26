@@ -16,10 +16,10 @@ either a breed \texttt{ObjectId} or a breed name; a name is resolved to a breed
 document and created on demand if absent. The pet is stored with
 \texttt{owner: req.user.id}. A unique digital pet identifier is then generated
 as \texttt{Date.now().toString(36)-petId.\allowbreak{}slice(-8)-random} and the
-\texttt{qrcode} package encodes a JSON payload with the pet identifier, unique
+\texttt{qrcode}~\cite{qrcode} package encodes a JSON payload with the pet identifier, unique
 ID, name, species, and breed into a PNG data URL that is persisted on the pet
-document. The pet appears in the owner's list (\texttt{GET /api/pets/my}), and
-the dedicated endpoint \texttt{GET /api/pets/:id/qr} regenerates a QR code whose
+document. The pet appears in the owner's list (\path{GET /api/pets/my}), and
+the dedicated endpoint \path{GET /api/pets/:id/qr} regenerates a QR code whose
 payload additionally includes the owner's public name and phone. The digital pet
 identity is deliberately public-safe: the QR payload contains only identity and
 public contact fields, never tokens, passwords, or the account reference
@@ -34,13 +34,13 @@ directly.
     \label{fig:adoptstate}
 \end{figure}
 
-An adoption request (\texttt{POST /api/adoptions}) requires the pet reference,
+An adoption request (\path{POST /api/adoptions}) requires the pet reference,
 full name, phone, address, and a reason. The controller verifies that the pet
-exists, is \texttt{status: "available"} and not \texttt{adopted}, and that the
+exists, is \path{status: "available"} and not \texttt{adopted}, and that the
 user has no already-pending request for the same pet; a duplicate is rejected.
 The request is stored in the \texttt{Pending} state. Administrators transition
 the state to \texttt{Approved} or \texttt{Rejected} through
-\texttt{PUT /api/adoptions/:id} (admin-only). Approval automatically updates the
+\path{PUT /api/adoptions/:id} (admin-only). Approval automatically updates the
 pet document (\texttt{adopted: true}, \texttt{status: "adopted"}), and every
 status change creates a notification for the applicant with the pet's name and
 the new state.
@@ -120,7 +120,7 @@ in the request handler against the same MongoDB store.
 
 The AI subsystem exposes two endpoints. \texttt{POST /api/ai/ask} takes a
 question, loads up to five of the user's own pets (name, species, breed) as
-context, and calls the Google Gemini REST endpoint
+context, and calls the Google Gemini~\cite{gemini} REST endpoint
 (\texttt{gemini-1.5-flash}) with a PetGPT system instruction and a 25-second
 timeout through an \texttt{AbortController}. If the API key is missing, the
 call fails, or times out, a built-in keyword fallback returns safe generic
@@ -134,7 +134,7 @@ advice or profile-derived advice from real records.
 
 \section{Community and Lost-and-Found}
 
-\texttt{POST /api/community} creates a post (optionally with an image) bound to
+\path{POST /api/community} creates a post (optionally with an image) bound to
 the authenticated user. Likes and comments are embedded arrays; like toggling
 adds or removes the user reference, so re-pressing a like cancels it. Posts are
 listed publicly, but only when \texttt{isActive: true}. Post, comment, and
@@ -144,7 +144,7 @@ attributes, location, date, and contact details, with an
 \texttt{active}/\texttt{resolved} status that administrators can update.
 Ownership checks are identical in shape to the other subsystems: the report is
 queried with the owner predicate and the controller verifies
-\texttt{report.user} against \texttt{req.user.id} before modification.
+\path{report.user} against \path{req.user.id} before modification.
 
 \section{Feature Verification Summary}
 

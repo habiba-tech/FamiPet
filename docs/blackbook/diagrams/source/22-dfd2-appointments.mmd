@@ -1,0 +1,36 @@
+flowchart LR
+    EU["END USER"]
+    P41(("4.1 validate<br/>fields + ObjectId"))
+    P42(("4.2 verify<br/>pet owner +<br/>active vet"))
+    P43(("4.3 slot<br/>conflict check"))
+    P44(("4.4 create<br/>appointment"))
+    P45(("4.5 create<br/>notification"))
+    P46(("4.6 create<br/>reminder (dedup)"))
+
+    D1[(Pet)]
+    D2[(Veterinarian)]
+    D3[(Appointment)]
+    D4[(Notification)]
+    D5[(Reminder)]
+
+    EU -->|"POST /api/appointments"| P41
+    P41 --> P42
+    P42 --> D1
+    P42 --> D2
+    P42 --> P43
+    P43 -->|"pending/confirmed<br/>exists"| P43E["400 already booked"]
+    P43 -->|"free"| P44
+    P44 --> D3
+    P44 --> P45
+    P45 --> D4
+    P44 --> P46
+    P46 --> D5
+    P46 -.->|"duplicate -> skip"| P46D["no-op"]
+    P44 -->|"201 created"| EU
+
+    style P41 fill:#e6e6e6,stroke:#000000
+    style P42 fill:#e6e6e6,stroke:#000000
+    style P43 fill:#e6e6e6,stroke:#000000
+    style P44 fill:#e6e6e6,stroke:#000000
+    style P45 fill:#e6e6e6,stroke:#000000
+    style P46 fill:#e6e6e6,stroke:#000000

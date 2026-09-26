@@ -32,7 +32,8 @@ boundaries are drawn: e-mail and AI.
 The layered diagram reflects the actual module boundaries of the repository.
 Cross-cutting concerns (CORS, helmet, compression, JSON parsing) run before any
 route module. The \texttt{protect} middleware runs on every protected route, the
-\texttt{adminOnly} middleware on administrative routes, and the Multer upload
+\texttt{adminOnly} middleware on administrative routes, and the
+Multer~\cite{multer} upload
 middleware only on routes that accept images.
 
 \section{Module Responsibilities}
@@ -42,33 +43,35 @@ responsibilities of their controllers.
 
 \begin{center}
 \begin{longtable}{@{}p{3.6cm}p{11.0cm}@{}}
+\caption{Backend route modules and responsibilities.}
+\label{tab:modules}\\
 \toprule
 \textbf{Route module} & \textbf{Responsibility} \\
 \midrule
-\texttt{/api/auth} & Register, verify and resend e-mail verification, login,
+\path{/api/auth} & Register, verify and resend e-mail verification, login,
 forgot/reset password, current user, profile update, password change. \\
-\texttt{/api/users} & Public user lookup, favorites toggle, avatar upload. \\
-\texttt{/api/pets} & Public pet listing, featured pets, own pets, pet CRUD with
+\path{/api/users} & Public user lookup, favorites toggle, avatar upload. \\
+\path{/api/pets} & Public pet listing, featured pets, own pets, pet CRUD with
 owner enforcement, QR generation. \\
-\texttt{/api/breeds} & Public breed catalogue; admin create/update/delete. \\
-\texttt{/api/adoptions} & Adoption applications, own applications, admin listing
+\path{/api/breeds} & Public breed catalogue; admin create/update/delete. \\
+\path{/api/adoptions} & Adoption applications, own applications, admin listing
 and status updates with pet transition and notification. \\
-\texttt{/api/lost-found} & Public reports, owner CRUD, admin status updates and
+\path{/api/lost-found} & Public reports, owner CRUD, admin status updates and
 deletion. \\
-\texttt{/api/health} & Owner-scoped health records per pet. \\
-\texttt{/api/vaccinations} & Owner-scoped vaccination records and upcoming list. \\
-\texttt{/api/favorites} & Owner-scoped favourite pets (unique user--pet pairs). \\
-\texttt{/api/veterinarians} & Public directory; admin CRUD. \\
-\texttt{/api/appointments} & Booking with slot conflict check, auto-notification
+\path{/api/health} & Owner-scoped health records per pet. \\
+\path{/api/vaccinations} & Owner-scoped vaccination records and upcoming list. \\
+\path{/api/favorites} & Owner-scoped favourite pets (unique user--pet pairs). \\
+\path{/api/veterinarians} & Public directory; admin CRUD. \\
+\path{/api/appointments} & Booking with slot conflict check, auto-notification
 and auto-reminder, reschedule and cancel with reminder sync. \\
-\texttt{/api/community} & Public posts, owner CRUD, likes, comments; admin
+\path{/api/community} & Public posts, owner CRUD, likes, comments; admin
 moderation. \\
-\texttt{/api/ai} & \texttt{/ask} (PetGPT over Gemini with fallback) and
+\path{/api/ai} & \texttt{/ask} (PetGPT over Gemini with fallback) and
 \texttt{/advice} (rule-based per-pet advice). \\
-\texttt{/api/notifications} & Owner-scoped notification read, unread, mark
+\path{/api/notifications} & Owner-scoped notification read, unread, mark
 read/all-read, delete. \\
-\texttt{/api/reminders} & Owner-scoped reminders CRUD and completion. \\
-\texttt{/api/admin} & Dashboard statistics, user/pet/lost-found/community
+\path{/api/reminders} & Owner-scoped reminders CRUD and completion. \\
+\path{/api/admin} & Dashboard statistics, user/pet/lost-found/community
 administration. \\
 \bottomrule
 \end{longtable}
@@ -101,7 +104,9 @@ Figure~\ref{fig:deploy} shows the deployment layout used during the project. The
 backend process and the frontend are served on different ports; the database
 runs as a separate service, optionally with local tooling (Compass) for
 inspection. The backend also serves the \texttt{uploads} directory statically so
-uploaded images resolve from the API.
+uploaded images resolve from the API. Credentials for the optional external
+image-hosting platform Cloudinary~\cite{cloudinary} are declared in the
+configuration but the current implementation stores uploads locally on disk.
 
 \begin{figure}[htbp]
     \centering
@@ -114,5 +119,5 @@ The server binds to the environment-configured port (5000 by default). The
 client origin is taken from \texttt{CLIENT\_URL} (5000-series Live Server/Vite by
 default) and is also used to fall back to a locally served page for the
 verify-email and reset-password routes. MongoDB connects through
-\texttt{MONGODB\_URI}, defaulting to \texttt{mongodb://localhost:27017/
-animal\_planet}.
+\path{MONGODB\_URI}, defaulting to
+\path{mongodb://localhost:27017/animal\_planet}.

@@ -1,0 +1,94 @@
+\famichapter{Implementation}{This chapter describes how FamiPet is implemented in
+code: the repository layout, the backend structure, the data persistence
+patterns, and the frontend structure.}{ch:impl}
+
+\section{Repository Layout}
+
+The repository follows a conventional monorepo layout for an Express backend and
+a browser frontend:
+
+\begin{center}
+\begin{tabular}{@{}p{4.6cm}p{10.0cm}@{}}
+\toprule
+\textbf{Directory} & \textbf{Content} \\
+\midrule
+\texttt{backend/} & Express API; subdirectories \texttt{config},
+\texttt{controllers}, \texttt{middleware}, \texttt{models}, \texttt{routes},
+\texttt{utils}, \texttt{uploads}, and the entry point \texttt{server.js}. \\
+\texttt{frontend-react/} & The React~\cite{react} + TypeScript + Vite~\cite{vite} + Tailwind~\cite{tailwind} client,
+the project frontend; roadmap phases 1--22 delivered. \\
+\texttt{docs/} & \texttt{ROADMAP.md} (phase plan and
+status), \texttt{design.md}; this black book lives under
+\texttt{docs/blackbook/}. \\
+\texttt{AGENTS.md}, \texttt{BASELINE.md}, \texttt{Step10-Report.md},
+\texttt{test-email.js} & Project rules, baseline, and verification evidence. \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\section{Backend Implementation}
+
+The backend runs from a single entry point. \texttt{server.js} applies Helmet,
+compression, the CORS origin guard, JSON and URL-encoded body parsing (50\,MB
+limit), and development logging; connects to MongoDB; registers a health route,
+sixteen route modules under \texttt{/api}, static \texttt{/uploads}; serves
+the client build statically on the client port; and ends with a JSON error handler and a
+404 handler.
+
+\begin{itemize}
+    \item \textbf{Routes} (\path{routes/}) declare the HTTP surface and bind
+    middleware (\path{protect}, \path{adminOnly}, \path{upload}) to each
+    handler. Public read-only endpoints (pets, breeds, veterinarians,
+    community posts, lost-and-found) carry no protection.
+    \item \textbf{Controllers} (\path{controllers/}) implement validation,
+    ownership checks, business effects, and responses. The authentication
+    controller is the largest (roughly 1\,280 lines); the admin controller
+    aggregates statistics and moderation operations.
+    \item \textbf{Middleware} (\path{middleware/}) provides JWT
+    authentication and role checks (\path{auth.js}), the error handler
+    (\path{errorHandler.js}) that maps CastErrors to 404, duplicate-key
+    errors to 400, and Mongoose validation errors to 400, and the Multer
+    upload filter.
+    \item \textbf{Models} (\path{models/}) declare the thirteen schemas with
+    required fields, enums, default values, the unique indexes, and the bcrypt
+    pre-save hook.
+    \item \textbf{Config} (\texttt{config/}) centralizes the database
+    connection, the Nodemailer transporter, the Gemini client, and Cloudinary.
+    \item \textbf{Utilities} (\texttt{utils/}) provide the database seed data
+    (breeds, an administrator account, and a demo user).
+\end{itemize}
+
+\section{Persistence Pattern}
+
+Every state-changing flow follows the same pattern, which guarantees that what
+the UI shows after a reload is what the backend wrote:
+
+\begin{enumerate}
+    \item the client sends a request with the bearer token;
+    \item the controller validates input and ownership against the database;
+    \item documents are created or updated through the Mongoose models;
+    \item derived effects (notifications, reminders, pet status transitions)
+    are applied as further document writes;
+    \item the response returns the persisted data, and the client re-fetches
+    the list from the API whenever it must reflect the new state.
+\end{enumerate}
+
+This pattern was verified for every feature in the persistence test campaign
+(Chapter~\ref{ch:testing}).
+
+\section{Frontend Structure}
+
+The React client implements the user interface in phases driven by the roadmap.
+Phases 1--22 (scaffold, Tailwind, assets, routing,
+global styles, shared layouts, authentication, dashboard, pet management,
+health, vaccinations, appointments, veterinarians, reminders, community,
+lost-and-found, favorites, adoption, breeds, settings, admin panel, PetGPT
+frontend) are
+implemented and committed. Notifications are delivered inside phases 10--14
+through shared notification components. Phases 23--29 (API
+integration layer, authentication/state consolidation, UI/UX completion,
+visual regression, functional regression, Docker/Nginx integration, client
+consolidation) are planned and not yet implemented.
+
+The React client consumes the same \texttt{/api} endpoints described in
+this black book, so the backend API remains the single source of truth.

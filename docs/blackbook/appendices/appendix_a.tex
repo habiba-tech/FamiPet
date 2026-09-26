@@ -1,0 +1,152 @@
+\famichapterstar{Appendix A -- REST API Summary}{A catalogue of the HTTP surface
+exposed by the FamiPet backend, as implemented in the route modules.}{app:a}
+
+\section*{Authentication and Users}
+
+\begin{center}
+\begin{longtable}{@{}p{6.2cm}p{2.6cm}p{5.8cm}@{}}
+\toprule
+\textbf{Endpoint} & \textbf{Method} & \textbf{Access} \\
+\midrule
+\path{/api/auth/register} & POST & Public \\
+\path{/api/auth/login} & POST & Public \\
+\path{/api/auth/verify-email/:token} & GET & Public \\
+\path{/api/auth/resend-verification} & POST & Public \\
+\path{/api/auth/forgot-password} & POST & Public \\
+\path{/api/auth/reset-password/:token} & POST & Public \\
+\path{/api/auth/me} & GET & Protect \\
+\path{/api/auth/profile} & PUT & Protect \\
+\path{/api/auth/change-password} & PUT & Protect \\
+\path{/api/users} & GET & Protect \\
+\path{/api/users/:id} & GET & Public (profile) \\
+\path{/api/users/favorites/:petId} & POST & Protect \\
+\path{/api/users/avatar} & POST & Protect (upload) \\
+\bottomrule
+\end{longtable}
+\addtocounter{table}{-1}
+\end{center}
+
+\section*{Pets, Breeds, and Favourites}
+
+\begin{center}
+\begin{longtable}{@{}p{6.2cm}p{2.6cm}p{5.8cm}@{}}
+\toprule
+\textbf{Endpoint} & \textbf{Method} & \textbf{Access} \\
+\midrule
+\path{/api/pets} & GET & Public \\
+\path{/api/pets/featured} & GET & Public \\
+\path{/api/pets/my} & GET & Protect \\
+\path{/api/pets} & POST & Protect \\
+\path{/api/pets/:id} & GET & Public \\
+\path{/api/pets/:id} & PUT / DELETE & Protect (owner) \\
+\path{/api/pets/:id/qr} & GET & Protect (owner) \\
+\path{/api/breeds} & GET & Public \\
+\path{/api/breeds/:id} & GET & Public \\
+\path{/api/breeds} & POST & Protect + adminOnly \\
+\path{/api/breeds/:id} & PUT / DELETE & Protect + adminOnly \\
+\path{/api/favorites} & GET / POST & Protect \\
+\path{/api/favorites/:id} & DELETE & Protect \\
+\bottomrule
+\end{longtable}
+\addtocounter{table}{-1}
+\end{center}
+
+\section*{Care: Health, Vaccinations, Veterinarians, Appointments, Reminders}
+
+\begin{center}
+\begin{longtable}{@{}p{6.2cm}p{2.6cm}p{5.8cm}@{}}
+\toprule
+\textbf{Endpoint} & \textbf{Method} & \textbf{Access} \\
+\midrule
+\path{/api/health} & GET / POST & Protect (owner) \\
+\path{/api/health/:id} & GET / PUT / DELETE & Protect (owner) \\
+\path{/api/vaccinations} & GET / POST & Protect (owner) \\
+\path{/api/vaccinations/upcoming} & GET & Protect (owner) \\
+\path{/api/vaccinations/:id} & PUT / DELETE & Protect (owner) \\
+\path{/api/veterinarians} & GET & Public \\
+\path{/api/veterinarians/:id} & GET & Public \\
+\path{/api/veterinarians} & POST & Protect + adminOnly \\
+\path{/api/veterinarians/:id} & PUT / DELETE & Protect + adminOnly \\
+\path{/api/appointments} & GET / POST & Protect (owner) \\
+\path{/api/appointments/:id} & PUT / DELETE & Protect (owner) \\
+\path{/api/reminders} & GET / POST & Protect (owner) \\
+\path{/api/reminders/:id} & PUT / DELETE & Protect (owner) \\
+\path{/api/reminders/:id/complete} & PUT & Protect (owner) \\
+\bottomrule
+\end{longtable}
+\addtocounter{table}{-1}
+\end{center}
+
+\section*{Community, Lost-and-Found, Adoption, Notifications, AI}
+
+\begin{center}
+\begin{longtable}{@{}p{6.2cm}p{2.6cm}p{5.8cm}@{}}
+\toprule
+\textbf{Endpoint} & \textbf{Method} & \textbf{Access} \\
+\midrule
+\path{/api/community} & GET & Public (active posts) \\
+\path{/api/community/:id} & GET & Public \\
+\path{/api/community} & POST & Protect (upload) \\
+\path{/api/community/:id} & PUT / DELETE & Protect (owner) \\
+\path{/api/community/:id/like} & POST & Protect \\
+\path{/api/community/:id/comments} & POST & Protect \\
+\path{/api/community/:id/comments/:commentId} & DELETE & Protect (owner) \\
+\path{/api/lost-found} & GET & Public \\
+\path{/api/lost-found/:id} & GET & Public \\
+\path{/api/lost-found} & POST & Protect (upload) \\
+\path{/api/lost-found/:id} & PUT / DELETE & Protect (owner or admin) \\
+\path{/api/adoptions} & GET & Protect + adminOnly \\
+\path{/api/adoptions/my} & GET & Protect (owner) \\
+\path{/api/adoptions} & POST & Protect \\
+\path{/api/adoptions/:id} & PUT / DELETE & Protect + adminOnly \\
+\path{/api/notifications} & GET & Protect (owner) \\
+\path{/api/notifications/unread} & GET & Protect (owner) \\
+\path{/api/notifications/read-all} & PUT & Protect (owner) \\
+\path{/api/notifications/:id/read} & PUT & Protect (owner) \\
+\path{/api/notifications/:id} & DELETE & Protect (owner) \\
+\path{/api/ai/ask} & POST & Protect \\
+\path{/api/ai/advice} & POST & Protect \\
+\bottomrule
+\end{longtable}
+\addtocounter{table}{-1}
+\end{center}
+
+\section*{Admin}
+
+\begin{center}
+\begin{longtable}{@{}p{6.2cm}p{2.6cm}p{5.8cm}@{}}
+\toprule
+\textbf{Endpoint} & \textbf{Method} & \textbf{Access} \\
+\midrule
+\path{/api/admin/dashboard} & GET & Protect + adminOnly \\
+\path{/api/admin/users} & GET & Protect + adminOnly \\
+\path{/api/admin/users/recent} & GET & Protect + adminOnly \\
+\path{/api/admin/users/:id/block} & PUT & Protect + adminOnly \\
+\path{/api/admin/users/:id} & DELETE & Protect + adminOnly \\
+\path{/api/admin/pets} & GET & Protect + adminOnly \\
+\path{/api/admin/pets/:id} & DELETE & Protect + adminOnly \\
+\path{/api/admin/lost-found} & GET & Protect + adminOnly \\
+\path{/api/admin/lost-found/:id/status} & PUT & Protect + adminOnly \\
+\path{/api/admin/lost-found/:id} & DELETE & Protect + adminOnly \\
+\path{/api/admin/community} & GET & Protect + adminOnly \\
+\path{/api/admin/community/:id/status} & PUT & Protect + adminOnly \\
+\path{/api/admin/community/:id} & DELETE & Protect + adminOnly \\
+\bottomrule
+\end{longtable}
+\addtocounter{table}{-1}
+\end{center}
+
+\section*{System}
+
+\begin{center}
+\begin{longtable}{@{}p{6.2cm}p{2.6cm}p{5.8cm}@{}}
+\toprule
+\textbf{Endpoint} & \textbf{Method} & \textbf{Access} \\
+\midrule
+\path{/api/status} & GET & Public (health check) \\
+\path{/} & GET & Public (service banner) \\
+\path{/uploads/*} & GET & Public (static images) \\
+\bottomrule
+\end{longtable}
+\addtocounter{table}{-1}
+\end{center}

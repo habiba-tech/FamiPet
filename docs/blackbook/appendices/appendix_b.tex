@@ -1,0 +1,53 @@
+\famichapterstar{Appendix B -- Configuration}{The runtime configuration of the
+FamiPet backend, as declared in \texttt{backend/.env.example} and read by the
+code.}{app:b}
+
+\section*{Environment Variables}
+
+\begin{center}
+\begin{longtable}{@{}p{3.6cm}p{3.0cm}p{8.0cm}@{}}
+\toprule
+\textbf{Variable} & \textbf{Default} & \textbf{Purpose} \\
+\midrule
+\path{PORT} & \texttt{5000} & HTTP port for the API process. \\
+\path{MONGODB\_URI} & \path{mongodb://localhost:27017/animal\_planet} &
+MongoDB connection string. \\
+\path{JWT\_SECRET} & (required) & Secret used to sign and verify bearer
+tokens. \\
+\path{JWT\_EXPIRE} & \texttt{30d} & Token expiry duration. \\
+\path{CLIENT\_URL} & \path{http://localhost:5500} & Frontend origin(s),
+comma-separated, used by CORS and e-mail links. \\
+\path{GEMINI\_API\_KEY} & (optional) & Google Gemini key; the PetGPT pipeline
+falls back to built-in answers when absent. \\
+\path{EMAIL\_SERVICE} & \texttt{gmail} & Nodemailer service name. \\
+\path{EMAIL\_USER} & (SMTP) & Sender account for Nodemailer. \\
+\path{EMAIL\_PASS} & (SMTP) & App password for the e-mail account.
+\\
+\path{CLOUDINARY\_CLOUD\_NAME} & (optional) & Cloudinary account for image
+hosting. \\
+\path{CLOUDINARY\_API\_KEY} & (optional) & Cloudinary API key. \\
+\path{CLOUDINARY\_API\_SECRET} & (optional) & Cloudinary API secret. \\
+\path{PETGPT\_PROVIDER} & (commented) & Declared OpenAI option; the active
+implementation uses the Google provider only. \\
+\bottomrule
+\end{longtable}
+\addtocounter{table}{-1}
+\end{center}
+
+\section*{Startup and Defaults}
+
+The backend binds the API to \texttt{PORT} (default 5000). It connects to
+MongoDB through \texttt{MONGODB\_URI}; if the variable is missing the connection
+falls back to the local default in \texttt{server.js}. The server also listens
+on the client port to serve the frontend directory as a fallback when the Live
+Server/Vite dev server is not running; if that port is already in use the
+fallback is skipped silently. The \texttt{uploads} directory is served
+statically at \texttt{/uploads}, and \texttt{CLIENT\_URL} (or an allowed origin)
+is used to build the verify-e-mail and reset-password links sent by e-mail.
+
+\section*{Seed Data}
+
+The \texttt{seedData.js} utility populates the database with the breed
+catalogue, an administrator account, a demo user account, two veterinarians with
+clinics and availability, and a set of sample appointments, adoption requests,
+and notifications so the application can be evaluated immediately after setup.
