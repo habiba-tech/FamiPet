@@ -6,7 +6,10 @@
 // foreign report's PUT/DELETE returns 403).
 
 import type { LostFoundReport } from '../../../api/lostFound'
-import { API_BASE } from '../../../api/client'
+
+// Shared backend-media resolution (uploads → API origin, absolute → passthrough).
+import { assetUrl } from '../../../lib/image'
+export { assetUrl }
 
 // Vanilla mapReport() card fallback image (the app's own asset).
 export const FALLBACK_IMAGE = '/assets/images/adoption/pet1.jpg'
@@ -37,15 +40,6 @@ export const SORT_OPTIONS = [
   { value: 'oldest', label: 'Sort: Oldest' },
   { value: 'name', label: 'Sort: Name' },
 ]
-
-// Resolve backend-relative upload paths (/uploads/...) to the API origin so
-// <img> renders them; absolute URLs (localhost/cloudinary) pass through.
-export function assetUrl(src: string | null | undefined): string {
-  if (!src) return ''
-  if (src.startsWith('http://') || src.startsWith('https://')) return src
-  if (src.startsWith('/uploads/')) return API_BASE.replace(/\/api$/, '') + src
-  return src
-}
 
 export function titleCaseGender(gender?: string): string {
   const value = String(gender || '').toLowerCase()

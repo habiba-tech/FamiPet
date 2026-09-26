@@ -3,13 +3,13 @@ import { AdminLayout } from '../layouts/AdminLayout'
 import { AppLayout } from '../layouts/AppLayout'
 import { AuthLayout } from '../layouts/AuthLayout'
 import { LandingLayout } from '../layouts/LandingLayout'
+import { LandingPage } from '../pages/landing/LandingPage'
+import { NotFound } from '../pages/NotFound'
 import { ForgotPasswordPage } from '../pages/auth/ForgotPasswordPage'
 import { LoginPage } from '../pages/auth/LoginPage'
 import { ResetPasswordPage } from '../pages/auth/ResetPasswordPage'
 import { SignupPage } from '../pages/auth/SignupPage'
 import { VerifyEmailPage } from '../pages/auth/VerifyEmailPage'
-import { PageStub } from '../pages/_stub/PageStub'
-import { NotFound } from '../pages/NotFound'
 import { DashboardPage } from '../pages/app/dashboard/DashboardPage'
 import { HealthPage } from '../pages/app/health/HealthPage'
 import { AppointmentsPage } from '../pages/app/appointments/AppointmentsPage'
@@ -39,7 +39,7 @@ export const routes: RouteObject[] = [
   // ── Landing ────────────────────────────────────────────────
   {
     element: <LandingLayout />,
-    children: [{ index: true, element: <PageStub title="Home" /> }],
+    children: [{ index: true, element: <LandingPage /> }],
   },
 
   // ── Auth (includes email deep links) ───────────────────────

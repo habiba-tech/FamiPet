@@ -3,6 +3,7 @@
 @import 'tailwindcss';
 @custom-variant dark (&:where(body.dark-theme, body.dark-theme *));
 @import './navbar.css';
+@import './landing.css';
 @import './footer.css';
 @import './sidebar.css';
 @import './dashboard.css';

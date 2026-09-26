@@ -6,7 +6,7 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { Icon } from '../../../components/shared/Icon'
-import { assetUrl, relativeTime, typeLabel, typeTagClass, type PostView } from './communityBase'
+import { assetUrl, FALLBACK_AVATAR, relativeTime, typeLabel, typeTagClass, type PostView } from './communityBase'
 
 interface PostCardProps {
   post: PostView
@@ -34,7 +34,7 @@ export function PostCard({ post, shareCount, onLike, onComment, onShare, onDelet
     <article ref={cardRef} className={`post-card${post.isOwner ? ' user-created' : ''}`} data-type={post.type}>
       <div className="post-header">
         <div className="post-user">
-          <img src={assetUrl(post.avatar)} alt={post.user} />
+          <img src={assetUrl(post.avatar) || FALLBACK_AVATAR} alt={post.user} />
           <div>
             <strong>{post.user}</strong>
             <span>

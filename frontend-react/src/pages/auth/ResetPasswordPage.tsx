@@ -2,8 +2,8 @@ import { Icon } from '../../components/shared/Icon'
 import { useState, type FormEvent } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { resetPassword } from '../../api/auth'
-import type { ApiError } from '../../api/client'
 import { setToken } from '../../api/client'
+import { getErrorMessage } from '../../lib/errors'
 import { AuthLeftPanel } from '../../components/auth/AuthLeftPanel'
 import { Divider } from '../../components/auth/Divider'
 import { InputBox } from '../../components/auth/InputBox'
@@ -61,10 +61,7 @@ export function ResetPasswordPage() {
       setTimeout(() => navigate('/login'), 2000)
     } catch (err) {
       setStatus('idle')
-      const apiErr = err as ApiError
-      setPasswordError(
-        (apiErr.data && apiErr.data.message) || 'The reset link is invalid or has expired.',
-      )
+      setPasswordError(getErrorMessage(err, 'The reset link is invalid or has expired.'))
     }
   }
 

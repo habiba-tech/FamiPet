@@ -198,12 +198,12 @@ tree verified.
 | 20    | Settings                       | [x]    | `ed4d6cb`   |
 | 21    | Admin panel                    | [x]    | `d18c336`   |
 | 22    | AI / PetGPT (redesign)         | [x]    | `d26e955`    |
-| 23    | API integration layer          | [ ]    | —            |
-| 24    | Auth/state management          | [ ]    | —            |
-| 25    | UI/UX completion & stabilization| [ ]    | —            |
-| 26    | Visual regression              | [ ]    | —            |
-| 27    | Functional regression          | [ ]    | —            |
-| 28    | Docker/Nginx integration       | [ ]    | —            |
+| 23    | API integration layer          | [x]    | `f53b399`   |
+| 24    | Auth/state management          | [x]    | `f8d4f8b`    |
+| 25    | UI/UX completion & stabilization| [x]    | `aa8cf8d`    |
+| 26    | Visual regression              | [x]    | `6b689d0`   |
+| 27    | Functional regression          | [x]    | `93828fa`   |
+| 28    | Docker/Nginx integration       | [x]    | `44f69cc`   |
 | 29    | Removal of old Vanilla frontend | [ ]    | —            |
 
 Status legend: `[ ]` not started · `[~]` in progress · `[x]` completed and pushed ·
@@ -1503,6 +1503,58 @@ Implemented (commit + push under Phase 20, real backend only — no fake data):
 - **Completion criteria:** single typed client; no helper drift.
 - **Rollback/safety:** infra beneath pages; pages still work via old helper until swap.
 
+**Implemented (commit + push under Phase 23, real backend only — no fake data):**
+
+- `src/api/client.ts` is now the single network origin: `API_BASE` is overridable
+  with `VITE_API_URL` (dev/build time; defaults to `http://localhost:5000/api`,
+  trailing `/`-stripped), plus `apiOrigin()` (`API_BASE.replace(/\/api$/, '')`)
+  for the multer `/uploads` surface. `ApiError` lives in `src/lib/errors.ts` and
+  is re-exported from `client.ts` so the existing `import type { ApiError } from
+  '../api/client'` call sites keep working. Grep audit: zero raw `fetch` outside
+  `client.ts`; the only remaining `API_BASE`/origin-string references are inside
+  `client.ts`.
+- New `src/lib/errors.ts` — `ApiError`, `toApiError`, `getErrorMessage(err,
+  fallback)` (behaviour-identical to the hand-rolled
+  `(err instanceof Error && err.message) || fallback` pattern; an ApiError's
+  `message` is the backend `data.message` verbatim), and `isApiError(err)` type
+  guard (any client-thrown Error carries `status`: `0` for network failures,
+  `response.code` otherwise).
+- New `src/lib/image.ts` — canonical `assetUrl(src)` (empty → `''`, absolute
+  `http(s)` and non-`/uploads/` paths pass through, `/uploads/…` resolved via
+  `apiOrigin()`). De-duplicated the three identical `assetUrl` copies
+  (`communityBase.ts`, `lostFoundBase.ts`, `AdminTopbar.tsx`); `communityBase`
+  and `lostFoundBase` re-export it so page components are untouched.
+- Adopted `getErrorMessage` at the mixing sites: `LoginPage`, `SignupPage`,
+  `ForgotPasswordPage`, `ResetPasswordPage`, `VerifyEmailPage`, `SettingsPage`
+  (both profile and password catches; dropped the now-unused `ApiError` casts/
+  imports). `PetGPTPage` now uses `isApiError(...)` + `getErrorMessage(...)`
+  instead of re-declaring the error shape inline (`{ status?, isNetwork?,
+  message? }`).
+- Deliberate non-changes (documented, to avoid drift/churn without value):
+  no generic `useFetcher` hook — every page has page-specific load/mutation
+  flows, so a shared fetcher would be dead code or a risky rewrite; the ~20
+  uniform `(err instanceof Error && err.message) || fallback` sites across
+  feature pages were left as-is (already consistent); `petImage()` in
+  `lib/formatters.ts` unchanged.
+- **Verification:** `npm run lint` (oxlint, zero new issues — only the two
+  pre-existing `react(set-state-in-effect)` warnings), `tsc -b`, and `vite build`
+  all clean. Live API flows against the running backend (:5000, Mongo `petDB`)
+  via two freshly-created verified test users (created directly in Mongo with the
+  model's bcrypt pre-save hook, then cleaned up): `auth/login` tokens issued and
+  `auth/me` hydrated; A creates pet (201, real Breed ref + auto QR/petUid);
+  `/pets/my` reflects it; QR endpoint returns the QR data; public `GET /pets/:id`
+  works without auth; B's `PUT`/`DELETE` on A's pet → `403`, A's `PUT` → 200
+  (ownership boundary green); multer avatar upload (FormData) → absolute
+  `/uploads/...` URL, uploaded PNG served `200 image/png`; A deletes pet → 200,
+  re-GET → 404; unauthenticated `/pets/my` → 401; `GET /veterinarians` → seeded
+  vets. `VITE_API_URL` override proven at build time: default base absent from
+  the bundle, override present (`dist/` is git-ignored). **Not verifiable on the
+  local checkout:** the PetGPT conversation/job contract (202 + polling) only
+  exists on the `main` backend; this `react-migration` backend serves the legacy
+  single-turn `/ai/ask` + `/ai/advice`, and no AI provider is configured — the
+  AI flows ride on the Phase 22 E2E and are unaffected by this phase (the PetGPT
+  change here is compile-checked error handling only).
+
 ### Phase 24 — Authentication / state management (consolidation)
 - **Objective:** single AuthContext + ThemeContext implementation, storage-key constants,
   route-guard wiring end-to-end; document the fetch-based state approach (§6).
@@ -1517,6 +1569,60 @@ Implemented (commit + push under Phase 20, real backend only — no fake data):
   vice versa); guard matrix tested for anon/user/admin.
 - **Completion criteria:** one auth/theme code path, guard matrix green.
 - **Rollback/safety:** centralized; old-site session keys make fallback seamless.
+
+**Implemented (commit + push under Phase 24, real backend — no fake data):**
+
+- **Audit fixed a real state bug:** the hydration `401` catch in `AuthContext`
+  only cleared React state but left the stale `famipetToken`/`famipetUser`/
+  `annProfile` in `localStorage`. After a token expiry that meant every cold
+  load replayed a bogus session until the next 401. Now the catch calls
+  `logoutStoredAuth()` (the api.js 401-with-token path) before clearing the
+  in-memory state — storage, in-memory state, and sessionStorage are cleared
+  together. The `user` initial state is now gated on `getToken()` (no phantom
+  user when there is no token).
+- **Removed a redirect race:** `LoginPage` previously fired its own
+  `setTimeout(navigate(dest), 800)` after login while `RedirectIfAuthed` also
+  bounced the already-authenticated page — deep-link logins flashed the
+  dashboard, then jumped late. Login now just completes the API call and lets
+  `RedirectIfAuthed` redirect deterministically.
+- **Deep links now landed correctly:** `RedirectIfAuthed` honors
+  `location.state?.from` (set by `RequireAuth`/`RequireAdmin`) so a login that
+  started at a protected deep link returns there instead of the dashboard.
+  Sanitized: `from` must be a real path, and `/login` itself is ignored.
+- **Deliberate parity non-changes (no drift vs the Vanilla site + api.js):** the
+  canonical `client.ts` 401-with-token behavior (logout + hard redirect to
+  `/login`) is kept as the default — `setOnUnauthorized` remains unwired;
+  `logout()` clears `famipetToken`/`famipetUser`/`annProfile` + `sessionStorage`
+  and leaves `famipetTheme` alone (theme survives logout — verified); no
+  refresh-token/QoL endpoints invented; `SignupPage` and `ResetPasswordPage`
+  flows unchanged (register→/login, reset stores backend-issued token if any);
+  `/auth/me` is the only hydration request. Feature pages that read
+  `getUser()/isAdmin()` directly (`AdminTopbar`, `ComposePostModal`,
+  `CommunityPage`, `LostFoundPage`, `ReportFormModal`) are safe because the 401
+  path now clears storage; `SettingsPage` still syncs context via `setUser()`
+  after profile/avatar saves.
+- **Verification:** `npm run lint` (oxlint, no new issues — only the two
+  pre-existing `react(set-state-in-effect)` warnings), `tsc -b`, and `vite build`
+  clean. Live browser verification (headless Chrome + raw CDP, real backend
+  :5000/Mongo `petDB`, three freshly-created verified users A/B/admin, cleaned
+  up after): 35/35 checks — unauth deep link → `/login` clean; login A →
+  dashboard with token+user persisted and sidebar identity; refresh after
+  deep-link settings still case-splash → `/auth/me` hits the backend and state
+  restores; logout clears all four keys, sessionStorage, and preserves theme;
+  A→B switch shows B's name+pet (`AceB`), hides A's (`AceA`), stored user is B;
+  non-admin `/app/admin` → dashboard with no admin content; mid-session expired
+  JWT → 401 via the canonical client → storage cleared + `/login`; garbage token
+  + stale stored user on cold load → hydration 401 clears both → `/login`;
+  deep-link login returns to `/app/mypet`; authed `/login` → dashboard; admin
+  deep-link login lands `/app/admin`, `/app/admin/users` authorized, both admin
+  and user sidebar logouts work; 390 px mobile emulation: the **authenticated**
+  app shell (dashboard/mypet/settings) has **no** horizontal overflow. One
+  pre-existing, auth-independent issue surfaced and deliberately NOT fixed in
+  this phase: the unauthenticated `/login` page overflows at 390 px
+  (`scrollWidth 470 > 390`) due to the Phase 7 `login.css` `.login-container`
+  grid + `.login-card` min-content — `/signup`, the landing page, and the app
+  shell are all clean at 390, no CSS changed in Phase 24, and Phase 25
+  (responsive/mobile + overflow polish) owns it.
 
 ### Phase 25 — UI/UX completion & stabilization
 - **Objective:** final UI/UX pass across all migrated pages — Landing page completion,
@@ -1538,6 +1644,51 @@ Implemented (commit + push under Phase 20, real backend only — no fake data):
 - **Completion criteria:** responsive parity across all pages at all breakpoints.
 - **Rollback/safety:** additive CSS; wander minimal.
 
+**Implemented (commit + push under Phase 25, real backend — no fake data):**
+
+- **Landing page completed.** `/` now renders `src/pages/landing/LandingPage.tsx`
+  (replacing the Phase 22 PageStub) inside the existing `LandingLayout`
+  (Navbar + Footer + BackToTop, all previously ported). The five sections —
+  hero, services (6), about, why-us (4), join-us/CTA — mirror the Vanilla
+  `frontend/index.html` structure 1:1; the two data grids statically render the
+  same service/why items `frontend/js/home.js` injected, reusing the same
+  `/assets/icons/*.svg` + `/assets/images/hero/*` files. New
+  `src/styles/landing.css` ports `frontend/css/home.css` scoped under `.landing`
+  (so nothing leaks into the authenticated pages, which reuse `.hero*`,
+  `.section-*`, `.service-*` names page-scoped); Vanilla's undefined vars
+  (`--section-bg`, `--primary-color`, `--heading-color`, `--text-color`) resolve
+  to the React tokens. Mobile rules added at 1100/768/600/480 (hero stacks,
+  grids 4→2→1, about/cta single column, typography clamping); the audit
+  confirmed no horizontal overflow at 1440/768/390.
+- **Auth horizontal overflow fixed** (pre-existing — explicitly tracked for this
+  phase at the end of the Phase 24 block). `login.css`:
+  `.login-page { overflow-x: hidden }` restored (clips the decorative blur
+  circles that bled 80 px past the right edge on desktop/tablet), grid tracks use
+  `minmax(0, xfr)` so the 440 px `.login-card` can no longer force the
+  `.login-container` wider than the viewport, and `≤968px` uses
+  `minmax(0, 1fr)` plus tighter card/panel padding `≤600px`. `/login` and
+  `/forgot-password` now measure clean (scrollWidth == clientWidth) at
+  1440/768/390 in both themes; `.login-left` remains visible at desktop; no
+  regression on signup/reset-password/verify-email.
+- **My Pets / app / admin formatting verified with real DB data.** Seeded two
+  real pets to the audit user through the backend API and measured
+  `/app/mypet`: 2×564 px grid at 1440, single column at 768/390, pet portraits
+  `object-fit: cover`, name/details rendered, empty state when a user has no
+  pets, zero horizontal overflow. Full shell audit (headless Chrome CDP against
+  the real backend): 36/36 app-route measurements (12 routes × 3 widths) and
+  18/18 admin-route measurements clean; landing sections present; anchor nav
+  (scroll-padding-top) and theme toggle (`famipetTheme` persistence + body
+  `dark-theme`) verified; no console errors; `npm run lint`, `tsc -b`, and
+  `vite build` all pass. Landing stays light-first in dark theme exactly as the
+  Vanilla landing (no dark overrides existed there; navbar/footer/theme toggle
+  parity unchanged).
+- Note: the roadmap's "tokenized breakpoints in `tailwind.config`" wording
+  predates the Tailwind 4 CSS-first setup (no `tailwind.config` file exists —
+  tokens live in `src/index.css`/`global.css` `@theme`); breakpoint parity was
+  delivered directly in the ported per-section CSS. Verification skipped
+  screenshot diffing (Phase 26 owns that) in favor of DOM geometry/overflow
+  measurement.
+
 ### Phase 26 — Visual regression
 - **Objective:** scripted Playwright screenshot comparison: old site (5502) vs new
   (5173/build) for every page; document accepted deltas (e.g. FA glyph rendering, font
@@ -1552,6 +1703,66 @@ Implemented (commit + push under Phase 20, real backend only — no fake data):
 - **Completion criteria:** visual parity audit signed off.
 - **Rollback/safety:** additive test infra; no prod impact.
 
+**Phase 26 executed 2026-09-24 (real backend + seeded audit data; headless Chrome CDP —
+Playwright is not installed and adding dependencies was out of scope, so the scripted
+"Playwright screenshot comparison" wording above was delivered as a CDP harness that
+captures viewport screenshots and measures DOM geometry / computed styles on every page):**
+
+- **Coverage — 26 routes × 3 viewports × 2 themes = 156 combos, all measured against
+  the live API + Mongo:** public `/`, `/login`, `/signup`, `/forgot-password`,
+  `/reset-password/phase26tok`, `/verify-email/phase26tok`, `/no-such-page-xyz`;
+  user `/app/dashboard`, `/app/mypet`, `/app/health` (vaccinations included),
+  `/app/adoption`, `/app/appointments`, `/app/reminders`, `/app/community`,
+  `/app/lost-found`, `/app/petgpt`, `/app/breeds`, `/app/breeds/:id` (real breed id),
+  `/app/pet-id`, `/app/settings`; admin `/app/admin[/users|/pets|/adoptions|/community|
+  /lost-found]` (admin session). Route mapping vs the phase list: React has no
+  `/app/pets`, `/app/pets/:id`, or `/app/vaccinations` routes — pet list is
+  `/app/mypet`, pet detail is a modal on that page, and vaccinations live in
+  `/app/health` (deltas documented in the Phase 8/9 blocks).
+- **Viewports/theme:** 390/768/1440; light + dark (verified per page that
+  `body.dark-theme` flips nav/sidebar/card surfaces; e.g. dash nav
+  `rgb(251,250,255)` → `rgb(23,21,35)`).
+- **Genuine regressions found: none.** Per combo, all 156 measured: horizontal
+  overflow `0` (scrollWidth == clientWidth), elements sticking past the viewport `0`,
+  clipped `nowrap` text `0`, console errors `0`, uncaught exceptions `0`; h1 typography
+  `clamp()` verified (landing hero 37.6/51.2/64px, dash 25/25/33.12 where every h1
+  rendered width == scroll width); grids responsive (`stats-grid` 4-col @1440 →
+  2-col @768 → 1-col @390; `dashboard-grid` asymmetric masonry @1440 parity;
+  `community-layout` 2-col + 345px rail @1440); image overflow within cards `0`;
+  modals in-viewport and centered at all sizes (`.pet-modal` 720×810 @1440 / 340×760
+  @390, `.post-modal` 560×608 @1440 / 350×596 @390, `.modal-box` 500×452 @1440 /
+  358×543 @390; internally scrollable, document overflow `0`); mobile sidebar opens
+  the 288 px drawer with full overlay (design.md pattern); light/dark contrast
+  checked with the WCAG ratio on 7 page groups (landing, login, dash, mypet,
+  settings, community, admin) × 2 themes — every body text ≥3.0 and parity-checked
+  against the old site, not just absolute thresholds.
+- **No implementation commit** — the phase forbids cosmetic-only commits; this block +
+  the pushed docs commit are the Phase 26 deliverable.
+- **Accepted deltas (measured against the old site — not new defects):**
+  1. Community renders 4 broken images (3 post-user avatars + 1 `post-image`) whose
+     URLs point at `/uploads/…` files missing from disk (`backend/uploads/` is empty;
+     curling them returns 404). The referencing post/users are real records whose
+     files were cleared on this machine; the old Vanilla site would show the exact
+     same broken images. Not fixed — replacing them would fabricate data (AGENTS §5);
+     environmental, revisit only if the originals are restored.
+  2. My Pets `.pet-breed p` / `.more-btn` measure 2.94:1 in light mode — byte-for-byte
+     the same tokens/cells as the Vanilla page (probe returned identical
+     `rgb(140,152,164)` on white on both sites); keep.
+  3. Community like/comment/share icons use the theme-neutral token (3.8:1 light /
+     4.27:1 dark) instead of Vanilla's pink (3.06:1 light / 5.31:1 dark); both pass
+     the 3:1 UI-component threshold. Intentional port choice (inactive-icon tone
+     adapts to theme).
+  4. Landing footer / per-page header heights differ at tablet/mobile. The footer now
+     stacks its link grid 2-col ≤900 px / 1-col ≤600 px (Vanilla had zero `@media`
+     rules in `footer.css` and squeezed the 4 columns — 1152 px tall @390 vs 1832 px
+     now; desktop near parity 977 vs 1008 @1440). Headers were consolidated in the
+     port (e.g. My Pets @390 272 px vs Vanilla 188 px; Community 193 vs 264 px). No
+     overflow/clipping at any width — intended responsive polish.
+  5. Login left panel hidden ≤992 px and 686 px wide @1440 on **both** sites
+     (verified), and this environment's model cannot view images, so pixel-diffing
+     was replaced by the geometry/computed-style measurements plus 156 viewport
+     screenshots (saved under the OS temp dir) for human review.
+
 ### Phase 27 — Functional regression
 - **Objective:** Playwright E2E flows for every feature against the real backend +
   seeded DB; multi-user ownership tests (AGENTS §14).
@@ -1565,6 +1776,57 @@ Implemented (commit + push under Phase 20, real backend only — no fake data):
   claims "tested" without a run (AGENTS §17).
 - **Completion criteria:** full functional sign-off matrix green.
 - **Rollback/safety:** E2E on dev DB; no change to old stack.
+
+**Executed — functional regression sign-off (all suites green):**
+
+Regression harnesses drove the React app over CDP against the real backend + seeded
+`petDB`, with per-page console-error/exception/network-failure collection:
+
+| Suite | Scope | Result |
+| --- | --- | --- |
+| S1 | Auth (registry/login/logout/verify/guards) | 13/13 PASS |
+| S2A | Core CRUD (my pets/add pet/breeds popover/QR/Pet Booths/adoption listing) | 10/10 PASS |
+| S2B | Social/settings (community like + post, favorites, lost & found, notifications read-all, save profile) | 14/14 PASS |
+| S3 | Admin (stats, block/unblock, adoption approval, pet delete, community unpublish/publish/delete, lost & found resolve/delete, non-admin guards UI+API) | 22/22 PASS |
+| S4 | Ownership/isolation multi-user (A creates → A can read; B cannot mutate/owner-read; public pet view is listing-only; favorites live only on A's user doc) | 19/19 PASS |
+| S5 | PetGPT graceful degradation + real veterinarian directory | 4/4 PASS |
+
+All suites: **0 console errors, 0 page exceptions** across every Phase-27 page (the
+ComposePostModal `src=""` warning — profile/avatar empty-source — was fully eliminated).
+
+**Genuine React regressions found and fixed (8):**
+1. `PetFormModal`: native `required` on the breed `<select>` blocked custom-breed create;
+   `customBreed` now prefilled when editing a pet whose breed isn't in the preset list.
+2. `RemindersPage`: menu opened from `dataset.id` instead of `dataset.menuId` → the action
+   menu could never open.
+3. Community like: `ToggleLikeResponse` + `handleLike` now read `res.likesCount`/`res.liked`
+   (coerced union) so the liked state is restored after reload.
+4. User-shape normalization: backend `/auth/me` exposes `_id`-only, React expects `id`;
+   `normalizeUser` + `AuthContext.getMe` + `SettingsPage.saveProfile` keep `id` (+ `isOwner`,
+   delete controls, initial liked state) consistent across reloads.
+5. `PostCard`: avatar `src={assetUrl(post.avatar) || FALLBACK_AVATAR}` (empty-avatar src).
+6. `adoptionBase`: pet image falls back to `FALLBACK_IMAGE` when `images[0]` is an empty string.
+7. `ComposePostModal`: preview `<img>` only rendered when a preview exists (`{preview && <img …>}`)
+   — this was the last remaining `src=""` console warning.
+8. `adoptionBase` image fallback guards empty-string entries (same root cause as 6).
+
+**Multi-user ownership results (AGENTS §14):** A creates pet/health/vaccination/appointment/
+reminder/community post/lost-report/favorite; B cannot soft-read A's pet (owner-scoped list),
+edit/deactivate A's pet, read A's health record, complete A's reminder, delete A's post or
+report (all 403/404), and B's appointments/reminders/notifications never leak A's records.
+`GET /pets/:id` is intentionally **public** (view counter) and only exposes listing-grade
+information. Favorites persist on `User.favorites` (only A's user doc after A's toggle) —
+there is no `GET /favorites` route.
+
+**Documented limitation (backend contract, no frontend workarounds):** PetGPT renders only the
+designed degradation state — `/ai/conversations*` and `/ai/jobs*` do not exist on the current
+backend branch (origin/main contract), returning `404 {"success":false,"message":"Route not found"}`;
+the page shows the chat-rail failure + Retry, sending a message surfaces a toast, and the real
+vet directory + Quick Actions still work. No fake replies or client-side fallback data.
+Backend observation, left untouched: public `GET /users/:id` leaks favorites/pets/contact info.
+
+**Verification:** `npm run lint` clean (only the 2 pre-existing warnings); `npm run build`
+(`tsc -b && vite build`) clean.
 
 ### Phase 28 — Docker / Nginx integration
 - **Objective:** productionize the React app: multi-stage build (`node:*-alpine` build →
@@ -1581,6 +1843,132 @@ Implemented (commit + push under Phase 20, real backend only — no fake data):
   load; CORS not needed same-origin (and backend `isDevOrigin` still passes if separated).
 - **Completion criteria:** one-command production stack, E2E green inside container.
 - **Rollback/safety:** new artifacts only; backend untouched.
+
+**Executed — Docker / Nginx integration validated (production stack through the existing
+deployment architecture):**
+
+New artifacts (backend + entry-nginx images untouched, reused from the deployment repo):
+
+* `frontend-react/Dockerfile` — multi-stage: `node:26-alpine` build (lockfile `npm ci`,
+  `tsc -b && vite build`, `ARG VITE_API_URL=/api` baked into the bundle) → `nginx:alpine`
+  runtime serving only `dist/` on **5502** (legacy CLIENT_URL port parity) with the same
+  HEALTHCHECK the legacy frontend image used.
+* `frontend-react/nginx.conf` — `listen 5502`, SPA `try_files $uri $uri/ /index.html`,
+  `/assets/` hashed bundles `immutable; max-age=30d`, HTML `no-cache` revalidate,
+  gzip, `server_tokens off`, nosniff / SAMEORIGIN / strict-origin-when-cross-origin.
+  Deliberately **no CSP** (Google Fonts/Lucide/Cloudinary + inline styles — same
+  decision as the legacy frontend config).
+* `frontend-react/.dockerignore` — keeps `node_modules`/`dist`/`.env` out of the image.
+* `frontend-react/docker-compose.yml` — mirrors the live deployment `habiba/Fami-Pet`
+  compose exactly (service names `nginx`/`frontend`/`backend`/`mongodb`/`cloudflared`,
+  `famipet-frontend-net` + `famipet-backend-net` isolation, backend hardening, uploads +
+  mongodb volumes), except the `frontend` service builds the React app. Validation
+  published the entry nginx on **`18080:80`** so the live stack kept `:80/:8080`.
+* `frontend-react/.env.example` + gitignore rule — local compose `.env` stays out of git
+  (`${JWT_SECRET:?}` required at up-time; nothing baked into images).
+
+Architecture verified unchanged: browser → `famipet-nginx:production` (entry proxy:
+`/api*` + `/uploads*` → `backend:5000`, `/` → `frontend:5502`) → React static / backend →
+local `mongo:8`. The React container publishes no host port (internal-only, like legacy).
+
+Start command on a fresh DB: `docker compose up -d --build` then
+`docker compose exec backend node utils/seedData.js` (needs `SEED_ADMIN_PASSWORD`).
+
+**Validated routes (real deployed stack, browser E2E over CDP at http://localhost:18080):**
+| Check | Result |
+| --- | --- |
+| `/`, `/login`, `/signup`, `/forgot-password` render React | PASS |
+| Deep links `/verify-email/:token`, `/reset-password/:token` render (no 404) | PASS |
+| Unknown route → React NotFound page (SPA fallback serves index.html) | PASS |
+| `/app/breeds/:id` direct load + **refresh persists** (nginx serves index.html) | PASS |
+| Login (seeded user) → `/app/dashboard` greeting + no console/exception errors | PASS |
+| `GET /api/pets/my` — real seeded pet (Labrador) through proxied API | PASS |
+| Community posts render (seeded) | PASS |
+| PetGPT page degrades gracefully in production too (missing `/ai/*` backend routes) | PASS |
+| `/assets/index-*.js` 200 `application/javascript`, `immutable` cache | PASS |
+| Security headers on HTML+assets (`Server: nginx` no version, nosniff/SAMEORIGIN/Referrer, no CSP) | PASS |
+| `POST /api/users/avatar` through nginx → file written to uploads volume → `GET /uploads/<file>` 200 `image/png` | PASS |
+| `GET /api/auth/me` 401 unauthenticated / 200 with JWT; `/api/status` `"db":"connected"` | PASS |
+| Container logs (nginx + backend) — 0 errors; all services healthy | PASS |
+
+**Build facts / observations:**
+* Deployed bundle bakes `API_BASE = '/api'` (relative, same-origin through nginx) with
+  **zero** `localhost` references — verified in the emitted JS. `VITE_API_URL=/api` is
+  the documented default and is required for a same-origin deployment.
+* The Linux image build deterministically emits `assets/index-LyznC6wS.js` (620.5 kB).
+  A local *Windows-host* `npm run build` of the identical source/lockfile emits a
+  different but functionally identical bundle (`index-…`, 1015.7 kB) — cross-platform
+  rolldown build variance, not a code or config difference; the deployed artifact is the
+  image build. Pre-existing >500 kB chunk warning only (both platforms).
+* Browser `ERR_BLOCKED_BY_ORB` observed only for the seed's external Unsplash pet
+  images (cross-origin embeds, Chrome enforcement superimposed by `imagesrc` policy) —
+  identical on dev and live origins; no app asset or `/uploads` file is affected.
+* Pre-existing backend behavior, left untouched (identical on the live stack, not a
+  migration regression): uploaded file URLs are built from `req.get('host')`, so through
+  the entry proxy they resolve as `<protocol>://<host>/uploads/<file>` (the client also
+  revives `/uploads/...` via `assetUrl`). No Cloudflare/DNS configuration was changed;
+  end-to-end HTTPS-through-CNAME could not be exercised from this environment (the
+  named tunnel keeps serving the legacy stack to `famipet.catlium.in`) — documented
+  limitation.
+
+**Verification:** `npm run lint` clean (same 2 pre-existing warnings); `npm run build`
+clean; `docker compose up -d --build` one-command stack green; browser E2E 15/15 PASS;
+upload → `/uploads` fetch chain verified end-to-end; isolated stack torn down
+(`down -v`, host-test Chrome stopped) with the live deployment untouched.
+
+### Final Dockerization — production-ready frontend + backend (post Phase 28)
+
+Concise close-out of the production Docker work. The existing Phase-28 artifacts
+(`frontend-react/Dockerfile|nginx.conf|.dockerignore|docker-compose.yml|.env.example`)
+and every previously built image remain **as-is**, kept for reference/rollback.
+
+**Final artifacts (new, `docker-final/` — clearly named so nothing prior is touched):**
+| Path | Purpose |
+| --- | --- |
+| `docker-final/docker-compose.production.yml` | final compose (project `famipet-final`) |
+| `docker-final/frontend/Dockerfile` | React multi-stage: `node:26-alpine` build (`npm ci`, `tsc -b && vite build`, `ARG VITE_API_URL=/api`) → `nginx:alpine` (dist only, port 5502, healthcheck) |
+| `docker-final/frontend/nginx.conf` | SPA `try_files … /index.html`, `/assets/` immutable, gzip, security headers, no CSP (same posture as legacy + Phase 28) |
+| `docker-final/backend/Dockerfile` | Express backend: node:26-alpine, `npm ci --omit=dev` (no build step — plain CJS), non-root `node` user, `/app/uploads`+`/app/logs`, healthcheck vs existing `GET /api/status`, `CMD node server.js` |
+| `docker-final/nginx/Dockerfile` | entry reverse proxy (nginx:alpine, healthcheck on `/`) |
+| `docker-final/nginx/nginx.conf` | byte-equivalent of the deployed proxy: `/api*`+`/uploads*`→`backend:5000`, `/`→`frontend:5502`, CF-aware XFF/proto maps, headers, no CSP/HSTS |
+| `docker-final/.env.example` + `docker-final/.gitignore` | compose-level vars (CLIENT_URL/FRONTEND_URL/VITE_API_URL/TUNNEL_TOKEN); local `.env` never committed |
+| `backend/.dockerignore` | excludes `.env`, node_modules, uploads, logs from the backend build context |
+
+**Architecture (identical to the live deployment, self-contained in this repo):**
+cloudflared (optional profile) → `nginx` (single published entry) → `frontend` (React, :5502)
++ `backend` (:5000) → `mongodb` (mongo:8, internal). Networks `famipet-frontend-net` +
+`famipet-backend-net`; volumes `mongodb_data`, `backend_uploads`; backend hardened
+(non-root, `cap_drop: ALL`, `read_only`, `tmpfs /tmp`, tini). Backend env comes from the
+gitignored `../backend/.env` (same file the deployed stack uses); only `MONGODB_URI`
+(service name), `SERVE_FRONTEND_FALLBACK=false` and the public origins are overridden.
+No secret is baked into any image (verified: backend image env is stock Node base only).
+
+**Run:**
+```
+docker compose -f docker-final/docker-compose.production.yml up -d --build     # app at http://localhost:18081
+docker compose -f docker-final/docker-compose.production.yml exec -e SEED_ADMIN_PASSWORD=... backend node utils/seedData.js
+docker compose -f docker-final/docker-compose.production.yml down -v
+```
+
+**Validation (isolated project `famipet-final`, published host port `18081:80`; the live
+stack kept `:80/:8080` untouched):** images built (frontend 135 MB, backend 372 MB, nginx
+93.6 MB), all 4 services healthy; frontend 200; SPA deep links (login/signup/forgot-password/
+verify-email/:token/reset-password/:token/app/dashboard/app/breeds/:id) all 200 + breed
+detail refresh persists; unknown route → React NotFound; `/api/status` via proxy OK;
+401 without token / login+me 200; `GET /api/pets/my` returned seeded pets (MongoDB
+connectivity); avatar upload → real file in uploads volume → `GET /uploads/<file>` 200
+image/png; browser E2E over CDP **15/15 PASS, 0 console errors** (only benign ORB blocks
+for the seed's external Unsplash images), 0 errors in nginx/backend logs; bundle has
+`API_BASE='/api'` baked with **zero** `localhost:5000`/dev refs.
+
+**Accepted notes/deviations:** (1) `SERVE_FRONTEND_FALLBACK=false` is a no-op in this
+repo's `server.js` (the fallback listener always binds the CLIENT_URL port — an
+unpublished in-container port while nginx owns hosting; application code untouched).
+(2) This repo's `GET /api/status` returns `{status:"OK",message:…}` (no `db` field);
+MongoDB connectivity is therefore verified explicitly via authenticated data reads.
+(3) Backend has no test/lint/typecheck scripts (only `start`/`dev`/`seed`) — nothing extra
+to run. (4) External Cloudflare/DNS HTTPS flow is unchanged (dashboard-configured tunnel;
+not exercised from here). (5) Health checks reuse existing app endpoints only.
 
 ### Phase 29 — Removal of the old Vanilla frontend (ONLY after Phases 26+27 green)
 - **Objective:** remove `frontend/` vanilla files; repoint anything that referenced them

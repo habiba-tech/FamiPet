@@ -2,7 +2,7 @@ import { Icon } from '../../components/shared/Icon'
 import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { verifyEmail } from '../../api/auth'
-import type { ApiError } from '../../api/client'
+import { getErrorMessage } from '../../lib/errors'
 import { Divider } from '../../components/auth/Divider'
 
 // Parity with verify-email.html + verify-email.js: verifies the token from the
@@ -33,8 +33,8 @@ export function VerifyEmailPage() {
         setTitle('Email Verified!')
         setMessage(data.message || 'Your email has been verified successfully. You can now login.')
       })
-      .catch((err: ApiError) => {
-        let msg = (err.data && err.data.message) || 'The verification link is invalid or has expired.'
+      .catch((err) => {
+        let msg = getErrorMessage(err, 'The verification link is invalid or has expired.')
         if (/expired|valid/i.test(msg)) {
           msg = 'The verification link is invalid or has expired. Please request a new verification email.'
         }

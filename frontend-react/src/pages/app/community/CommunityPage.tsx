@@ -144,15 +144,24 @@ export function CommunityPage() {
   const handleLike = async (post: PostView) => {
     try {
       const res = await toggleCommunityLike(post.id)
+      // The like endpoint returns { likesCount, liked } (no likes array), so
+      // prefer those fields and fall back to a populated likes array for
+      // robustness. Reading a missing `likes` array alone made the count/liked
+      // state always reset after a toggle.
       const likes = res.likes || []
+      const count = typeof res.likesCount === 'number' ? res.likesCount : likes.length
+      const liked =
+        typeof res.liked === 'boolean'
+          ? res.liked
+          : likes.some((u) => (u && typeof u === 'object' ? u._id : u) === currentUserId)
       setPosts(
         (list) =>
           list?.map((p) =>
             p.id === post.id
               ? {
                   ...p,
-                  likesCount: likes.length,
-                  liked: likes.some((u) => (u && typeof u === 'object' ? u._id : u) === currentUserId),
+                  likesCount: count,
+                  liked,
                 }
               : p,
           ) ?? list,

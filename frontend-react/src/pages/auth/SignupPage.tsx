@@ -3,6 +3,7 @@ import { useState, type FormEvent } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { register } from '../../api/auth'
 import type { ApiError } from '../../api/client'
+import { getErrorMessage } from '../../lib/errors'
 import { AuthLeftPanel } from '../../components/auth/AuthLeftPanel'
 import { Divider } from '../../components/auth/Divider'
 import { InputBox } from '../../components/auth/InputBox'
@@ -115,7 +116,7 @@ export function SignupPage() {
           setPasswordError(apiErr.data.message)
         }
       } else {
-        setPasswordError(apiErr.message || 'Registration failed. Please try again.')
+        setPasswordError(getErrorMessage(apiErr, 'Registration failed. Please try again.'))
       }
     }
   }

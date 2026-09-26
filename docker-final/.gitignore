@@ -1,0 +1,4 @@
+# Local Docker Compose environment (never commit)
+.env
+.env.*
+!.env.example

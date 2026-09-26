@@ -2,14 +2,30 @@
 // Preserves the exact storage keys, request headers, Bearer token behavior,
 // JSON parsing, network/parse error handling, and the 401-with-token rule.
 // The backend is unchanged.
+//
+// This is the ONLY place that talks to the network. Every src/api/<resource>.ts
+// module fans out from here, so the request semantics (JSON vs FormData,
+// Bearer token, 401 redirect, error normalization) are shared app-wide.
 
+import { toApiError, type ApiError } from '../lib/errors'
 import {
   FAMIPET_PROFILE_KEY,
   FAMIPET_TOKEN_KEY,
   FAMIPET_USER_KEY,
 } from '../lib/storage'
 
-export const API_BASE = 'http://localhost:5000/api'
+// Base URL of the backend API (no trailing slash). Overridable at build/dev
+// time with VITE_API_URL so the same bundle can target any deployment without
+// a code change; defaults to the local backend (api.js parity).
+export const API_BASE = (import.meta.env.VITE_API_URL || 'http://localhost:5000/api').replace(/\/+$/, '')
+
+// Origin the backend serves media from (multer `/uploads/...` lives above the
+// `/api` mount point). Single source for lib/image.ts asset resolution.
+export function apiOrigin(): string {
+  return API_BASE.replace(/\/api$/, '')
+}
+
+export { type ApiError }
 
 /* ---------------- TOKEN / USER ---------------- */
 
@@ -56,6 +72,18 @@ export function setUser(user: StoredUser | null): void {
   }
 }
 
+// Backend auth endpoints disagree on the user shape: login/register return
+// `publicUser` (with `id`), while GET /auth/me and PUT /auth/profile return the
+// raw mongoose doc (with `_id`, no `id`). Consumers read `user.id`, so any
+// stored user must carry `id`. Normalize `_id` → `id` so reloads / profile
+// saves never leave localStorage with a user that breaks `.id` lookups.
+export function normalizeUser(user: StoredUser | null | undefined): StoredUser | null {
+  if (!user) return user ?? null
+  if (user.id) return user
+  const id = user._id
+  return typeof id === 'string' && id ? { ...user, id } : user
+}
+
 export function isLoggedIn(): boolean {
   return !!getToken()
 }
@@ -72,22 +100,6 @@ export function logoutStoredAuth(): void {
   setUser(null)
   localStorage.removeItem(FAMIPET_PROFILE_KEY)
   sessionStorage.clear()
-}
-
-/* ---------------- ERROR TYPE ---------------- */
-
-export interface ApiError extends Error {
-  status?: number
-  data?: Record<string, unknown> & { message?: string; isVerified?: boolean }
-  isNetwork?: boolean
-}
-
-function toApiError(message: string, extra: { status?: number; data?: unknown; isNetwork?: boolean }): ApiError {
-  const err = new Error(message) as ApiError
-  if (extra.status !== undefined) err.status = extra.status
-  if (extra.data !== undefined) err.data = extra.data as ApiError['data']
-  if (extra.isNetwork !== undefined) err.isNetwork = extra.isNetwork
-  return err
 }
 
 /* ---------------- UNAUTHORIZED HOOK ----------------

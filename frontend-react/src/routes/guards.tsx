@@ -32,14 +32,24 @@ export function RequireAdmin({ children }: { children: ReactNode }) {
   return <>{children}</>
 }
 
-// Bounces authenticated users off the auth pages. Admins land on the admin
-// dashboard (/app/admin), everyone else on /app/dashboard — mirroring the
-// role-based post-login redirect in login.js.
+// Bounces authenticated users off the auth pages. Destination mirrors login.js
+// (admin → /app/admin, everyone else → /app/dashboard), but first honors the
+// `state.from` set by RequireAuth/RequireAdmin so a deep-link login returns to
+// the page the user originally tried to visit instead of flashing the
+// dashboard. Navigating here (on the auth state flip during login) makes the
+// post-login redirect deterministic — the login page no longer races its own
+// delayed navigate.
 export function RedirectIfAuthed({ children }: { children: ReactNode }) {
   const { isAuthenticated, isAdmin, loading } = useAuth()
+  const location = useLocation()
 
   if (loading) return <AuthSplash />
-  if (isAuthenticated) return <Navigate to={isAdmin ? '/app/admin' : '/app/dashboard'} replace />
+  if (isAuthenticated) {
+    const stateFrom = (location.state as { from?: { pathname?: string } } | null)?.from?.pathname
+    const from = stateFrom && stateFrom !== '/login' ? stateFrom : null
+    const dest = from || (isAdmin ? '/app/admin' : '/app/dashboard')
+    return <Navigate to={dest} replace />
+  }
 
   return <>{children}</>
 }
