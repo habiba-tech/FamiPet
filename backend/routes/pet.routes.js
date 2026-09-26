@@ -33,9 +33,9 @@ router.post("/", protect, petController.createPet);
 // PET ID ROUTES
 // =====================================================
 
-// Get single pet by ID
+// Get single pet by ID (owner or admin only, enforced in the controller)
 // GET /api/pets/:id
-router.get("/:id", petController.getPetById);
+router.get("/:id", protect, petController.getPetById);
 
 // Update pet
 // PUT /api/pets/:id

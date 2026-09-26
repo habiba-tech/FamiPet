@@ -122,6 +122,17 @@ exports.getPetById = async (req, res) => {
       });
     }
 
+    // Only the pet owner (or an admin) may read a pet by ID. Same policy as
+    // generateQRCode below: a direct-ID read must not be broader than /pets/my.
+    const isOwner = pet.owner && pet.owner._id && pet.owner._id.toString() === req.user.id.toString();
+    const isAdmin = req.user.role === "admin";
+    if (!isOwner && !isAdmin) {
+      return res.status(403).json({
+        success: false,
+        message: "You are not authorized to view this pet.",
+      });
+    }
+
     // Increase views
     pet.views += 1;
     await pet.save();
