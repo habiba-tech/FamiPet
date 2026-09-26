@@ -1,0 +1,203 @@
+# =========================================================
+# FAMIPET - PRODUCTION DOCKER COMPOSE (root, canonical)
+# =========================================================
+# Full integrated application: React/Vite frontend + Node/Express
+# backend + MongoDB behind a single nginx entry point.
+#
+#   Internet
+#      |
+#   Cloudflare / cloudflared (optional, profile "tunnel")
+#      |
+#   nginx :80  <-- the ONLY published application port
+#      |
+#      +-- /api/*     -> backend:5000  (private)
+#      +-- /uploads/* -> backend:5000  (private)
+#      +-- /*         -> frontend:5502 (private, React SPA)
+#                          |
+#   backend:5000 -> mongodb:27017 (private, named volume)
+#
+# Reuses the reviewed build definitions in docker-final/ (single source
+# of truth for the images). docker-final/docker-compose.production.yml
+# is kept unchanged for reference/rollback.
+#
+# RUN:
+#   docker compose up -d --build              # app at http://localhost:8080
+#   docker compose down -v                    # stop + drop volumes
+#
+# SECRETS: none are baked into any image. The backend reads its real
+# configuration (JWT, Mongo, SMTP, Cloudinary, every PETGPT_* var) at
+# runtime from the gitignored ./backend/.env via env_file.
+# =========================================================
+
+# Isolated project namespace: containers/volumes/networks are prefixed
+# famipet_... and never collide with any other stack on this host.
+name: famipet
+
+services:
+
+  # -------- FRONTEND (React SPA served by nginx, :5502) --------
+  # Multi-stage build (node:26-alpine -> nginx:alpine). The API base is
+  # the relative "/api", so the bundle contains no backend host and no
+  # secret. Internal only: reached exclusively by the nginx entry point.
+  frontend:
+    build:
+      context: ./frontend-react
+      dockerfile: ../docker-final/frontend/Dockerfile
+      args:
+        VITE_API_URL: ${VITE_API_URL:-/api}
+    image: famipet-frontend:production
+    restart: unless-stopped
+    init: true
+    security_opt:
+      - no-new-privileges:true
+    expose:
+      - "5502"
+    networks:
+      - famipet-frontend-net
+    mem_limit: 256m
+    cpus: 0.5
+
+  # -------- BACKEND (Node.js + Express API, :5000) --------
+  # Plain CommonJS project: no build step, production dependencies only,
+  # runs as the non-root "node" user on a read-only root filesystem.
+  backend:
+    build:
+      context: ./backend
+      dockerfile: ../docker-final/backend/Dockerfile
+    image: famipet-backend:production
+    restart: unless-stopped
+    init: true
+    security_opt:
+      - no-new-privileges:true
+    # Node listens on 5000 (>1024) and makes normal outbound sockets, so
+    # it needs no Linux capabilities at all.
+    cap_drop:
+      - ALL
+    read_only: true
+    tmpfs:
+      - /tmp
+    # Real configuration + every PetGPT/OmniRoute variable, from the
+    # gitignored backend/.env. Nothing secret is baked into the image.
+    env_file:
+      - ./backend/.env
+    # PetGPT/OmniRoute: OmniRoute is NOT a service in this stack - it
+    # already runs on this host. A container cannot reach the host's
+    # loopback, so host.docker.internal is mapped to the host gateway and
+    # the existing OmniRoute is addressed by that STABLE name:
+    #   PETGPT_OPENAI_BASE_URL=http://host.docker.internal:20128/v1
+    # (A 172.x container IP is never used - it changes on every recreate.)
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    environment:
+      # Inside the Compose network the database resolves by service name
+      # (environment entries override env_file values).
+      - MONGODB_URI=mongodb://mongodb:27017/petDB
+      # nginx serves the frontend, so the backend must not also try to.
+      - SERVE_FRONTEND_FALLBACK=false
+      # Public origin used for emailed deep links (verify/reset) + CORS.
+      - CLIENT_URL=${CLIENT_URL:-http://localhost:8080}
+      - FRONTEND_URL=${FRONTEND_URL:-http://localhost:8080}
+    expose:
+      - "5000"
+    volumes:
+      # Persist locally-stored fallback uploads (Cloudinary is used when
+      # its credentials are configured).
+      - backend_uploads:/app/uploads
+    networks:
+      - famipet-backend-net
+    depends_on:
+      mongodb:
+        condition: service_healthy
+    mem_limit: 1g
+    cpus: 1.0
+
+  # -------- MONGODB (internal only, persistent) --------
+  # No host port is published: only the backend reaches it, by service
+  # name, over the backend network.
+  #
+  # Image is mongo:7, NOT mongo:8: MongoDB 8 refuses to start on Linux
+  # kernel 6.19+ (SERVER-121912) and this host runs that kernel. mongoose
+  # 8.4.4 supports MongoDB 4.4+, so 7.0 is fully supported by the app.
+  mongodb:
+    image: mongo:7
+    restart: unless-stopped
+    init: true
+    security_opt:
+      - no-new-privileges:true
+    volumes:
+      - mongodb_data:/data/db
+    expose:
+      - "27017"
+    networks:
+      - famipet-backend-net
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.runCommand({ ping: 1 }).ok"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    mem_limit: 2g
+    cpus: 1.0
+
+  # -------- NGINX (single public entry point / reverse proxy) --------
+  # Joins BOTH networks so it can reach the private frontend and backend
+  # by service name. Terminates no TLS itself (Cloudflare edge does).
+  nginx:
+    build:
+      context: ./docker-final/nginx
+      dockerfile: Dockerfile
+    image: famipet-nginx:production
+    restart: unless-stopped
+    init: true
+    security_opt:
+      - no-new-privileges:true
+    ports:
+      - "${APP_PORT:-8080}:80"
+    networks:
+      - famipet-frontend-net
+      - famipet-backend-net
+    depends_on:
+      frontend:
+        condition: service_healthy
+      backend:
+        condition: service_healthy
+    mem_limit: 128m
+    cpus: 0.5
+
+  # -------- CLOUDFLARED (Cloudflare Tunnel, optional public HTTPS) --------
+  # Outbound-only. The public hostname -> http://nginx:80 mapping is
+  # configured in the Cloudflare Zero Trust dashboard for the named
+  # tunnel; this container only runs it. The TOKEN is injected at runtime
+  # from a gitignored .env and is never baked into an image. Gated behind
+  # profile "tunnel" so a plain `up` cannot start it with an empty token:
+  #   docker compose --profile tunnel up -d cloudflared
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    restart: unless-stopped
+    init: true
+    security_opt:
+      - no-new-privileges:true
+    profiles:
+      - tunnel
+    command: tunnel run
+    environment:
+      - TUNNEL_TOKEN=${TUNNEL_TOKEN:-}
+    networks:
+      - famipet-frontend-net
+    depends_on:
+      nginx:
+        condition: service_healthy
+    mem_limit: 128m
+    cpus: 0.5
+
+# -------- NETWORKS (frontend isolated from backend + database) --------
+networks:
+  famipet-frontend-net:
+    driver: bridge
+  famipet-backend-net:
+    driver: bridge
+
+# -------- PERSISTENT VOLUMES --------
+volumes:
+  mongodb_data:
+  backend_uploads:

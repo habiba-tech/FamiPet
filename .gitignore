@@ -1,1 +1,28 @@
 graphify-out/
+
+# Local Docker Compose environment for the root docker-compose.yml.
+# Holds the Cloudflare TUNNEL_TOKEN and optional APP_PORT / CLIENT_URL /
+# VITE_API_URL overrides. Never commit.
+.env
+.env.*
+!.env.example
+
+# LaTeX/XeLaTeX build artifacts. The blackbook source IS tracked
+# (main.tex, references.bib, sections/, appendices/, diagrams/,
+# figures/); only the by-products of `latexmk -xelatex` are ignored.
+# Scoped to docs/blackbook/ so a real PDF/asset elsewhere is never
+# swallowed by accident.
+/docs/blackbook/*.aux
+/docs/blackbook/*.bbl
+/docs/blackbook/*.blg
+/docs/blackbook/*.fdb_latexmk
+/docs/blackbook/*.fls
+/docs/blackbook/*.lof
+/docs/blackbook/*.log
+/docs/blackbook/*.lot
+/docs/blackbook/*.out
+/docs/blackbook/*.pdf
+/docs/blackbook/*.synctex.gz
+/docs/blackbook/*.toc
+/docs/blackbook/*.xdv
+/docs/blackbook/output/

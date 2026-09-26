@@ -66,4 +66,15 @@ module.exports = [
       "no-return-await": "error",
     },
   },
+
+  // The test suite is a set of zero-framework scripts run as `node test/x.js`,
+  // so console IS the reporting channel (petgpt-jobs.test.js even stubs
+  // console.log to assert on it). The winston rule above is about application
+  // logging, not test output.
+  {
+    files: ["test/**/*.js"],
+    rules: {
+      "no-console": "off",
+    },
+  },
 ];

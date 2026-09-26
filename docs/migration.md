@@ -1970,6 +1970,154 @@ MongoDB connectivity is therefore verified explicitly via authenticated data rea
 to run. (4) External Cloudflare/DNS HTTPS flow is unchanged (dashboard-configured tunnel;
 not exercised from here). (5) Health checks reuse existing app endpoints only.
 
+### Canonical production stack — root `docker-compose.yml` (integrated post-merge)
+
+The section above validated `docker-final/` **before** the merge of
+`origin/backend-audit` and `feature/petgpt-enhancement`. The merge changed the
+backend, so that stack was re-audited and the canonical entry point moved to a
+plain root `docker-compose.yml`. Nothing was deleted: `docker-final/` and the
+Phase-28 `frontend-react/` artifacts remain exactly as they were, for reference
+and rollback.
+
+**Canonical artifacts**
+
+| Path | Purpose |
+| --- | --- |
+| `docker-compose.yml` | **the** production compose (project `famipet`, publishes `8080:80`) |
+| `docker-compose.omniroute.yml` | optional override: reach an OmniRoute container that runs in another Compose project, by service name |
+| `docker-final/frontend/Dockerfile` | reused by the root compose (build context `./frontend-react`) |
+| `docker-final/backend/Dockerfile` | reused by the root compose (build context `./backend`) |
+| `docker-final/nginx/{Dockerfile,nginx.conf}` | reused by the root compose (entry proxy) |
+| `.gitignore` (root) | now also ignores `.env`, so a root compose `.env` (e.g. `TUNNEL_TOKEN`) can never be committed |
+
+**Two changes to the reused Docker/backend files**
+
+1. `docker-final/backend/Dockerfile` now copies `jobs/`. The merged
+   `server.js` does `require('./jobs/generation.worker')` (durable PetGPT
+   generation worker) and the previous `COPY` list omitted it, so the backend
+   image could not boot after the merge.
+2. `docker-compose.yml` maps `host.docker.internal:host-gateway` on the backend
+   so an OmniRoute published on a routable host address is reachable by a
+   stable name. See the PetGPT note below for why that alone is not enough when
+   OmniRoute is bound to host loopback.
+
+**MongoDB is `mongo:7`, not `mongo:8`** — MongoDB 8 refuses to start on Linux
+kernel 6.19+ (SERVER-121912) and this host runs that kernel; `mongo:8` crash-looped
+with exit 1. `mongo:7` starts cleanly and is fully supported (mongoose 8.4.4
+requires MongoDB >= 4.4).
+
+**PetGPT / OmniRoute.** The merged PetGPT speaks the OpenAI chat-completions
+dialect through `backend/ai/openai.js`, so any OpenAI-compatible endpoint works
+(OmniRoute, a proxy, vLLM …). All of it is environment-driven
+(`backend/config/ai.js`): provider, base URL, API key, model, timeout, worker,
+tool-calling, quota and the AES-256-GCM key for stored per-user provider
+configs. Every one of those variables reaches the container unchanged, because
+the backend is started with `env_file: ./backend/.env` — no compose change and
+no source change is needed to configure PetGPT.
+
+**OmniRoute addressing (no hardcoded IPs).** OmniRoute is *not* a service of
+this stack; it already runs on this host in another Compose project. Its
+published port is bound to **host loopback only** (`127.0.0.1:20128`), so a
+container cannot reach it through the docker gateway — `host.docker.internal`
+alone fails with a provider network error. The supported approach is to attach
+the backend to the network OmniRoute is already on and address it by **service
+name**:
+
+```bash
+docker compose -f docker-compose.yml -f docker-compose.omniroute.yml up -d --build
+# backend/.env:
+#   PETGPT_PROVIDER=openai
+#   PETGPT_OPENAI_BASE_URL=http://omniroute:20128/v1
+#   PETGPT_OPENAI_API_KEY=<key>
+#   PETGPT_OPENAI_MODEL=free-chat
+```
+
+Docker resolves that name through its embedded DNS, so it survives container
+recreation. `backend/.env.example` no longer suggests a `172.18.0.2` address —
+that address is not stable (the live one during validation was `172.18.0.8`).
+The network name comes from `OMNIROUTE_NETWORK` (default `edutech_default`) and
+is declared `external: true`, so the standalone stack still works when that
+network does not exist.
+
+**Run**
+
+```bash
+docker compose up -d --build                 # app at http://localhost:8080
+docker compose exec backend node utils/seedData.js   # optional real seed data
+docker compose down -v                       # stop, drop containers+volumes
+docker compose --profile tunnel up -d cloudflared   # optional Cloudflare tunnel
+```
+
+**Final topology**
+
+```text
+Internet -> Cloudflare / cloudflared (profile "tunnel", optional)
+         -> nginx :80                    (only published app port, APP_PORT)
+              |-- /api/*     -> backend:5000   (private)
+              |-- /uploads/* -> backend:5000   (private)
+              `-- /*         -> frontend:5502  (private, React SPA)
+                                backend:5000 -> mongodb:27017 (private)
+```
+
+| Concern | Value |
+| --- | --- |
+| Frontend image | `famipet-frontend:production` — `node:26-alpine` build (`npm ci`, `tsc -b && vite build`, `ARG VITE_API_URL=/api`) → `nginx:alpine` on 5502, dist only |
+| Backend image | `famipet-backend:production` — `node:26-alpine`, `npm ci --omit=dev`, non-root `node`, `CMD node server.js` |
+| Proxy image | `famipet-nginx:production` — `nginx:alpine`, `/api`+`/uploads`→backend, `/`→frontend, CF-aware `X-Forwarded-For`/proto maps |
+| MongoDB | `mongo:7`, **no host port**, named volume `famipet_mongodb_data` |
+| Networks | `famipet_frontend-net` (frontend + tunnel), `famipet_backend-net` (backend + mongo); nginx and (with the override) the backend join both as needed |
+| Volumes | `famipet_mongodb_data`, `famipet_backend_uploads` |
+| Ports | nginx `8080:80` (override with `APP_PORT`); frontend 5502, backend 5000, mongo 27017 are `expose`-only |
+| Env | backend = gitignored `backend/.env` via `env_file`; only `MONGODB_URI` (service name), `SERVE_FRONTEND_FALLBACK`, and the public origins are overridden |
+| Hardening | backend: non-root, `cap_drop: ALL`, `read_only`, tmpfs `/tmp`, tini. mongo: no published port. nginx: no TLS (Cloudflare edge) |
+
+**Validation (isolated project `famipet`; the co-located `edutech` stack was not
+touched).** All 4 services healthy. SPA deep links `/`, `/login`, `/signup`,
+`/app/dashboard`, `/app/petgpt`, `/forgot-password`, `/verify-email/:token`,
+`/reset-password/:token`, `/app/breeds/1` and an unknown route all return the
+React app; in-browser the unknown route renders the client-side 404 and a hard
+refresh of `/app/petgpt` keeps the session. Proxy: `/api/status` 200,
+`/api/auth/me` 401 without a token, unknown API route 404 (Express), and a real
+file written to the uploads volume served as `image/png` through
+`/uploads/<file>`. Auth + real data: seeded user login, `/api/auth/me`,
+`/api/pets/my`, full pet create→read→delete, `/api/veterinarians`, and ownership
+isolation (user 403 on `/api/admin/users`, admin 200; each user sees only their
+own pets). Volumes survived a full `down`/`up` with data intact. PetGPT returned
+a real OmniRoute answer through the proxy and in the browser, grounded on the
+user's actual pet and correctly refusing to give a diagnosis. Frontend
+`npm run lint` (2 pre-existing `set-state-in-effect` warnings, 0 errors) and
+`npm run build` pass; backend `npm test` is green (all 14 suites, including the
+OmniRoute E2E suites). Images: 135 MB / 386 MB / 93.6 MB, no secrets in image
+env, no `.env` in any image, `test/`+`.git` excluded, production bundle carries
+`/api` with no dev host. Stack then torn down with `down -v`.
+
+**Known limitations.** (1) `POST /api/auth/register` fails end-to-end without
+SMTP configured — an application dependency, not a Docker one. (2)
+`SERVE_FRONTEND_FALLBACK=false` is still a no-op in this repo's `server.js`.
+(3) The Cloudflare tunnel itself is not exercised from here
+(dashboard-configured). (4) `npm run lint` still reports 30 pre-existing
+`no-console` errors in the PetGPT application code (`ai/`,
+`jobs/generation.worker.js`, the PetGPT controllers); the 14 test suites are
+exempt because `console` is their reporting channel. This is style debt
+inherited from the branch merge, not a functional defect, and is left for a
+dedicated pass.
+
+**Post-merge revalidation (isolated compose project `famipetaudit`).** Rebuilt
+from the current tree with the OmniRoute override. All four services healthy;
+only nginx published a port. Routes `/`, `/login`, `/app/dashboard`,
+`/app/petgpt` and an unknown path all serve the SPA shell. `/api/status` 200;
+`/api/auth/me` and `/api/pets/my` 401 unauthenticated and correct when
+authenticated; `/api/veterinarians` returns a real (empty) result. Avatar
+upload round-tripped byte-identically through `/uploads/`, and both the MongoDB
+and uploads volumes survived a full `down`/`up`. Images carry no `.env`, no
+`test/`, no `.git` and no secret env keys; the backend runs as `node` with a
+read-only rootfs, `cap_drop: ALL` and `no-new-privileges`, and MongoDB publishes
+no port. PetGPT was exercised end-to-end through Docker service-name
+addressing: `omniroute` resolves via Docker DNS and the app's own provider layer
+returned a real completion. Backend `npm test` is green across all 14 suites —
+the three OmniRoute suites run once `PETGPT_OPENAI_API_KEY` is set, which local
+OmniRoute does not validate.
+
 ### Phase 29 — Removal of the old Vanilla frontend (ONLY after Phases 26+27 green)
 - **Objective:** remove `frontend/` vanilla files; repoint anything that referenced them
   to the React build; update docs.

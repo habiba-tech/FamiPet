@@ -39,6 +39,10 @@ COPY models ./models
 COPY routes ./routes
 COPY utils ./utils
 COPY ai ./ai
+# jobs/ is required by server.js (durable PetGPT generation worker) and by the
+# graceful-shutdown handler. Omitting it makes the container die on boot with
+# MODULE_NOT_FOUND, so it MUST be part of the image.
+COPY jobs ./jobs
 COPY server.js ./
 
 # 3) Runtime data directories for the local-storage image/upload fallback
