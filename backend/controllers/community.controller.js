@@ -1,4 +1,7 @@
 const CommunityPost = require("../models/CommunityPost");
+const mongoose = require("mongoose");
+const logger = require("../utils/logger");
+const { str, searchStr } = require("../utils/querySafe");
 
 // ==========================
 // Get All Community Posts
@@ -11,14 +14,16 @@ exports.getAllPosts = async (req, res) => {
       isActive: true,
     };
 
-    if (category) {
-      query.category = category;
+    const cat = str(category);
+    if (cat) {
+      query.category = cat;
     }
 
-    if (search) {
+    const s = searchStr(search);
+    if (s) {
       query.$or = [
-        { title: new RegExp(search, "i") },
-        { content: new RegExp(search, "i") },
+        { title: new RegExp(s, "i") },
+        { content: new RegExp(s, "i") },
       ];
     }
 
@@ -34,7 +39,7 @@ exports.getAllPosts = async (req, res) => {
       posts,
     });
   } catch (error) {
-    console.error("Get Community Posts Error:", error);
+    logger.error("Get Community Posts Error:", error);
 
     res.status(500).json({
       success: false,
@@ -48,6 +53,13 @@ exports.getAllPosts = async (req, res) => {
 // ==========================
 exports.getPostById = async (req, res) => {
   try {
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid post ID.",
+      });
+    }
+
     const post = await CommunityPost.findById(req.params.id)
       .populate("user", "name email avatar")
       .populate("likes", "name")
@@ -65,7 +77,7 @@ exports.getPostById = async (req, res) => {
       post,
     });
   } catch (error) {
-    console.error("Get Community Post Error:", error);
+    logger.error("Get Community Post Error:", error);
 
     res.status(500).json({
       success: false,
@@ -111,7 +123,7 @@ exports.createPost = async (req, res) => {
       post: populatedPost,
     });
   } catch (error) {
-    console.error("Create Community Post Error:", error);
+    logger.error("Create Community Post Error:", error);
 
     res.status(500).json({
       success: false,
@@ -125,6 +137,13 @@ exports.createPost = async (req, res) => {
 // ==========================
 exports.updatePost = async (req, res) => {
   try {
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid post ID.",
+      });
+    }
+
     const post = await CommunityPost.findById(req.params.id);
 
     if (!post) {
@@ -162,7 +181,7 @@ exports.updatePost = async (req, res) => {
       post,
     });
   } catch (error) {
-    console.error("Update Community Post Error:", error);
+    logger.error("Update Community Post Error:", error);
 
     res.status(500).json({
       success: false,
@@ -176,6 +195,13 @@ exports.updatePost = async (req, res) => {
 // ==========================
 exports.deletePost = async (req, res) => {
   try {
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid post ID.",
+      });
+    }
+
     const post = await CommunityPost.findById(req.params.id);
 
     if (!post) {
@@ -203,7 +229,7 @@ exports.deletePost = async (req, res) => {
       message: "Post deleted successfully.",
     });
   } catch (error) {
-    console.error("Delete Community Post Error:", error);
+    logger.error("Delete Community Post Error:", error);
 
     res.status(500).json({
       success: false,
@@ -217,6 +243,13 @@ exports.deletePost = async (req, res) => {
 // ==========================
 exports.toggleLike = async (req, res) => {
   try {
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid post ID.",
+      });
+    }
+
     const post = await CommunityPost.findById(req.params.id);
 
     if (!post) {
@@ -249,7 +282,7 @@ exports.toggleLike = async (req, res) => {
       liked: !alreadyLiked,
     });
   } catch (error) {
-    console.error("Toggle Like Error:", error);
+    logger.error("Toggle Like Error:", error);
 
     res.status(500).json({
       success: false,
@@ -269,6 +302,13 @@ exports.addComment = async (req, res) => {
       return res.status(400).json({
         success: false,
         message: "Comment text is required.",
+      });
+    }
+
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid post ID.",
       });
     }
 
@@ -298,7 +338,7 @@ exports.addComment = async (req, res) => {
       post: updatedPost,
     });
   } catch (error) {
-    console.error("Add Comment Error:", error);
+    logger.error("Add Comment Error:", error);
 
     res.status(500).json({
       success: false,
@@ -312,6 +352,20 @@ exports.addComment = async (req, res) => {
 // ==========================
 exports.deleteComment = async (req, res) => {
   try {
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid post ID.",
+      });
+    }
+
+    if (!mongoose.Types.ObjectId.isValid(req.params.commentId)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid comment ID.",
+      });
+    }
+
     const post = await CommunityPost.findById(req.params.id);
 
     if (!post) {
@@ -340,7 +394,7 @@ exports.deleteComment = async (req, res) => {
       });
     }
 
-    comment.deleteOne();
+    await comment.deleteOne();
 
     await post.save();
 
@@ -349,7 +403,7 @@ exports.deleteComment = async (req, res) => {
       message: "Comment deleted successfully.",
     });
   } catch (error) {
-    console.error("Delete Comment Error:", error);
+    logger.error("Delete Comment Error:", error);
 
     res.status(500).json({
       success: false,

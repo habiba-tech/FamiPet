@@ -175,7 +175,7 @@ const http = require("http");
         res.setHeader("Content-Type", "application/json");
         res.end("this is not json {");
       } else if (mockMode === "slow") {
-        setTimeout(() => { try { res.end(JSON.stringify({ choices: [{ message: { content: "late" } }] })); } catch (e) {} }, 2000);
+        setTimeout(() => { try { res.end(JSON.stringify({ choices: [{ message: { content: "late" } }] })); } catch { /* res already ended */ } }, 2000);
       }
     });
   });

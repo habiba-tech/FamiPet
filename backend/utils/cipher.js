@@ -42,7 +42,7 @@ function decryptSecret(stored) {
     decipher.setAuthTag(Buffer.from(parts[1], "base64"));
     return Buffer.concat([decipher.update(Buffer.from(parts[2], "base64")), decipher.final()]).toString("utf8");
   } catch (error) {
-    throw new Error("Failed to decrypt stored secret");
+    throw new Error("Failed to decrypt stored secret", { cause: error });
   }
 }
 

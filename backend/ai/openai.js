@@ -128,7 +128,7 @@ async function generateWithTools({ messages, tools, config = {} }) {
       if (!call || !call.function || !call.function.name) {
         throw new AiProviderError(AI_ERROR_CODES.MALFORMED, "Provider returned a malformed tool call");
       }
-      let args = {};
+      let args;
       try {
         args = JSON.parse(call.function.arguments || "{}");
       } catch (error) {

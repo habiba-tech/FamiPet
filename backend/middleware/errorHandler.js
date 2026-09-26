@@ -1,7 +1,9 @@
-const errorHandler = (err, req, res, next) => {
+const logger = require("../utils/logger");
+
+const errorHandler = (err, req, res, _next) => {
   let error = { ...err };
   error.message = err.message;
-  console.error(err);
+  logger.error(err);
 
   if (err.name === 'CastError') {
     error.message = 'Resource not found';

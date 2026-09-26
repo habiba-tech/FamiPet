@@ -1,5 +1,7 @@
 const mongoose = require("mongoose");
 const Veterinarian = require("../models/Veterinarian");
+const logger = require("../utils/logger");
+const { str, searchStr } = require("../utils/querySafe");
 
 // ========================================
 // Get All Veterinarians
@@ -12,20 +14,23 @@ exports.getAllVeterinarians = async (req, res) => {
       isActive: true,
     };
 
-    if (search) {
+    const s = searchStr(search);
+    if (s) {
       query.$or = [
-        { name: new RegExp(search, "i") },
-        { clinic: new RegExp(search, "i") },
-        { city: new RegExp(search, "i") },
+        { name: new RegExp(s, "i") },
+        { clinic: new RegExp(s, "i") },
+        { city: new RegExp(s, "i") },
       ];
     }
 
-    if (specialization) {
-      query.specialization = new RegExp(specialization, "i");
+    const spec = str(specialization);
+    if (spec) {
+      query.specialization = new RegExp(searchStr(specialization), "i");
     }
 
-    if (city) {
-      query.city = new RegExp(city, "i");
+    const c = str(city);
+    if (c) {
+      query.city = new RegExp(searchStr(city), "i");
     }
 
     const veterinarians = await Veterinarian.find(query)
@@ -37,7 +42,7 @@ exports.getAllVeterinarians = async (req, res) => {
       veterinarians,
     });
   } catch (error) {
-    console.error("Get Veterinarians Error:", error);
+    logger.error("Get Veterinarians Error:", error);
 
     res.status(500).json({
       success: false,
@@ -51,6 +56,13 @@ exports.getAllVeterinarians = async (req, res) => {
 // ========================================
 exports.getVeterinarianById = async (req, res) => {
   try {
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid veterinarian ID.",
+      });
+    }
+
     const veterinarian = await Veterinarian.findById(req.params.id);
 
     if (!veterinarian) {
@@ -65,7 +77,7 @@ exports.getVeterinarianById = async (req, res) => {
       veterinarian,
     });
   } catch (error) {
-    console.error("Get Veterinarian Error:", error);
+    logger.error("Get Veterinarian Error:", error);
 
     res.status(500).json({
       success: false,
@@ -124,7 +136,7 @@ exports.createVeterinarian = async (req, res) => {
       veterinarian,
     });
   } catch (error) {
-    console.error("Create Veterinarian Error:", error);
+    logger.error("Create Veterinarian Error:", error);
 
     res.status(500).json({
       success: false,
@@ -142,9 +154,15 @@ exports.updateVeterinarian = async (req, res) => {
       return res.status(400).json({ success: false, message: "Invalid veterinarian ID." });
     }
 
+    const allowed = ["name", "email", "phone", "specialization", "qualifications", "experience", "clinic", "address", "city", "image", "rating", "availability", "isActive", "consultationFee"];
+    const payload = {};
+    allowed.forEach((field) => {
+      if (req.body[field] !== undefined) payload[field] = req.body[field];
+    });
+
     const veterinarian = await Veterinarian.findByIdAndUpdate(
       req.params.id,
-      req.body,
+      payload,
       {
         new: true,
         runValidators: true,
@@ -164,7 +182,7 @@ exports.updateVeterinarian = async (req, res) => {
       veterinarian,
     });
   } catch (error) {
-    console.error("Update Veterinarian Error:", error);
+    logger.error("Update Veterinarian Error:", error);
 
     res.status(500).json({
       success: false,
@@ -196,7 +214,7 @@ exports.deleteVeterinarian = async (req, res) => {
       message: "Veterinarian deleted successfully.",
     });
   } catch (error) {
-    console.error("Delete Veterinarian Error:", error);
+    logger.error("Delete Veterinarian Error:", error);
 
     res.status(500).json({
       success: false,

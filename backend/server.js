@@ -4,8 +4,25 @@ const cors = require('cors');
 const helmet = require('helmet');
 const compression = require('compression');
 const morgan = require('morgan');
+const fs = require('fs');
 const path = require('path');
 require('dotenv').config();
+const logger = require('./utils/logger');
+
+// Map multer errors (no HTTP status attached) to a client-safe message.
+const multerErrorMessage = (err) => {
+  if (!err || err.name !== 'MulterError') return null;
+  if (err.code === 'LIMIT_FILE_SIZE') {
+    return 'File too large. Maximum allowed size is 5MB.';
+  }
+  return err.message || 'File upload failed.';
+};
+
+// Ensure the local uploads directory exists before multer writes to it.
+const UPLOADS_DIR = path.join(__dirname, 'uploads');
+if (!fs.existsSync(UPLOADS_DIR)) {
+  fs.mkdirSync(UPLOADS_DIR, { recursive: true });
+}
 
 const app = express();
 
@@ -35,13 +52,23 @@ app.use(cors({
   credentials: true
 }));
 // PetGPT /api/ai bodies are small (message/title/idempotencyKey/provider config).
-// Bound them tightly BEFORE the app-wide 50mb parser so an oversized AI body is
+// Bound them tightly BEFORE the app-wide parser so an oversized AI body is
 // rejected at 413 and never parsed into memory. body-parser skips the later
 // app-wide parse once req._body is set. (Phase 7 hardening.)
 app.use('/api/ai', express.json({ limit: '32kb' }));
 app.use('/api/ai', express.urlencoded({ extended: false, limit: '32kb' }));
-app.use(express.json({ limit: '50mb' }));
-app.use(express.urlencoded({ extended: true, limit: '50mb' }));
+
+// App-wide JSON/urlencoded bounds: keep the 5MB cap so no endpoint (including
+// the new /api/ai routes) can ship over-sized bodies into memory.
+app.use(express.json({ limit: '5mb' }));
+app.use(express.urlencoded({ extended: true, limit: '5mb' }));
+
+// Request logging with URL redaction: reset / verify tokens are
+// passed in the URL path as long hex strings and must never be
+// written to the logs.
+morgan.token('url', (req) =>
+  String(req.originalUrl || req.url || '').replace(/[a-f0-9]{32,}/gi, '[REDACTED]')
+);
 app.use(morgan('dev'));
 
 // Static files
@@ -49,8 +76,8 @@ app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // Database Connection
 mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/animal_planet')
-  .then(() => console.log('✅ MongoDB Connected'))
-  .catch(err => console.error('❌ MongoDB Error:', err));
+  .then(() => logger.info('✅ MongoDB Connected'))
+  .catch(err => logger.error('❌ MongoDB Error:', err));
 
 // Durable AI generation worker (Phase 4): in-process poller that picks
 // up queued GenerationJobs and runs them independent of any HTTP request
@@ -89,12 +116,32 @@ app.get("/",(req,res)=>{
   });
 });
 
-// Error Handler
-app.use((err, req, res, next) => {
-  console.error(err.stack);
-  res.status(err.status || 500).json({
+// Error Handler — centralized, production-safe. Logs the full error
+// server-side but never leaks stack traces / internal details to the
+// client: only 4xx messages (which we author ourselves) are echoed.
+app.use((err, req, res, _next) => {
+  logger.error(err.stack || err.message || err);
+
+  // Multer file-upload errors carry a code but no HTTP status.
+  const multerMessage = multerErrorMessage(err);
+
+  if (multerMessage) {
+    return res.status(413).json({
+      success: false,
+      message: multerMessage,
+    });
+  }
+
+  const status = err.status || 500;
+
+  const message =
+    status >= 400 && status < 500 && err.message
+      ? err.message
+      : 'Internal Server Error';
+
+  res.status(status).json({
     success: false,
-    message: err.message || 'Internal Server Error'
+    message,
   });
 });
 
@@ -105,7 +152,7 @@ app.use((req, res) => {
 
 const PORT = process.env.PORT || 5000;
 const server = app.listen(PORT, () => {
-  console.log(`🚀 Server running on http://localhost:${PORT}`);
+  logger.info(`🚀 Server running on http://localhost:${PORT}`);
 });
 
 // Graceful shutdown (Phase 7): a SIGINT/SIGTERM stops the HTTP server, lets the
@@ -113,7 +160,7 @@ const server = app.listen(PORT, () => {
 // closes MongoDB before exit. No job is cut off mid-provider-exchange; anything
 // left in "processing" is recovered by the worker reaper on next boot.
 function shutdown(signal) {
-  console.log(`Received ${signal} — shutting down gracefully.`);
+  logger.info(`Received ${signal} — shutting down gracefully.`);
   server.close(() => {
     require("./jobs/generation.worker")
       .stopWorker()
@@ -141,7 +188,7 @@ function startFrontendFallback() {
   try {
     const clientUrl = new URL(process.env.CLIENT_URL || 'http://localhost:5502');
     clientPort = Number(clientUrl.port) || 5502;
-  } catch (e) { /* keep default */ }
+  } catch { /* keep default */ }
 
   if (clientPort === PORT) return;
 
@@ -154,14 +201,14 @@ function startFrontendFallback() {
   });
 
   const server = frontendApp.listen(clientPort, '0.0.0.0', () => {
-    console.log(`🌐 Frontend available at http://localhost:${clientPort} (fallback)`);
+    logger.info(`🌐 Frontend available at http://localhost:${clientPort} (fallback)`);
   });
 
   server.on('error', (err) => {
     if (err && err.code === 'EADDRINUSE') {
-      console.log(`⏭ Port ${clientPort} is already in use (Live Server). Skipping frontend fallback.`);
+      logger.info(`⏭ Port ${clientPort} is already in use (Live Server). Skipping frontend fallback.`);
     } else {
-      console.error('❌ Frontend fallback error:', err.message);
+      logger.error('❌ Frontend fallback error:', err.message);
     }
   });
 }

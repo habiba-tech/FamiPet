@@ -2,6 +2,8 @@ const mongoose = require("mongoose");
 const Pet = require("../models/Pet");
 const Breed = require("../models/Breed");
 const QRCode = require("qrcode");
+const logger = require("../utils/logger");
+const { str, strLower, searchStr } = require("../utils/querySafe");
 
 // ==========================
 // Get All Pets
@@ -12,26 +14,30 @@ exports.getAllPets = async (req, res) => {
 
     const query = {};
 
-    if (species) {
-      query.species = species;
+    const sp = strLower(species);
+    if (sp && ["dog", "cat", "bird", "rabbit", "fish", "other"].includes(sp)) {
+      query.species = sp;
     }
 
     if (breed && mongoose.Types.ObjectId.isValid(breed)) {
       query.breed = breed;
     }
 
-    if (gender) {
-      query.gender = gender;
+    const g = strLower(gender);
+    if (g && ["male", "female"].includes(g)) {
+      query.gender = g;
     }
 
-    if (status) {
-      query.status = status;
+    const st = str(status);
+    if (st && ["available", "adopted", "lost", "inactive"].includes(st)) {
+      query.status = st;
     }
 
-    if (search) {
+    const s = searchStr(search);
+    if (s) {
       query.$or = [
-        { name: new RegExp(search, "i") },
-        { description: new RegExp(search, "i") },
+        { name: new RegExp(s, "i") },
+        { description: new RegExp(s, "i") },
       ];
     }
 
@@ -58,7 +64,7 @@ exports.getAllPets = async (req, res) => {
       pets,
     });
   } catch (error) {
-    console.error("Get All Pets Error:", error);
+    logger.error("Get All Pets Error:", error);
 
     res.status(500).json({
       success: false,
@@ -84,7 +90,7 @@ exports.getMyPets = async (req, res) => {
       pets,
     });
   } catch (error) {
-    console.error("Get My Pets Error:", error);
+    logger.error("Get My Pets Error:", error);
 
     res.status(500).json({
       success: false,
@@ -98,6 +104,13 @@ exports.getMyPets = async (req, res) => {
 // ==========================
 exports.getPetById = async (req, res) => {
   try {
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid pet ID.",
+      });
+    }
+
     const pet = await Pet.findById(req.params.id)
       .populate("owner", "name email phone")
       .populate("breed", "name species");
@@ -118,7 +131,7 @@ exports.getPetById = async (req, res) => {
       pet,
     });
   } catch (error) {
-    console.error("Get Pet Error:", error);
+    logger.error("Get Pet Error:", error);
 
     res.status(500).json({
       success: false,
@@ -141,7 +154,6 @@ exports.createPet = async (req, res) => {
       weight,
       color,
       vaccinated,
-      adopted,
       images,
       description,
     } = req.body;
@@ -183,7 +195,6 @@ exports.createPet = async (req, res) => {
       weight,
       color,
       vaccinated,
-      adopted,
       images,
       description,
     });
@@ -208,7 +219,7 @@ exports.createPet = async (req, res) => {
       pet.petUid = uniqueId;
       await pet.save();
     } catch (qrError) {
-      console.error("QR Generation Warning:", qrError);
+      logger.error("QR Generation Warning:", qrError);
     }
 
     res.status(201).json({
@@ -217,7 +228,7 @@ exports.createPet = async (req, res) => {
       pet,
     });
   } catch (error) {
-    console.error("Create Pet Error:", error);
+    logger.error("Create Pet Error:", error);
 
     res.status(500).json({
       success: false,
@@ -231,6 +242,13 @@ exports.createPet = async (req, res) => {
 // ==========================
 exports.updatePet = async (req, res) => {
   try {
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid pet ID.",
+      });
+    }
+
     const pet = await Pet.findById(req.params.id);
 
     if (!pet) {
@@ -248,15 +266,33 @@ exports.updatePet = async (req, res) => {
       });
     }
 
-    // Prevent changing owner
-    delete req.body.owner;
+    // Whitelist updatable fields. Never allow changing the owner or
+    // tampering with adoption/identification fields via this endpoint.
+    const updatable = [
+      "name",
+      "species",
+      "breed",
+      "gender",
+      "age",
+      "weight",
+      "color",
+      "vaccinated",
+      "description",
+      "images",
+    ];
+
+    updatable.forEach((key) => {
+      if (req.body[key] !== undefined) {
+        pet[key] = req.body[key];
+      }
+    });
 
     // Validate breed if provided (accept either an ObjectId or a breed name used by the legacy frontend)
-    if (req.body.breed) {
-      if (mongoose.Types.ObjectId.isValid(req.body.breed)) {
-        // Already a valid ObjectId reference
+    if (pet.breed && typeof pet.breed === "string") {
+      if (mongoose.Types.ObjectId.isValid(pet.breed)) {
+        pet.breed = mongoose.Types.ObjectId(pet.breed);
       } else {
-        const breedName = String(req.body.breed).trim();
+        const breedName = String(pet.breed).trim();
         if (!breedName) {
           return res.status(400).json({
             success: false,
@@ -268,11 +304,9 @@ exports.updatePet = async (req, res) => {
           const species = req.body.species || pet.species || "dog";
           breedDoc = await Breed.create({ name: breedName, species });
         }
-        req.body.breed = breedDoc._id;
+        pet.breed = breedDoc._id;
       }
     }
-
-    Object.assign(pet, req.body);
 
     await pet.save();
 
@@ -282,7 +316,7 @@ exports.updatePet = async (req, res) => {
       pet,
     });
   } catch (error) {
-    console.error("Update Pet Error:", error);
+    logger.error("Update Pet Error:", error);
 
     res.status(500).json({
       success: false,
@@ -296,6 +330,13 @@ exports.updatePet = async (req, res) => {
 // ==========================
 exports.deletePet = async (req, res) => {
   try {
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid pet ID.",
+      });
+    }
+
     const pet = await Pet.findById(req.params.id);
 
     if (!pet) {
@@ -320,7 +361,7 @@ exports.deletePet = async (req, res) => {
       message: "Pet deleted successfully.",
     });
   } catch (error) {
-    console.error("Delete Pet Error:", error);
+    logger.error("Delete Pet Error:", error);
 
     res.status(500).json({
       success: false,
@@ -334,6 +375,13 @@ exports.deletePet = async (req, res) => {
 // ==========================
 exports.generateQRCode = async (req, res) => {
   try {
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid pet ID.",
+      });
+    }
+
     const pet = await Pet.findById(req.params.id)
       .populate("owner", "name phone email")
       .populate("breed", "name species");
@@ -342,6 +390,16 @@ exports.generateQRCode = async (req, res) => {
       return res.status(404).json({
         success: false,
         message: "Pet not found",
+      });
+    }
+
+    // Only the pet owner (or an admin) may generate the Pet ID / QR code.
+    const isOwner = pet.owner && pet.owner._id && pet.owner._id.toString() === req.user.id.toString();
+    const isAdmin = req.user.role === "admin";
+    if (!isOwner && !isAdmin) {
+      return res.status(403).json({
+        success: false,
+        message: "You are not authorized to generate the QR code for this pet.",
       });
     }
 
@@ -369,7 +427,7 @@ exports.generateQRCode = async (req, res) => {
       qrCode: qrCodeDataUrl,
     });
   } catch (error) {
-    console.error("Generate QR Error:", error);
+    logger.error("Generate QR Error:", error);
 
     res.status(500).json({
       success: false,
@@ -397,7 +455,7 @@ exports.getFeaturedPets = async (req, res) => {
       pets,
     });
   } catch (error) {
-    console.error("Get Featured Pets Error:", error);
+    logger.error("Get Featured Pets Error:", error);
 
     res.status(500).json({
       success: false,

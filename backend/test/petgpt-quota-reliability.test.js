@@ -211,6 +211,11 @@ async function main() {
     mode = "plain";
     const d1 = await api("POST", `/conversations/${convDave}/messages`, dave.token, { content: "dave 1" });
     assert.strictEqual(d1.status, 202, "dave's first exchange is not limited by alice's usage");
+    // Dave's first exchange must fully settle while mode is still "plain":
+    // Section C flips the provider mock to "mutate", so a job the poller
+    // claims after that would create a spurious reminder (double-apply).
+    const d1Terminal = await awaitJobTerminal(dave.token, d1.json.job.id);
+    assert.strictEqual(d1Terminal.job.status, "completed", "dave's first exchange completes before the mutation phase");
     ok("quota: 3 in-window generations allowed, 4th -> deterministic 429, no orphan docs");
 
     // ---- B. legacy /api/ai/ask is NOT quota-gated (stateless exclusion) --

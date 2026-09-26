@@ -1,5 +1,4 @@
 const mongoose = require('mongoose');
-const bcrypt = require('bcryptjs');
 const User = require('../models/User');
 const Breed = require('../models/Breed');
 const Pet = require('../models/Pet');
@@ -13,11 +12,12 @@ const Vaccination = require('../models/Vaccination');
 const Adoption = require('../models/Adoption');
 const Notification = require('../models/Notification');
 require('dotenv').config();
+const logger = require('./logger');
 
 const seedData = async () => {
   try {
     await mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/animal_planet');
-    console.log('Connected to MongoDB');
+    logger.info('Connected to MongoDB');
 
     await Promise.all([
       User.deleteMany(),
@@ -113,12 +113,12 @@ const seedData = async () => {
       { user: user._id, title: 'Vaccination due soon', message: 'Max has a rabies booster due in the next few days.', type: 'vaccination', isRead: false },
     ]);
 
-    console.log('Seed data created successfully!');
-    console.log('Admin: admin@animalplanet.com / admin123');
-    console.log('User: user@example.com / user123');
+    logger.info('Seed data created successfully!');
+    logger.info('Admin: admin@animalplanet.com / admin123');
+    logger.info('User: user@example.com / user123');
     process.exit(0);
   } catch (error) {
-    console.error('Seed error:', error);
+    logger.error('Seed error:', error);
     process.exit(1);
   }
 };

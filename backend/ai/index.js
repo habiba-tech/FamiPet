@@ -64,7 +64,7 @@ function buildProviderRequest(configDoc) {
 
 async function generatePetGPTResponse(question, petContext, history = [], providerConfig) {
   const startedAt = Date.now();
-  let adapter = null;
+  let adapter;
   let providerLabel = "env";
   try {
     let config;

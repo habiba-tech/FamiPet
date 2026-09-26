@@ -1,13 +1,16 @@
 const mongoose = require("mongoose");
 const Breed = require("../models/Breed");
+const { strLower, searchStr } = require("../utils/querySafe");
 
 exports.getAllBreeds = async (req, res) => {
   try {
     const { species, search } = req.query;
     const query = { isActive: true };
 
-    if (species) query.species = species.toLowerCase();
-    if (search) query.name = { $regex: search, $options: "i" };
+    const sp = strLower(species);
+    if (sp) query.species = sp;
+    const s = searchStr(search);
+    if (s) query.name = { $regex: s, $options: "i" };
 
     const breeds = await Breed.find(query).sort({ popularity: -1, name: 1 });
     res.json({ success: true, count: breeds.length, breeds });
@@ -42,7 +45,13 @@ exports.createBreed = async (req, res) => {
       });
     }
 
-    const breed = await Breed.create(req.body);
+    const allowed = ["name", "species", "origin", "lifespan", "weightRange", "heightRange", "temperament", "exerciseRequirements", "groomingGuide", "commonDiseases", "suitableEnvironment", "description", "images", "popularity", "isActive"];
+    const payload = {};
+    allowed.forEach((field) => {
+      if (req.body[field] !== undefined) payload[field] = req.body[field];
+    });
+
+    const breed = await Breed.create(payload);
     res.status(201).json({
       success: true,
       message: "Breed created successfully.",
@@ -55,11 +64,19 @@ exports.createBreed = async (req, res) => {
 
 exports.updateBreed = async (req, res) => {
   try {
-    delete req.body._id;
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+      return res.status(400).json({ success: false, message: "Invalid breed ID." });
+    }
+
+    const allowed = ["name", "species", "origin", "lifespan", "weightRange", "heightRange", "temperament", "exerciseRequirements", "groomingGuide", "commonDiseases", "suitableEnvironment", "description", "images", "popularity", "isActive"];
+    const payload = {};
+    allowed.forEach((field) => {
+      if (req.body[field] !== undefined) payload[field] = req.body[field];
+    });
 
     const breed = await Breed.findByIdAndUpdate(
       req.params.id,
-      req.body,
+      payload,
       { new: true, runValidators: true }
     );
 
@@ -77,6 +94,10 @@ exports.updateBreed = async (req, res) => {
 
 exports.deleteBreed = async (req, res) => {
   try {
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+      return res.status(400).json({ success: false, message: "Invalid breed ID." });
+    }
+
     const breed = await Breed.findByIdAndUpdate(
       req.params.id,
       { isActive: false },

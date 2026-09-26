@@ -1,8 +1,10 @@
 const mongoose = require("mongoose");
 const Pet = require("../models/Pet");
+
 const { AI_CONFIG, outOfScopeResponse } = require("../config/ai");
 const { generatePetGPTResponse } = require("../ai");
 const { loadPetContext } = require("../ai/pet-context");
+const logger = require("../utils/logger");
 
 function fallbackAnswer(question) {
   const q = question.toLowerCase();
@@ -47,7 +49,7 @@ async function askPetGPT(req, res) {
 
     const scope = outOfScopeResponse(question);
     if (scope) {
-      console.log(`PetGPT: out-of-scope question blocked for user ${req.user._id}.`);
+      logger.info(`PetGPT: out-of-scope question blocked for user ${req.user._id}.`);
       return res.json({ success: true, question, answer: scope });
     }
 

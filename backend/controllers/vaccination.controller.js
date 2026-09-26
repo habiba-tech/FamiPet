@@ -41,6 +41,10 @@ exports.createVaccination = async (req, res) => {
       });
     }
 
+    if (!mongoose.Types.ObjectId.isValid(pet)) {
+      return res.status(400).json({ success: false, message: "Invalid pet ID." });
+    }
+
     const petExists = await Pet.findOne({ _id: pet, owner: req.user._id });
     if (!petExists) {
       return res.status(404).json({
@@ -50,7 +54,14 @@ exports.createVaccination = async (req, res) => {
     }
 
     const vaccination = await Vaccination.create({
-      ...req.body,
+      pet,
+      vaccineName,
+      vaccinationDate,
+      nextDueDate,
+      doseNumber: req.body.doseNumber,
+      veterinarian: req.body.veterinarian || "",
+      hospital: req.body.hospital || "",
+      notes: req.body.notes || "",
       user: req.user._id,
     });
 
@@ -82,10 +93,10 @@ exports.updateVaccination = async (req, res) => {
       });
     }
 
-    delete req.body.user;
-    delete req.body.pet;
-
-    Object.assign(vaccination, req.body);
+    const allowed = ["vaccineName", "doseNumber", "vaccinationDate", "nextDueDate", "veterinarian", "hospital", "notes"];
+    allowed.forEach((field) => {
+      if (req.body[field] !== undefined) vaccination[field] = req.body[field];
+    });
     await vaccination.save();
 
     res.json({

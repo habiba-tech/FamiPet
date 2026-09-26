@@ -1,5 +1,7 @@
 const mongoose = require("mongoose");
 const LostFound = require("../models/LostFound");
+const logger = require("../utils/logger");
+const { str, strLower, searchStr } = require("../utils/querySafe");
 
 // =====================================================
 // GET ALL LOST & FOUND REPORTS
@@ -11,24 +13,28 @@ exports.getAllReports = async (req, res) => {
 
     const query = {};
 
-    if (type) {
-      query.type = type;
+    const t = str(type);
+    if (t && ["lost", "found"].includes(t)) {
+      query.type = t;
     }
 
-    if (status) {
-      query.status = status;
+    const st = str(status);
+    if (st && ["active", "resolved"].includes(st)) {
+      query.status = st;
     }
 
-    if (species) {
-      query.species = species;
+    const sp = strLower(species);
+    if (sp) {
+      query.species = sp;
     }
 
-    if (search) {
+    const s = searchStr(search);
+    if (s) {
       query.$or = [
-        { petName: new RegExp(search, "i") },
-        { location: new RegExp(search, "i") },
-        { description: new RegExp(search, "i") },
-        { breed: new RegExp(search, "i") },
+        { petName: new RegExp(s, "i") },
+        { location: new RegExp(s, "i") },
+        { description: new RegExp(s, "i") },
+        { breed: new RegExp(s, "i") },
       ];
     }
 
@@ -42,7 +48,7 @@ exports.getAllReports = async (req, res) => {
       reports,
     });
   } catch (error) {
-    console.error("Get All Reports Error:", error);
+    logger.error("Get All Reports Error:", error);
 
     res.status(500).json({
       success: false,
@@ -81,7 +87,7 @@ exports.getReportById = async (req, res) => {
       report,
     });
   } catch (error) {
-    console.error("Get Report Error:", error);
+    logger.error("Get Report Error:", error);
 
     res.status(500).json({
       success: false,
@@ -154,7 +160,7 @@ exports.createReport = async (req, res) => {
       report,
     });
   } catch (error) {
-    console.error("Create Report Error:", error);
+    logger.error("Create Report Error:", error);
 
     res.status(500).json({
       success: false,
@@ -193,10 +199,38 @@ exports.updateReport = async (req, res) => {
       });
     }
 
-    // Prevent changing the owner
-    delete req.body.user;
+    // Whitelist updatable fields. The reporter is allowed to resolve their
+    // own report (e.g. a lost pet found again), but never change who owns it.
+    const updatable = [
+      "petName",
+      "species",
+      "breed",
+      "gender",
+      "color",
+      "description",
+      "location",
+      "date",
+      "contactName",
+      "contactPhone",
+      "images",
+    ];
 
-    Object.assign(report, req.body);
+    if (req.body.status !== undefined) {
+      if (["active", "resolved"].includes(req.body.status)) {
+        report.status = req.body.status;
+      } else {
+        return res.status(400).json({
+          success: false,
+          message: "Status must be either 'active' or 'resolved'.",
+        });
+      }
+    }
+
+    updatable.forEach((key) => {
+      if (req.body[key] !== undefined) {
+        report[key] = req.body[key];
+      }
+    });
 
     if (req.file) {
       const uploadedImage = `${req.protocol}://${req.get("host")}/uploads/${req.file.filename}`;
@@ -215,7 +249,7 @@ exports.updateReport = async (req, res) => {
       report,
     });
   } catch (error) {
-    console.error("Update Report Error:", error);
+    logger.error("Update Report Error:", error);
 
     res.status(500).json({
       success: false,
@@ -266,7 +300,7 @@ exports.deleteReport = async (req, res) => {
       message: "Report deleted successfully.",
     });
   } catch (error) {
-    console.error("Delete Report Error:", error);
+    logger.error("Delete Report Error:", error);
 
     res.status(500).json({
       success: false,
