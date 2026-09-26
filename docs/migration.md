@@ -1983,8 +1983,7 @@ and rollback.
 
 | Path | Purpose |
 | --- | --- |
-| `docker-compose.yml` | **the** production compose (project `famipet`, publishes `8080:80`) |
-| `docker-compose.omniroute.yml` | optional override: reach an OmniRoute container that runs in another Compose project, by service name |
+| `docker-compose.yml` | **the** production compose (project `famipet`, publishes `8080:80`; carries the profile-gated, off-by-default `omniroute` service) |
 | `docker-final/frontend/Dockerfile` | reused by the root compose (build context `./frontend-react`) |
 | `docker-final/backend/Dockerfile` | reused by the root compose (build context `./backend`) |
 | `docker-final/nginx/{Dockerfile,nginx.conf}` | reused by the root compose (entry proxy) |
@@ -2024,7 +2023,8 @@ the backend to the network OmniRoute is already on and address it by **service
 name**:
 
 ```bash
-docker compose -f docker-compose.yml -f docker-compose.omniroute.yml up -d --build
+# uncomment the `omniroute-net` block at the end of docker-compose.yml, then:
+docker compose up -d --build
 # backend/.env:
 #   PETGPT_PROVIDER=openai
 #   PETGPT_OPENAI_BASE_URL=http://omniroute:20128/v1
@@ -2037,7 +2037,12 @@ recreation. `backend/.env.example` no longer suggests a `172.18.0.2` address —
 that address is not stable (the live one during validation was `172.18.0.8`).
 The network name comes from `OMNIROUTE_NETWORK` (default `edutech_default`) and
 is declared `external: true`, so the standalone stack still works when that
-network does not exist.
+network does not exist. There is no longer a separate
+`docker-compose.omniroute.yml` override file: the join block is a commented
+`omniroute-net` section in the root compose, and the root compose also carries a
+profile-gated `omniroute` service for a host that has none
+(`docker compose --profile omniroute up -d omniroute`). A plain
+`docker compose up` never starts it.
 
 **Run**
 
