@@ -1,0 +1,24 @@
+# Build-context excludes for the backend image build
+# (used by docker-final/backend/Dockerfile AND any backend build).
+# Intent: no secrets, no host node_modules, no runtime artifacts.
+
+# Secrets / local configuration
+.env
+.env.*
+!.env.example
+
+# Dependencies (installed from the lockfile inside the image)
+node_modules
+
+# Runtime artifacts
+uploads
+logs
+*.log
+*.err
+
+# Repo/tooling noise
+.git
+.gitignore
+test
+test-email.js
+package-lock.json.bak
