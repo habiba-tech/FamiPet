@@ -366,6 +366,53 @@ const tokenFor = (userId) => {
     ok("a push deep link stays an in-app path and lock-screen text is clamped");
   }
 
+  /* ---- the real transport hands web-push a string/Buffer, not an object ---- */
+
+  // Every other block in this file replaces the transport, so none of them
+  // can see the actual web-push call. web-push rejects a plain object
+  // payload up front ("Payload must be either a string or a Node Buffer"),
+  // which failed EVERY delivery while all the stubbed tests stayed green.
+  // This block keeps the real transport and stubs only web-push itself, so
+  // the wire format is what is actually asserted.
+  {
+    const realSend = webpush.sendNotification;
+    const wire = [];
+    webpush.sendNotification = (subscription, payload) => {
+      wire.push({ endpoint: subscription.endpoint, payload });
+      return Promise.resolve({ statusCode: 201 });
+    };
+    pushConfig.setTransport(); // restore the real transport
+
+    try {
+      await PushSubscription.deleteMany({ endpoint: aliceEndpoint });
+      await PushSubscription.create({ user: alice._id, endpoint: aliceEndpoint, p256dh: KEYS.p256dh, auth: KEYS.auth });
+      const summary = await pushService.sendToUser(alice._id, {
+        title: "Wire Format",
+        body: "must be JSON on the wire",
+        type: "system",
+        url: "/app/dashboard",
+      });
+
+      assert.strictEqual(summary.delivered, 1, `real transport must deliver, got ${JSON.stringify(summary)}`);
+      assert.strictEqual(wire.length, 1, "web-push must be called once");
+      assert.ok(
+        typeof wire[0].payload === "string" || Buffer.isBuffer(wire[0].payload),
+        `web-push only accepts a string or Buffer, got ${typeof wire[0].payload}`
+      );
+
+      // The service worker JSON.parses the raw body, so the encoded payload
+      // must round-trip back to exactly what the service built.
+      const decoded = JSON.parse(wire[0].payload.toString());
+      assert.strictEqual(decoded.title, "Wire Format");
+      assert.strictEqual(decoded.body, "must be JSON on the wire");
+      assert.deepStrictEqual(Object.keys(decoded).sort().join(","), "body,tag,title,url");
+      ok("the real transport encodes the payload for web-push (a string, not an object)");
+    } finally {
+      webpush.sendNotification = realSend;
+      pushConfig.setTransport();
+    }
+  }
+
   /* ---- a notification write failure cannot fail an appointment ---- */
 
   {

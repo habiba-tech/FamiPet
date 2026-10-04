@@ -50,8 +50,21 @@ if (configured) {
 // push service. Upgrade path (if a second transport is ever
 // needed): keep this one-line indirection and add a map.
 
-let transport = (subscription, payload) =>
-  webpush.sendNotification(subscription, payload);
+// web-push accepts ONLY a string or a Buffer and rejects anything else
+// up front ("Payload must be either a string or a Node Buffer"). It does
+// not serialise for us, and the payload push.service.js builds is a
+// structured object, so it MUST be encoded here — at the web-push
+// boundary, the one place the transport is touched. The wire format is
+// JSON: frontend-react/public/sw.js JSON.parses the raw push body.
+// A test double replaces this function, so only a test that exercises
+// the real transport can catch a wrong wire format.
+const encode = (payload) =>
+  typeof payload === "string" ? payload : JSON.stringify(payload);
+
+const realTransport = (subscription, payload) =>
+  webpush.sendNotification(subscription, encode(payload));
+
+let transport = realTransport;
 
 function isPushConfigured() {
   return configured;
@@ -67,8 +80,7 @@ async function sendToSubscription(subscription, payload) {
 
 // Test-only. Passing no argument restores the real web-push transport.
 function setTransport(fn) {
-  transport = typeof fn === "function" ? fn : (subscription, payload) =>
-    webpush.sendNotification(subscription, payload);
+  transport = typeof fn === "function" ? fn : realTransport;
 }
 
 module.exports = {
