@@ -84,9 +84,16 @@ app.use(morgan('dev'));
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // Database Connection
-mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/animal_planet')
+// MONGODB_URI is the only source of truth: the Compose stack injects
+// mongodb://mongodb:27017/petDB. There is deliberately NO localhost
+// fallback - a wrong default would silently point a container at its own
+// loopback instead of failing visibly.
+mongoose.connect(process.env.MONGODB_URI)
   .then(() => logger.info('✅ MongoDB Connected'))
-  .catch(err => logger.error('❌ MongoDB Error:', err));
+  .catch(err => {
+    logger.error('❌ MongoDB Error:', err);
+    process.exit(1);
+  });
 
 // Durable AI generation worker (Phase 4): in-process poller that picks
 // up queued GenerationJobs and runs them independent of any HTTP request

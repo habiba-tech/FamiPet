@@ -16,7 +16,8 @@ const logger = require('./logger');
 
 const seedData = async () => {
   try {
-    await mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/animal_planet');
+    if (!process.env.MONGODB_URI) throw new Error('MONGODB_URI is not set (Compose injects mongodb://mongodb:27017/petDB)');
+    await mongoose.connect(process.env.MONGODB_URI);
     logger.info('Connected to MongoDB');
 
     await Promise.all([
