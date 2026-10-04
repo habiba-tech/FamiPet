@@ -6,7 +6,7 @@
 #
 #   Internet
 #      |
-#   Cloudflare / cloudflared (optional, profile "tunnel")
+#   Cloudflare / cloudflared
 #      |
 #   nginx :80  <-- the ONLY published application port
 #      |
@@ -81,15 +81,9 @@ services:
     env_file:
       - ./backend/.env
     # PetGPT calls an EXTERNAL OpenAI-compatible endpoint that the
-    # deployment provides. When that endpoint lives on the host, a
-    # container cannot reach the host's loopback address directly, so
-    # host.docker.internal is mapped to the host gateway and the endpoint
-    # is addressed by that STABLE name:
-    #   PETGPT_OPENAI_BASE_URL=http://host.docker.internal:<port>/v1
-    # (A 172.x container IP is never used - it changes on every recreate.)
-    # This mapping is inert when no host-local endpoint is used.
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
+    # deployment provides. It is a remote HTTPS gateway, so no host
+    # networking shim is needed here: the container reaches it with an
+    # ordinary outbound connection.
     environment:
       # Inside the Compose network the database resolves by service name
       # (environment entries override env_file values).
@@ -170,17 +164,15 @@ services:
   # Outbound-only. The public hostname -> http://nginx:80 mapping is
   # configured in the Cloudflare Zero Trust dashboard for the named
   # tunnel; this container only runs it. The TOKEN is injected at runtime
-  # from a gitignored .env and is never baked into an image. Gated behind
-  # profile "tunnel" so a plain `up` cannot start it with an empty token:
-  #   docker compose --profile tunnel up -d cloudflared
+  # from a gitignored .env and is never baked into an image. It starts
+  # with a plain `up` like every other service:
+  #   docker compose up -d
   cloudflared:
     image: cloudflare/cloudflared:latest
     restart: unless-stopped
     init: true
     security_opt:
       - no-new-privileges:true
-    profiles:
-      - tunnel
     command: tunnel run
     environment:
       - TUNNEL_TOKEN=${TUNNEL_TOKEN:-}
@@ -193,18 +185,13 @@ services:
     cpus: 0.5
 
   # -------- AI PROVIDER (OpenAI-compatible endpoint) --------
-  # PetGPT talks to an EXTERNAL, OpenAI-compatible HTTP endpoint. That
+  # PetGPT talks to a REMOTE, OpenAI-compatible HTTPS gateway. That
   # endpoint is a deployment concern, not a FamiPet service: this stack
   # neither runs one nor depends on one. Nothing below is required for
   # FamiPet to boot - PetGPT simply reports "no provider configured"
-  # until the deployment supplies a base URL.
+  # until PETGPT_OPENAI_BASE_URL is set in backend/.env.
   #
-  # The backend reaches an endpoint on the host through the stable
-  # `host.docker.internal` name mapped to the host gateway (see
-  # `extra_hosts` on the backend above):
-  #   PETGPT_OPENAI_BASE_URL=http://host.docker.internal:<port>/v1
-  # A container IP (172.x) is never used - it changes on every recreate.
-  #
+  # The backend reaches it with an ordinary outbound HTTPS request.
   # The endpoint may be any OpenAI-compatible gateway (host-local, remote,
   # or behind a tunnel). Only base URL + key + model matter; FamiPet does
   # not care which implementation serves it. This is the ONLY place the
