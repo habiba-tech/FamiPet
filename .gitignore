@@ -1,5 +1,9 @@
 graphify-out/
 
+# Playwright MCP audit output (page snapshots, console logs, screenshots).
+# Regenerated on every browser run; never a source artifact.
+.playwright-mcp/
+
 # Local Docker Compose environment for the root docker-compose.yml.
 # Holds the Cloudflare TUNNEL_TOKEN and optional APP_PORT / CLIENT_URL /
 # VITE_API_URL overrides. Never commit.
