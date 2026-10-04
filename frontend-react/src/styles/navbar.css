@@ -221,9 +221,46 @@
     cursor:pointer;
 
 }
+/* ==========================
+        DARK THEME
+========================== */
+
+/* Landing-only (Navbar renders solely in LandingLayout). Translucent so the
+   existing backdrop-filter blur still reads. Colours only — the button keeps
+   the display:flex centring added above, and the logo keeps its 130px box. */
+
+body.dark-theme .header {
+    background:rgba(23,21,35,.9);
+}
+
+body.dark-theme .nav-links a {
+    color:#F5F2FF;
+}
+
+body.dark-theme .theme-btn {
+    background:#211E30;
+    border-color:#332E45;
+    color:#F5F2FF;
+}
+
+body.dark-theme .login-btn {
+    background:#3A2631;
+}
+
+/* Famipet.png is a dark-ink raster logo (39% of its opaque pixels below
+   luminance 128) and would disappear on a dark bar. A light plate behind it
+   keeps the artwork at full size — padding is inside the existing 130px
+   border-box, so the navbar does not reflow. */
+body.dark-theme .logo img {
+    background:#fff;
+    padding:6px 10px;
+    border-radius:12px;
+}
+
 /* =========================================================
-   RESPONSIVE NAV — mirrors responsive.css lines 5-25.
-========================================================= */
+    RESPONSIVE NAV — mirrors responsive.css lines 5-25.
+    ========================================================= */
+
 
 @media (max-width: 992px) {
     .nav-menu {

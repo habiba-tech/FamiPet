@@ -440,6 +440,67 @@
 }
 
 /* =====================================================
+   DARK THEME
+
+   Colours only — no box-model values, so the container geometry
+   verified in both themes is identical. The pink accent (#ff5c8a) is
+   kept as-is: it is the brand colour and holds contrast on the dark
+   surfaces. `.why-icon` tiles keep their pastel inline backgrounds
+   (set from JSX) so their dark glyphs stay readable.
+   ===================================================== */
+
+body.dark-theme .landing .hero-tag {
+  background: #3a2631;
+}
+
+body.dark-theme .landing .hero-content h1,
+body.dark-theme .landing .section-header h2,
+body.dark-theme .landing .service-content h3,
+body.dark-theme .landing .why-card h3 {
+  color: #f5f2ff;
+}
+
+body.dark-theme .landing .hero-content p,
+body.dark-theme .landing .section-header p,
+body.dark-theme .landing .service-content p,
+body.dark-theme .landing .why-card p {
+  color: #b7b0c9;
+}
+
+body.dark-theme .landing .secondary-btn {
+  background: #211e30;
+  border-color: #332e45;
+  color: #f5f2ff;
+}
+
+body.dark-theme .landing .secondary-btn:hover {
+  background: #332e45;
+}
+
+body.dark-theme .landing .service-card,
+body.dark-theme .landing .why-card {
+  background: #211e30;
+  border-color: #332e45;
+}
+
+body.dark-theme .landing .service-card:hover {
+  background: #262138;
+}
+
+body.dark-theme .landing .service-icon {
+  background: #3a2631;
+}
+
+body.dark-theme .landing .why-choose {
+  background: #171523;
+}
+
+body.dark-theme .landing .cta-box {
+  background: linear-gradient(135deg, #241a26, #1b1626);
+  border-color: #332e45;
+}
+
+/* =====================================================
    RESPONSIVE — design.md breakpoints (1100/992/768/480)
    ===================================================== */
 

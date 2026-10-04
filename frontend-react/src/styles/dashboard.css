@@ -140,16 +140,19 @@ body.dark-theme:has(.dashboard-page) {
 
 /* =========================================================
    3. RESET
-========================================================= */
 
-* {
-
-    margin: 0;
-    padding: 0;
-
-    box-sizing: border-box;
-
-}
+   The universal box reset that used to live here was moved into
+   `@layer base` in global.css. It has to be LAYERED: an unlayered
+   `*` selector outranks every layered rule regardless of
+   specificity, so as an unlayered rule it silently beat Tailwind's
+   own `@layer utilities` and killed EVERY `p-*`/`px-*`/`m-*`/`gap`
+   class in the app - a page built from utilities rendered with all
+   padding and margins collapsed to 0 while `gap`, colours, borders
+   and flex kept working (the reset only sets margin/padding), which
+   is exactly the "everything is cramped edge to edge" look. Layered,
+   it still normalizes UA margins as a reset should, but utilities
+   now win, as they must.
+   ========================================================= */
 
 
 html {
@@ -157,6 +160,7 @@ html {
     scroll-behavior: smooth;
 
 }
+
 
 
 body:has(.dashboard-page) {

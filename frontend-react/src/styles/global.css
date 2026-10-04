@@ -100,6 +100,21 @@ svg.lucide {
   animation: lucide-spin 1s linear infinite;
 }
 @layer base {
+  /* Universal box reset (ported from dashboard.css §3, which owned it
+     before). It MUST live in a layer: an unlayered `*` selector
+     outranks every layered rule whatever its specificity, so as an
+     unlayered rule it silently beat Tailwind's `@layer utilities` and
+     collapsed every padding, margin and gap utility in the app to 0 —
+     the reset set only margin and padding, so flex, gap, colours and
+     borders kept working and the breakage read as a spacing bug
+     rather than a cascade bug. In `@layer base` it still normalizes
+     UA margins like any reset, but utilities win, as intended. */
+  * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
+
   html {
     scroll-behavior: smooth;
     scroll-padding-top: var(--navbar-height, 90px);
@@ -173,17 +188,38 @@ svg.lucide {
 }
 
 /* =========================================================
+   LANDING DARK PALETTE
+
+   The landing was light-only — the Vanilla original had no dark rules
+   for home/navbar/footer either (its dark block lived in
+   responsive.css and only covered authenticated pages), so the theme
+   toggle was a visible no-op here.
+
+   Gated on `:has(.landing)`, mirroring the pattern dashboard.css uses
+   for its own tokens, so this can never reach the authenticated pages,
+   whose palette is namespaced under `:root:has(.dashboard-page)`.
+   Values are the dark surfaces the app already ships (page #171523,
+   card #211e30, border #332e45, text #f5f2ff / #b7b0c9) so the landing
+   and the signed-in app read as one product. Colours only — no
+   box-model values — so geometry is byte-identical in both themes.
+   ========================================================= */
+body.dark-theme:has(.landing) {
+  --color-canvas: #171523;
+  --background: #171523;
+  --text-dark: #f5f2ff;
+  --text-light: #b7b0c9;
+  --border: #332e45;
+}
+
+/* =========================================================
    GLOBAL COMPONENT PRIMITIVES — mirrors frontend/css/style.css
 
-   Also kept OUT of `@layer components`, for the same reason as
-   `.container` above: dashboard.css ships an unlayered
-   `* { margin: 0; padding: 0 }` reset, and unlayered rules outrank
-   every layer, so the layered `padding: 16px 34px` lost and every
-   `.btn-primary`/`.btn-secondary` rendered unpadded. Measured on the
-   landing CTA: both buttons 28px tall instead of 60px; footer subscribe
-   button 81x24px — flat text inside a 62px pill. Unlayered, the padding
-   applies again. Only 3 call sites use these classes and none add
-   overriding utilities, so nothing loses to them.
+   Kept OUT of `@layer components`. They were rescued from the
+   unlayered `*` reset in dashboard.css, which is now layered (see
+   the reset above), but layering them would put them behind every
+   Tailwind utility and re-expose them to the same padding loss this
+   document originally recorded. Only 3 call sites use these classes and
+   none add overriding utilities, so nothing loses to them unlayered.
    ========================================================= */
 .btn-primary {
   display: inline-flex;
