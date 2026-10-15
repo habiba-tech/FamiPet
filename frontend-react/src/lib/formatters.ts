@@ -26,9 +26,12 @@ export function breedName(pet?: { breed?: { name?: string } | string | null } | 
   return (b && typeof b === 'object' && b.name) || (typeof b === 'string' ? b : '') || 'Pet'
 }
 
-export function ageText(pet?: { age?: number } | null): string {
+export type AgeUnit = 'months' | 'years'
+
+export function ageText(pet?: { age?: number; ageUnit?: AgeUnit } | null): string {
   if (!pet || typeof pet.age !== 'number') return ''
-  return `${pet.age} ${pet.age === 1 ? 'yr' : 'yrs'}`
+  const unit = pet.ageUnit === 'months' ? 'Month' : 'Year'
+  return `${pet.age} ${pet.age === 1 ? unit : `${unit}s`}`
 }
 
 export function petImage(pet?: { images?: string[]; species?: string } | null): string {

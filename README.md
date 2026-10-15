@@ -190,8 +190,9 @@ Running one service alone (development)
 
 * **root `.env`** (gitignored, template `.env.example`) — the complete
   deployment contract: `APP_PORT`, `VITE_API_URL`, `CLIENT_URL`,
-  `TUNNEL_TOKEN`, Mongo/JWT, every `PETGPT_*`, `PET_BREED_*`, VAPID, optional
-  SMTP/Cloudinary and the AI service tuning variables. `docker-compose.yml`
+  `PUBLIC_APP_URL`, `TUNNEL_TOKEN`, Mongo/JWT, every `PETGPT_*`,
+  `PET_BREED_*`, VAPID, optional SMTP/Cloudinary and the AI service tuning
+  variables. `docker-compose.yml`
   interpolates this file and passes each container exactly the variables it
   needs — it never dumps the whole file into every container, and it reads no
   service-local env file.
@@ -209,6 +210,7 @@ Key backend variables (documented with defaults in `.env.example`):
 | `MONGODB_URI` | The only source of the database URL. The Compose default is `mongodb://mongodb:27017/petDB`; there is deliberately no localhost fallback in the code. |
 | `JWT_SECRET`, `JWT_EXPIRE` | Session signing key and lifetime. `JWT_SECRET` is required — Compose fails fast without it. |
 | `CLIENT_URL` | Public origin(s) used for emailed deep links and the CORS allow list. Every origin the app is served from must be listed, or writes fail while reads keep working. |
+| `PUBLIC_APP_URL` | Public origin encoded into generated Pet ID QR codes (e.g. `https://famipet.catlium.in`). Falls back to `CLIENT_URL`; without either, QR codes encode a placeholder host. |
 | `EMAIL_USER`, `EMAIL_PASS`, `EMAIL_SERVICE` | SMTP transport for verification and reset mail. |
 | `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, `CLOUDINARY_API_SECRET` | Optional image hosting; local uploads are used when unset. |
 | `PETGPT_OPENAI_BASE_URL` | Chat-completions **root** of the provider (the adapter appends `/chat/completions`); no trailing slash. |
@@ -389,7 +391,8 @@ MONGODB_URI=mongodb://localhost:27017/petDB npm test
 
 The suite runs sequentially with `node test/<file>.js` and covers database isolation,
 pet authorization, auth-email flows (verification/reset links, email-configured vs
-not, no-orphan registration), the env validator, the public-PII boundary, the AI layer,
+not, no-orphan registration), the env validator, the public-PII boundary, pet age
+units, Pet ID QR URL/regeneration, appointment effective status, the AI layer,
 conversations, PetGPT jobs/tools/mutations/quota/security, and push notifications
 (including ownership isolation, payload safety, outage isolation and endpoint pruning).
 Suites that need a real provider self-skip unless `PETGPT_RUN_LIVE_E2E=1`. `npm run
@@ -429,6 +432,10 @@ Commit messages follow `<type>: <summary>` (`feat`, `fix`, `refactor`, `docs`, `
 * **`CLIENT_URL` must list every served origin.** The backend checks the `Origin`
   header against it on every write; a missing origin fails logins and settings while
   reads keep working, which looks like a healthy app.
+* **Pet ID QR codes encode `PUBLIC_APP_URL`.** Set it to the public origin
+  (`https://famipet.catlium.in`) so scanned codes resolve on the production site; if
+  unset, QR generation falls back to `CLIENT_URL` and warns at startup. The stored QR is
+  regenerated on demand, so changing the value corrects previously issued codes.
 * **Only nginx is published.** The API, the database and the SPA container stay on
   private Compose networks; the backend runs as a non-root user, with a read-only root
   filesystem, all capabilities dropped and `no-new-privileges`.

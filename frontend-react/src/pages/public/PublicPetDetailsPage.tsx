@@ -9,6 +9,7 @@ import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { getPublicPetByUid, type PublicPet } from '../../api/pets'
 import { Icon } from '../../components/shared/Icon'
+import { ageText } from '../../lib/formatters'
 
 export function PublicPetDetailsPage() {
   const { petUid } = useParams<{ petUid: string }>()
@@ -93,7 +94,7 @@ export function PublicPetDetailsPage() {
             {pet.age ? (
               <div>
                 <dt>Age</dt>
-                <dd>{pet.age} yrs</dd>
+                <dd>{ageText(pet)}</dd>
               </div>
             ) : null}
             {pet.weight ? (

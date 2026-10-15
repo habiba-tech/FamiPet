@@ -55,7 +55,10 @@ export function PetFormModal({ editing, onClose, onSaved }: Props) {
   // createPetOnBackend/updatePetOnBackend send `images: [imageData]` only when
   // a file was selected).
   const [newPhoto, setNewPhoto] = useState<string | null>(null)
-  const [age, setAge] = useState(editing?.age.replace(/\s*(Year|Years|yr|yrs)?$/i, '').trim() || '')
+  // Prefill the full display string ("2 Months" / "1 Year") so buildPetPayload
+  // re-derives the same unit on save — stripping the suffix dropped the unit
+  // and silently converted a months-old pet to years.
+  const [age, setAge] = useState(editing?.age || '')
   const [weight, setWeight] = useState(editing?.weight.replace(/\s*kg$/i, '').trim() || '')
   const [vaccinated, setVaccinated] = useState(editing ? (editing.vaccinated ? 'Yes' : 'No') : '')
   const [notes, setNotes] = useState(editing?.notes || '')
