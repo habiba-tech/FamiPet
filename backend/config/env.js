@@ -32,6 +32,10 @@ const schema = z.object({
 
   CLIENT_URL: z.string().optional(),
 
+  // Public origin generated QR codes (Digital Pet ID) must point at. Kept
+  // separate from CLIENT_URL (a CORS allow-list that may start with localhost).
+  PUBLIC_APP_URL: httpUrl().optional(),
+
   MONGODB_URI: z.string().min(1),
   JWT_SECRET: z.string().min(1),
 
@@ -116,6 +120,18 @@ function analyzeEnv(env = process.env) {
         `Emailed verify/reset links and the CORS allow-list rely on it.`
       );
     }
+  }
+
+  // A production deployment without PUBLIC_APP_URL generates Pet ID QR codes
+  // from CLIENT_URL's first entry - normally http://localhost - which is
+  // useless off the deployment host. Warn loudly rather than silently ship
+  // unscannable codes.
+  if (String(env.NODE_ENV || "").trim() === "production" && !isSet(env, "PUBLIC_APP_URL")) {
+    warnings.push(
+      `PUBLIC_APP_URL is unset in production: generated Pet ID QR codes fall back to ` +
+      `CLIENT_URL's first origin (often http://localhost) and will not scan off the ` +
+      `deployment host. Set PUBLIC_APP_URL to the public hostname users browse to.`
+    );
   }
 
   for (const group of FEATURE_GROUPS) {

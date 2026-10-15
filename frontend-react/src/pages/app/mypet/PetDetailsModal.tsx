@@ -14,20 +14,23 @@ interface Props {
 }
 
 export function PetDetailsModal({ pet, onClose }: Props) {
-  const [qr, setQr] = useState(pet.qrCode || null)
+  const [qr, setQr] = useState<string | null>(null)
   const overlayRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     let alive = true
-    if (!pet.qrCode) {
-      getPetQr(pet.id)
-        .then((res) => {
-          if (alive && res.qrCode) setQr(res.qrCode)
-        })
-        .catch(() => {
-          /* keep placeholder */
-        })
-    }
+    // Always fetch a fresh QR: the backend re-encodes it with the currently
+    // configured public origin, so pets whose stored QR was generated for an
+    // older base (e.g. localhost) show the correct destination, not a stale
+    // one. On failure fall back to any already-stored image.
+    getPetQr(pet.id)
+      .then((res) => {
+        if (alive && res.qrCode) setQr(res.qrCode)
+        else if (alive) setQr(pet.qrCode || null)
+      })
+      .catch(() => {
+        if (alive) setQr(pet.qrCode || null)
+      })
     return () => {
       alive = false
     }

@@ -3,6 +3,7 @@
 // toFrontendPet, buildPetPayload, parsePetAge).
 
 import type { Pet, PetPayload } from '../../../api/pets'
+import { ageText } from '../../../lib/formatters'
 
 // The My Pets form only offers these species (Vanilla mypet.html); the backend
 // Pet.species enum is [dog, cat, bird, rabbit, fish, other] so a custom
@@ -63,6 +64,13 @@ export function parsePetAge(input: string | number | null | undefined): number {
   return match ? parseFloat(match[1]) : NaN
 }
 
+// The unit half of the free-text age field ("2 Months" vs "2 Years"). Absent
+// a recognisable month word, assume years — which is also how the backend
+// reads a legacy pet saved before the unit existed.
+export function parsePetAgeUnit(input: string | number | null | undefined): 'months' | 'years' {
+  return /mon/i.test(String(input || '')) ? 'months' : 'years'
+}
+
 // Read model used by the My Pets page + Pet ID page. Mirrors Vanilla
 // toFrontendPet() minus the fabricated `health`/"Good" and the never-persisted
 // `appointment` flag (backend has no fields for either).
@@ -91,7 +99,7 @@ export function toPetView(p: Pet): PetView {
     breed,
     species,
     gender: capFirst(p.gender),
-    age: `${p.age} ${p.age === 1 ? 'Year' : 'Years'}`,
+    age: ageText(p),
     weight: `${p.weight} kg`,
     vaccinated: !!p.vaccinated,
     notes: p.description || '',
@@ -120,6 +128,7 @@ export function buildPetPayload(p: {
     breed: p.breed,
     gender: String(p.gender).toLowerCase(),
     age: parsePetAge(p.age),
+    ageUnit: parsePetAgeUnit(p.age),
     weight: parseFloat(p.weight) || 0,
     vaccinated: p.vaccinated,
     description: p.notes || '',

@@ -42,6 +42,14 @@ const petSchema = new mongoose.Schema(
       min: 0,
     },
 
+    // Unit for `age`. Stored so a 2-month-old pet is not displayed as 2 years.
+    // Legacy records without a unit are read as "years".
+    ageUnit: {
+      type: String,
+      enum: ["months", "years"],
+      default: "years",
+    },
+
     weight: {
       type: Number,
       default: 0,
