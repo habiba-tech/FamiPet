@@ -48,6 +48,28 @@ const badClient = analyzeEnv({ ...healthy, CLIENT_URL: "localhost:8080,not-a-url
 assert.ok(badClient.warnings.some((w) => /CLIENT_URL/.test(w)), "non-URL CLIENT_URL is flagged");
 ok("env-validator: malformed CLIENT_URL is flagged");
 
+// ---------------- PUBLIC_APP_URL (QR origin) ----------------
+const prodNoAppUrl = analyzeEnv({ ...healthy, NODE_ENV: "production" });
+assert.ok(
+  prodNoAppUrl.warnings.some((w) => /PUBLIC_APP_URL/.test(w)),
+  "production without PUBLIC_APP_URL warns that QR codes would fall back to localhost",
+);
+ok("env-validator: production without PUBLIC_APP_URL warns");
+
+const prodWithAppUrl = analyzeEnv({ ...healthy, NODE_ENV: "production", PUBLIC_APP_URL: "https://famipet.example.com" });
+assert.ok(
+  !prodWithAppUrl.warnings.some((w) => /PUBLIC_APP_URL/.test(w)),
+  "production with PUBLIC_APP_URL set produces no QR-origin warning",
+);
+ok("env-validator: production with PUBLIC_APP_URL is quiet");
+
+const badAppUrl = analyzeEnv({ ...healthy, PUBLIC_APP_URL: "not-a-url" });
+assert.ok(
+  badAppUrl.warnings.some((w) => /PUBLIC_APP_URL/.test(w)),
+  "malformed PUBLIC_APP_URL is flagged",
+);
+ok("env-validator: malformed PUBLIC_APP_URL is flagged");
+
 // ---------------- partially-configured service groups ----------------
 const halfEmail = analyzeEnv({ ...healthy, EMAIL_USER: "admin@test.dev" });
 assert.strictEqual(halfEmail.errors.length, 0, "half email config does not kill startup");

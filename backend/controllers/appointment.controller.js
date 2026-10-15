@@ -5,6 +5,7 @@ const Veterinarian = require("../models/Veterinarian");
 const Notification = require("../models/Notification");
 const Reminder = require("../models/Reminder");
 const { createAppointmentForUser } = require("../services/appointment.service");
+const { effectiveAppointmentStatus } = require("../utils/appointmentTime");
 
 exports.getAppointments = async (req, res) => {
   try {
@@ -13,7 +14,18 @@ exports.getAppointments = async (req, res) => {
       .populate("veterinarian", "name clinic specialization phone")
       .sort({ date: 1, time: 1 });
 
-    res.json({ success: true, count: appointments.length, appointments });
+    // Report the effective status: a pending/confirmed appointment whose
+    // scheduled moment has passed is history. Computed on read (never written
+    // back) so the stored record and any admin/audit view stay untouched, and
+    // every client — dashboard, appointments page, PetGPT — agrees.
+    const now = new Date();
+    const list = appointments.map((a) => {
+      const obj = a.toObject();
+      obj.status = effectiveAppointmentStatus(obj.status, obj.date, obj.time, now);
+      return obj;
+    });
+
+    res.json({ success: true, count: list.length, appointments: list });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }

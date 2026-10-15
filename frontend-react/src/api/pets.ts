@@ -11,6 +11,7 @@ export interface Pet {
   breed?: { name?: string } | string | null
   gender?: string
   age?: number
+  ageUnit?: 'months' | 'years'
   weight?: number | string
   vaccinated?: boolean
   description?: string
@@ -43,6 +44,7 @@ export interface PetPayload {
   breed: string
   gender: string
   age: number
+  ageUnit?: 'months' | 'years'
   weight: number
   vaccinated: boolean
   description?: string
@@ -97,6 +99,7 @@ export interface PublicPet {
   breed?: string
   gender?: string
   age?: number
+  ageUnit?: 'months' | 'years'
   weight?: number | string
   color?: string
   vaccinated?: boolean

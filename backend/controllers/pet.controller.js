@@ -6,6 +6,11 @@ const logger = require("../utils/logger");
 const { str, strLower, searchStr } = require("../utils/querySafe");
 const { petQrPayloadUrl } = require("../utils/petQr");
 
+// Pet age is a number plus its unit. Anything that is not exactly "months" is
+// stored as "years" so a malformed value can never break the mongoose enum,
+// and legacy pets saved before the unit existed keep reading as years.
+const normalizeAgeUnit = (value) => (String(value).toLowerCase() === "months" ? "months" : "years");
+
 // ==========================
 // Get All Pets
 // ==========================
@@ -187,6 +192,7 @@ exports.getPublicPetByUid = async (req, res) => {
         breed: breed && breed.name ? breed.name : "",
         gender: pet.gender,
         age: pet.age,
+        ageUnit: pet.ageUnit || "years",
         weight: pet.weight,
         color: pet.color || "",
         vaccinated: pet.vaccinated,
@@ -216,6 +222,7 @@ exports.createPet = async (req, res) => {
       species,
       gender,
       age,
+      ageUnit,
       weight,
       color,
       vaccinated,
@@ -257,6 +264,7 @@ exports.createPet = async (req, res) => {
       species,
       gender,
       age,
+      ageUnit: normalizeAgeUnit(ageUnit),
       weight,
       color,
       vaccinated,
@@ -333,6 +341,7 @@ exports.updatePet = async (req, res) => {
       "species",
       "gender",
       "age",
+      "ageUnit",
       "weight",
       "color",
       "vaccinated",
@@ -370,7 +379,7 @@ exports.updatePet = async (req, res) => {
 
     updatable.forEach((key) => {
       if (req.body[key] !== undefined) {
-        pet[key] = req.body[key];
+        pet[key] = key === "ageUnit" ? normalizeAgeUnit(req.body[key]) : req.body[key];
       }
     });
 

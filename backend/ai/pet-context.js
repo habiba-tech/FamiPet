@@ -23,6 +23,7 @@ const HealthRecord = require("../models/HealthRecord");
 const Vaccination = require("../models/Vaccination");
 const Appointment = require("../models/Appointment");
 const Reminder = require("../models/Reminder");
+const { effectiveAppointmentStatus } = require("../utils/appointmentTime");
 
 // ------------------------------------------------
 // Normalized shapes (bounded, no sensitive fields)
@@ -37,6 +38,7 @@ function normalizePet(pet) {
     breed: pet.breed && pet.breed.name ? pet.breed.name : undefined,
     gender: pet.gender,
     age: pet.age,
+    ageUnit: pet.ageUnit || "years",
     weight: pet.weight === undefined || pet.weight === null ? undefined : pet.weight,
     color: pet.color || undefined,
     vaccinated: !!pet.vaccinated,
@@ -78,7 +80,9 @@ function normalizeAppointment(a) {
     date: a.date,
     time: a.time,
     type: a.type,
-    status: a.status,
+    // Effective status so the AI sees a past pending/confirmed appointment as
+    // completed, matching what the REST endpoints report.
+    status: effectiveAppointmentStatus(a.status, a.date, a.time),
     symptoms: a.symptoms || undefined,
     notes: a.notes || undefined,
     prescription: a.prescription || undefined,

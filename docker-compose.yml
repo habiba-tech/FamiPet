@@ -94,6 +94,11 @@ services:
       - JWT_EXPIRE=${JWT_EXPIRE:-30d}
       # Public origin used for emailed deep links (verify/reset) + CORS.
       - CLIENT_URL=${CLIENT_URL:-http://localhost:8080}
+      # The hostname users actually browse to, used for generated QR
+      # destinations (Digital Pet ID). Kept separate from CLIENT_URL because
+      # that list may begin with http://localhost for local development.
+      # Unset falls back to CLIENT_URL's first entry (local dev).
+      - PUBLIC_APP_URL=${PUBLIC_APP_URL:-}
       # Production mode: gates the legacy frontend fallback listener and the
       # development-only CORS origins (localhost / private LAN ranges).
       - NODE_ENV=${NODE_ENV:-production}

@@ -6,19 +6,24 @@
 // camera scan opens readable pet info rather than `[object
 // Object]`.
 //
-// The base origin reuses the deployment's CLIENT_URL — the same
-// configurable source the emailed verify/reset links use (root
-// .env -> docker-compose -> backend container). No development
-// localhost URI is ever baked into a QR; whatever base is set at
-// deploy time is the base the QR points at.
+// The base origin is the deployment's PUBLIC_APP_URL — the hostname
+// users actually browse to (root .env -> docker-compose -> backend
+// container). It is deliberately SEPARATE from CLIENT_URL: that is a
+// CORS allow-list whose first entry is legitimately http://localhost
+// for local development, so deriving the QR host from it made
+// production QRs open localhost. PUBLIC_APP_URL unset falls back to
+// CLIENT_URL (then a localhost default) so standalone/local dev keeps
+// working unchanged.
 // =========================================================
 
 const GENERIC_FALLBACK_BASE = "http://localhost:8080";
 
-// CLIENT_URL may be a comma-separated CORS allow-list; a single QR
-// destination needs exactly one origin, so take the first entry.
+// PUBLIC_APP_URL is a single origin; CLIENT_URL may be a comma-separated
+// allow-list, so take its first entry. A single QR destination needs
+// exactly one origin.
 function petQrBaseUrl() {
-  return String(process.env.CLIENT_URL || GENERIC_FALLBACK_BASE)
+  const configured = process.env.PUBLIC_APP_URL || process.env.CLIENT_URL || GENERIC_FALLBACK_BASE;
+  return String(configured)
     .split(",")[0]
     .trim()
     .replace(/\/+$/, "");
